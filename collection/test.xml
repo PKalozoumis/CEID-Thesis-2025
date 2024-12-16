@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!DOCTYPE cfc SYSTEM "cfc.dtd">
+
+
+<RECORD>
+<PAPERNUM>PN74001</PAPERNUM>
+<RECORDNUM>00001 </RECORDNUM>
+<MEDLINENUM>75051687</MEDLINENUM>
+<AUTHORS><AUTHOR>Hoiby-N</AUTHOR><AUTHOR>Jacobsen-L</AUTHOR><AUTHOR>Jorgensen-B-A</AUTHOR><AUTHOR>Lykkegaard-E</AUTHOR><AUTHOR>Weeke-B</AUTHOR></AUTHORS>
+<TITLE>Pseudomonas aeruginosa infection in cystic fibrosis.  Occurrence of
+precipitating antibodies against pseudomonas aeruginosa in relation
+to the concentration of sixteen serum proteins and the clinical and
+radiographical status of the lungs.</TITLE>
+<SOURCE>Acta-Paediatr-Scand. 1974 Nov. 63(6). P 843-8.</SOURCE>
+<MAJORSUBJ><TOPIC>CYSTIC-FIBROSIS: co</TOPIC><TOPIC>PSEUDOMONAS-AERUGINOSA: im</TOPIC><TOPIC>PSEUDOMONAS-INFECTIONS: co</TOPIC><TOPIC>RESPIRATORY-TRACT-INFECTIONS: co</TOPIC></MAJORSUBJ>
+<MINORSUBJ><TOPIC>ADOLESCENCE</TOPIC><TOPIC>BLOOD-PROTEINS: me</TOPIC><TOPIC>CHILD</TOPIC><TOPIC>CHILD-PRESCHOOL</TOPIC><TOPIC>CYSTIC-FIBROSIS: im, bl</TOPIC><TOPIC>FEMALE</TOPIC><TOPIC>HUMAN</TOPIC><TOPIC>IMMUNOELECTROPHORESIS</TOPIC><TOPIC>IMMUNOGLOBULINS: me</TOPIC><TOPIC>LUNG: ra</TOPIC><TOPIC>MALE</TOPIC><TOPIC>PRECIPITIN-TESTS</TOPIC><TOPIC>PRECIPITINS</TOPIC><TOPIC>PSEUDOMONAS-INFECTIONS: im, bl, ra</TOPIC><TOPIC>RESPIRATORY-TRACT-INFECTIONS: bl, im, ra</TOPIC><TOPIC>SERUM-ALBUMIN: me</TOPIC></MINORSUBJ>
+<ABSTRACT>The significance of Pseudomonas aeruginosa infection in the
+respiratory tract of 9 cystic fibrosis patients have been studied
+by means of immunoelectrophoretical analysis of patients' sera for
+the number of precipitins against Pseudomonas aeruginosa and the
+concentrations of 16 serum proteins.  In addition, the clinical and
+radiographical status of the lungs have been evaluated using 2
+scoring systems.  Precipitins against Pseudomonas aeruginosa were
+demonstrated in all sera, the maximum number in one serum was 22.
+The concentrations of 12 of the serum proteins were significantly
+changed compared with matched control persons.  Notably IgG and IgA
+were elevated and the "acute phase proteins" were changed, the
+latter suggesting active tissue damage.  The concentrations of 3 of
+the acute phase proteins, notably haptoglobin, were correlated to
+the number of precipitins suggesting that the respiratory tract
+infection in patients with many precipitins is accompanied by more
+tissue damage than the infection in patients with few precipitins.
+The results indicate no protective value of the many precipitins on
+the tissue of the respiratory tract.</ABSTRACT>
+<REFERENCES>
+<CITE num="001" author="BELFRAGE S" publication="ACTA MED SCAND SUPPL" d1="173" d2="5" d3="963"/>
+<CITE num="002" author="COOMBS RRA" publication="IN: GELL PGH" d1="" d2="317" d3="964"/>
+<CITE num="003" author="DIEM K" publication="DOCUMENTA GEIGY SCIENTIFIC TA" d1="" d2="" d3="962"/>
+<CITE num="004" author="DOGGETT RG" publication="J PEDIATR" d1="68" d2="215" d3="966"/>
+<CITE num="005" author="DOGGETT RG" publication="IN: LAWSON D PROC 5TH INT CF" d1="" d2="175" d3="969"/>
+<CITE num="006" author="DOGGETT RG" publication="INFECT IMMUN" d1="6" d2="628" d3="972"/>
+<CITE num="007" author="HOIBY N" publication="ACTA PATH MICROBIOL SCAND (B)" d1="81" d2="298" d3="973"/>
+<CITE num="009" author="KOCH C" publication="ACTA PATH MICROBIOL SCAND (B)" d1="81" d2="787" d3="973"/>
+<CITE num="010" author="LUNDH B" publication="ACTA UNIV LUND II" d1="24" d2="1" d3="965"/>
+<CITE num="011" author="LUNDH B" publication="ACTA UNIV LUND II" d1="27" d2="1" d3="965"/>
+<CITE num="012" author="MINCHIN-CLARKE HG" publication="THORAX" d1="25" d2="423" d3="970"/>
+<CITE num="013" author="MULLER HE" publication="DTSCH MED WSCHR" d1="93" d2="120" d3="968"/>
+<CITE num="014" author="NORMAN AP" publication="PROC EWGCF 2ND ANNU MTG" d1="" d2="" d3="971"/>
+<CITE num="015" author="NYMAN M" publication="SCAND J CLIN LAB INVEST SUPPL" d1="39" d2="5" d3="959"/>
+<CITE num="016" author="WEEKE B" publication="ACTA MED SCAND" d1="192" d2="149" d3="972"/>
+<CITE num="017" author="WEEKE B" publication="THESIS" d1="" d2="1" d3="973"/>
+<CITE num="018" author="WEEKE B" publication="SCAND J IMMUNOL SUPPL 1" d1="2" d2="37" d3="973"/>
+<CITE num="019" author="WEEKE B" publication="SCAND J IMMUNOL SUPPL 2" d1="1" d2="48" d3="973"/>
+</REFERENCES>
+</RECORD>
