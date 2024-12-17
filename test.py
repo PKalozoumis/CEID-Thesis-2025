@@ -14,7 +14,7 @@ with open("credentials.json", "r") as f:
 with open("mapping.json", "r") as f:
     mapping = json.load(f)
 
-doc = etree.parse(os.path.join(collection_path, "test.xml")).getroot()
+doc = etree.parse(os.path.join(collection_path, "c74.xml")).getroot()
 
 json_doc = {
     "paper_number": doc.xpath("//PAPERNUM/text()")[0],
