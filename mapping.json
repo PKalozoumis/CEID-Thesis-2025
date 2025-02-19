@@ -1,37 +1,30 @@
 {
-    "settings": {
-        "number_of_shards": 1,
-        "number_of_replicas": 1
-    },
-
-    "mappings": {
-        "properties": {
-            "paper_number": {"type": "keyword"},
-            "record_number": {"type": "keyword"},
-            "medline_num": {"type": "keyword"},
-            "authors": {"type": "keyword"},
-            "title": {"type": "text"},
-            "source": {"type": "keyword"},
-            "major_subjects": {"type": "keyword"},
-            "minor_subjects": {"type": "keyword"},
-            "abstract": {"type": "text"},
-            "citations": {
-                "properties": {
-                    "author": {"type": "keyword"},
-                    "publication": {"type": "keyword"},
-                    "d1": {"type": "short"},
-                    "d2": {"type": "short"},
-                    "d3": {"type": "short"}
-                }
-            },
-            "references": {
-                "properties": {
-                    "author": {"type": "keyword"},
-                    "publication": {"type": "keyword"},
-                    "d1": {"type": "short"},
-                    "d2": {"type": "short"},
-                    "d3": {"type": "short"}
-                }
+    "properties": {
+        "paper_number": {"type": "keyword"},
+        "record_number": {"type": "short"},
+        "medline_num": {"type": "keyword"},
+        "authors": {"type": "keyword"},
+        "title": {"type": "text"},
+        "source": {"type": "keyword"},
+        "major_subjects": {"type": "keyword"},
+        "minor_subjects": {"type": "keyword"},
+        "abstract": {"type": "text"},
+        "citations": {
+            "properties": {
+                "author": {"type": "keyword"},
+                "publication": {"type": "keyword"},
+                "d1": {"type": "keyword"},
+                "d2": {"type": "keyword"},
+                "d3": {"type": "keyword"}
+            }
+        },
+        "references": {
+            "properties": {
+                "author": {"type": "keyword"},
+                "publication": {"type": "keyword"},
+                "d1": {"type": "keyword"},
+                "d2": {"type": "keyword"},
+                "d3": {"type": "keyword"}
             }
         }
     }
