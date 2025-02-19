@@ -1,6 +1,9 @@
 
-from helper import Score, Query, elasticsearch_client, parse_queries
+from lxml import etree
+
+from helper import Score, Query, elasticsearch_client
 import metrics
+from query import parse_queries
 
 client = elasticsearch_client()
 collection_path = "collection"

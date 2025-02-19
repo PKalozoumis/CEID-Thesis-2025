@@ -1,19 +1,18 @@
 from elasticsearch import Elasticsearch
-from elasticsearch import AuthenticationException
 import json
 import sys
 import os
-from bs4 import BeautifulSoup
 from lxml import etree
 from fnmatch import fnmatch
 import re
-import argparse
 from itertools import chain
 from more_itertools import divide
 from functools import partial
 from multiprocessing import Pool
+import helper
 
 index_name = "test-index"
+client = helper.elasticsearch_client()
 
 #===================================================================================
 
@@ -89,6 +88,9 @@ def to_json(doc):
 #===================================================================================
 
 def create_index():
+    with open("mapping.json", "r") as f:
+        mapping = json.load(f)
+
     index_settings = {
         "settings": {
             "number_of_shards": 1,
@@ -123,34 +125,13 @@ def empty_index(client: Elasticsearch, index: str):
 #===================================================================================
 
 if __name__ == "__main__":
-    with open("credentials.json", "r") as f:
-        credentials = json.load(f)
-
-    with open("mapping.json", "r") as f:
-        mapping = json.load(f)
-
-    client = Elasticsearch(
-        "https://localhost:9200",
-        ca_certs="http_ca.crt",
-        basic_auth=("elastic", credentials["elastic_password"])
-    )\
-    .options(ignore_status=400)
-
-    try:
-        info = client.info()
-
-    except AuthenticationException:
-        print("Wrong password idiot")
-        sys.exit()
-
-    #===================================================================================
     create_index()
     collection_path = "collection"
     docs = []
     nprocs = 6
 
     docs = divide(
-        6,
+        nprocs,
         map(
             partial(os.path.join, collection_path),
             filter(
