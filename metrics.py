@@ -3,7 +3,7 @@ Implementations of various IR metrics
 '''
 import math
 from bisect import bisect_left
-from helper import Score, Query
+from helper import Query
 
 #==============================================================================================
 
@@ -24,6 +24,17 @@ def gain_to_dcg(gain_vector: list[int]) -> list[float]:
     return dcg_vector
 
 #==============================================================================================
+
+def relevance(doc_id: int, query: Query) -> str:
+    index = bisect_left(query.docs, doc_id)
+
+    if index == len(query.docs) or query.docs[index] != doc_id:
+        return "0000"
+    else:
+        score = query.scores[index]
+        return f"{score.s1}{score.s2}{score.s3}{score.s4}"
+
+#===============================================================================================
 
 def dcg(single_query_results: list[int], query: Query) -> tuple[list, list]:
     '''

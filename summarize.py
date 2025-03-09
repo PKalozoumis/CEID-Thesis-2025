@@ -1,8 +1,8 @@
 
 from lxml import etree
-from helper import Score, Query, elasticsearch_client
+from query import elasticsearch_client, parse_queries
+from helper import Query, Score
 import metrics
-from query import parse_queries
 from transformers import pipeline
 
 client = elasticsearch_client()
@@ -11,6 +11,4 @@ index_name = "test-index"
 
 #===============================================================================================
 
-if __name__ == "__main__":
-
-    
+parse_queries()

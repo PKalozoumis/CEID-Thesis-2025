@@ -1,3 +1,6 @@
 http_ca.crt
 credentials.json
 venv
+arxiv-metadata-oai-snapshot.json
+*.pyc
+train.json
