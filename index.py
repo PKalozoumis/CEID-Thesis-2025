@@ -2,93 +2,26 @@ from elasticsearch import Elasticsearch
 import json
 import sys
 import os
-from lxml import etree
 from fnmatch import fnmatch
 import re
 from itertools import chain
 from more_itertools import divide
 from functools import partial
 from multiprocessing import Pool
-import helper
-
-index_name = "test-index"
-client = helper.elasticsearch_client()
-
-#===================================================================================
-
-def parse_xml(file) -> list[str]:
-    f = open(file)
-    contents = f.read()
-
-    #Remove empty tags
-    res = re.sub(r'<\s*/?\s*?>', '', contents)
-
-    #Split file into documents based on the <RECORD> element
-    res = re.split(r'(?=<RECORD>)', res)
-
-    docs = []
-
-    for doc in res[1:]:
-        docs.append(etree.fromstring(doc, etree.XMLParser(recover=True)))
-    
-    f.close()
-
-    return docs
+from elastic import elasticsearch_client
+from collection_helper import to_json, parse_xml, get_abstract, count_vectorizer
+from scipy import sparse
+import argparse
+from gensim.utils import simple_preprocess
+from gensim.corpora import Dictionary
+from functools import reduce
+from gensim.parsing.preprocessing import STOPWORDS
+from gensim.models.phrases import Phrases, ENGLISH_CONNECTOR_WORDS
 
 #===================================================================================
 
-def to_json(doc):
-
-    #print(f"Mapping {doc.xpath('//RECORDNUM/text()')[0].strip()}")
-
-    abstract = (doc.xpath("//ABSTRACT/text()") + doc.xpath("//EXTRACT/text()"))
-
-    if not abstract:
-        abstract = ""
-    else:
-        abstract = abstract[0]
-
-    id = doc.xpath("//RECORDNUM/text()")[0].strip()
-
-    yield {"index": {"_id": id}}
-
-    yield {
-        "paper_number": doc.xpath("//PAPERNUM/text()")[0],
-        "record_number": id,
-        "medline_num": doc.xpath("//MEDLINENUM/text()")[0],
-        "authors": doc.xpath("//AUTHORS/AUTHOR/text()"),
-        "title": doc.xpath("//TITLE/text()")[0].replace("\n", " "),
-        "source": doc.xpath("//SOURCE/text()")[0],
-        "major_subjects": list(map(lambda x: x.replace("-", " "), doc.xpath("//MAJORSUBJ/TOPIC/text()"))),
-        "minor_subjects": list(map(lambda x: x.replace("-", " "), doc.xpath("//MINORSUBJ/TOPIC/text()"))),
-        "abstract": abstract.replace("\n", " "),
-        "citations": [{
-                "author": cite.attrib["author"],
-                "publication": cite.attrib["publication"],
-                "d1": cite.attrib["d1"],
-                "d2": cite.attrib["d2"],
-                "d3": cite.attrib["d3"]
-            }
-        
-            for cite in doc.xpath("//CITATIONS/CITE")
-                
-        ],
-        "references": [{
-                "author": cite.attrib["author"],
-                "publication": cite.attrib["publication"],
-                "d1": cite.attrib["d1"],
-                "d2": cite.attrib["d2"],
-                "d3": cite.attrib["d3"]
-            }
-
-            for cite in doc.xpath("//REFERENCES/CITE")
-        ]
-    }
-
-#===================================================================================
-
-def create_index():
-    with open("mapping.json", "r") as f:
+def create_index(client: Elasticsearch, index_name: str, mapping_path: str = "mapping.json"):
+    with open(mapping_path, "r") as f:
         mapping = json.load(f)
 
     index_settings = {
@@ -113,39 +46,62 @@ def create_index():
 
 #===================================================================================
 
-def empty_index(client: Elasticsearch, index: str):
-    resp = client.delete_by_query(index=index, body={
+def empty_index(client: Elasticsearch, index_name: str):
+    resp = client.delete_by_query(index=index_name, body={
         "query": {
             "match_all": {}
         }
     })
 
     print(resp)
+    print(f"\nEmpties Elasticsearch index {index_name}")
 
 #===================================================================================
 
 if __name__ == "__main__":
-    create_index()
-    collection_path = "collection"
-    docs = []
-    nprocs = 6
 
-    docs = divide(
-        nprocs,
-        map(
+    parser = argparse.ArgumentParser(description="Elasticsearch Index Management")
+    parser.add_argument("--empty", action="store_true", help="Empty index")
+    args = parser.parse_args()
+
+    index_name = "test-index"
+    client = elasticsearch_client()
+
+    if args.empty:
+        empty_index(client, index_name)
+    else:
+        create_index(client, index_name)
+
+        collection_path = "collection"
+        docs = []
+
+        files = map(
             partial(os.path.join, collection_path),
             filter(
                 lambda file: re.match(r"cf\d{2}\.xml", file),
                 os.listdir(collection_path)
             )
         )
-    )
 
-    def work(docs_chunk):
-        docs = chain.from_iterable(map(parse_xml, docs_chunk))
+        docs = list(chain.from_iterable(map(parse_xml, files)))
+        tokenized_docs = [simple_preprocess(get_abstract(doc)) for doc in docs]
+
+        #Train and save model
+        phrase_model = Phrases(tokenized_docs, 6, 40, connector_words=ENGLISH_CONNECTOR_WORDS)
+        phrase_model.save("phrase_model.pkl")
+
+        #For every tokenized document, apply phrase model
+        #Then, filter out the remaining stopwords
+        #Train dictionary
+        print(list(filter(lambda word: word not in STOPWORDS, phrase_model[tokenized_docs[0]])))
+
+        dic = Dictionary([filter(lambda word: word not in STOPWORDS, phrase_model[doc]) for doc in tokenized_docs])
+
+        print(dic.dfs[dic.token2id["cystic_fibrosis"]])
+
         bulk_data = list(map(json.dumps, chain.from_iterable(map(to_json, docs))))
         bulk_data = "\n".join(bulk_data) + "\n"
         client.bulk(index=index_name, body=bulk_data)
 
-    with Pool(processes=nprocs) as pool:
-        results = pool.map(work, docs)
+        dic.save("counts.dict")
+        dic.save_as_text("counts.txt")

@@ -4,3 +4,13 @@ venv
 arxiv-metadata-oai-snapshot.json
 *.pyc
 train.json
+*.pdf
+*.npz
+*.txt
+*.dict
+*.pkl
+*.model
+*.model.id2word
+*.model.state
+*.model.expElogbeta.npy
+__pycache__
