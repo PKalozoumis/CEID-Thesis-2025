@@ -93,11 +93,11 @@ if __name__ == "__main__":
         #For every tokenized document, apply phrase model
         #Then, filter out the remaining stopwords
         #Train dictionary
-        print(list(filter(lambda word: word not in STOPWORDS, phrase_model[tokenized_docs[0]])))
+        #print(list(filter(lambda word: word not in STOPWORDS, phrase_model[tokenized_docs[0]])))
 
         dic = Dictionary([filter(lambda word: word not in STOPWORDS, phrase_model[doc]) for doc in tokenized_docs])
 
-        print(dic.dfs[dic.token2id["cystic_fibrosis"]])
+        #print(dic.dfs[dic.token2id["cystic_fibrosis"]])
 
         bulk_data = list(map(json.dumps, chain.from_iterable(map(to_json, docs))))
         bulk_data = "\n".join(bulk_data) + "\n"
