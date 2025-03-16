@@ -3,7 +3,7 @@ import json
 from elasticsearch import Elasticsearch, AuthenticationException
 import sys
 import os
-from helper import Query
+from collection_helper import Query
 from collection_helper import parse_queries
 from itertools import chain
 from typing import Iterable
@@ -14,27 +14,28 @@ class DocumentList:
     '''
     Lazy document list
     '''
-    def __init__(self, client: Elasticsearch, index_name: str, doc_ids: Iterable):
+    def __init__(self, client: Elasticsearch, index_name: str, doc_ids: Iterable, filter_path: str ="_source"):
         self.doc_ids = doc_ids
         self.client = client
         self.index_name= index_name
+        self.filter_path = filter_path
 
         self.docs = [None for _ in doc_ids]
 
-    def __getitem__(self, key: int) -> str:
-        assert(type(key) is int)
+    def __getitem__(self, pos: int) -> str:
+        assert(type(pos) is int)
 
-        if self.docs[key] is None:
-            self.docs[key] = self.client.get(index=self.index_name, id=f"{self.doc_ids[key]:05}", filter_path="_source")["_source"]
+        if self.docs[pos] is None:
+            self.docs[pos] = self.client.get(index=self.index_name, id=f"{self.doc_ids[pos]:05}", filter_path=self.filter_path)["_source"]
 
-        return self.docs[key]
+        return self.docs[pos]
     
     def __len__(self) -> int:
         return len(self.doc_ids)
     
     def __iter__(self):
-        for doc_id in self.doc_ids:
-            yield self[doc_id]
+        for i in range(len(self.doc_ids)):
+            yield self[i]
 
 #==============================================================================================
 
@@ -61,8 +62,14 @@ def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: 
 
 #===============================================================================================
 
-def query(client: Elasticsearch, index_name: str, query_list: Query | list[Query]) -> tuple[list[DocumentList], list[list[int]]]:
-        
+def query(client: Elasticsearch, index_name: str, query_list: Query | list[Query], filter_path: str = "_source") -> tuple[list[DocumentList], list[list[int]]]:
+    '''
+    Perform a single query (Query) or multiple queries (list[Query]) and get back results
+    
+    Returns:
+    - A single DocumentList (for one query) or a list of DocumentLists (for list of queries)
+    - A single list of document IDs, or a list of lists
+    '''
     if type(query_list) is Query:
         query_list = [query_list]
 
@@ -83,13 +90,18 @@ def query(client: Elasticsearch, index_name: str, query_list: Query | list[Query
         id_list = [int(temp['_id']) for temp in res['hits']]
         #docs.append([temp['_source']['abstract'] for temp in res['hits']])
         multiple_query_results.append(id_list) 
-        docs.append(DocumentList(client, index_name, id_list))
+        docs.append(DocumentList(client, index_name, id_list, filter_path))
         
 
     if len(query_list) == 1:
         return docs[0], multiple_query_results[0]
     else:
         return docs, multiple_query_results
+    
+#===============================================================================================
+    
+def docs_to_texts(doc_list: DocumentList) -> "map[str]":
+    return map(lambda x: x["abstract"], doc_list)
 
 #===============================================================================================
 

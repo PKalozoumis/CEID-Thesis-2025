@@ -1,9 +1,12 @@
 from lxml import etree
 import re
 import os
-from helper import Score, Query
+from collections import namedtuple
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from scipy.sparse import spmatrix
+
+Score = namedtuple("Score", ["s1", "s2", "s3", "s4"])
+Query = namedtuple("Query", ["id", "text", "num_results", "docs", "scores"])
 
 #===================================================================================
 

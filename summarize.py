@@ -1,7 +1,7 @@
 
 from lxml import etree
 from elastic import elasticsearch_client, parse_queries
-from helper import Query, Score
+from collection_helper import Query, Score
 import metrics
 from transformers import pipeline
 

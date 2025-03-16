@@ -87,7 +87,7 @@ if __name__ == "__main__":
         tokenized_docs = [simple_preprocess(get_abstract(doc)) for doc in docs]
 
         #Train and save model
-        phrase_model = Phrases(tokenized_docs, 6, 40, connector_words=ENGLISH_CONNECTOR_WORDS)
+        phrase_model = Phrases(tokenized_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
         phrase_model.save("phrase_model.pkl")
 
         #For every tokenized document, apply phrase model
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
         dic = Dictionary([filter(lambda word: word not in STOPWORDS, phrase_model[doc]) for doc in tokenized_docs])
 
-        #print(dic.dfs[dic.token2id["cystic_fibrosis"]])
+        print(dic.dfs[dic.token2id["cystic_fibrosis"]])
 
         bulk_data = list(map(json.dumps, chain.from_iterable(map(to_json, docs))))
         bulk_data = "\n".join(bulk_data) + "\n"

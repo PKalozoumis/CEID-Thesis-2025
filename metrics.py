@@ -3,7 +3,7 @@ Implementations of various IR metrics
 '''
 import math
 from bisect import bisect_left
-from helper import Query
+from collection_helper import Query
 
 #==============================================================================================
 
