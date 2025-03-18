@@ -7,6 +7,5 @@ venv
 models/
 __pycache__
 !requirements.txt
-mapping_arxiv.json
-arxiv_collection/test.txt.gz
 arxiv_collection/vocab
+collection/vocab

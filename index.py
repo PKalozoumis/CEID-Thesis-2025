@@ -2,22 +2,52 @@ from elasticsearch import Elasticsearch
 import json
 import sys
 import os
-from fnmatch import fnmatch
 import re
 from itertools import chain
-from more_itertools import divide
 from functools import partial
 from multiprocessing import Pool
 from elastic import elasticsearch_client
-from collection_helper import to_json, parse_xml, get_abstract, count_vectorizer
-from scipy import sparse
+from collection_helper import generate_examples, to_bulk_format
 import argparse
 from gensim.utils import simple_preprocess
 from gensim.corpora import Dictionary
-from functools import reduce
 from gensim.parsing.preprocessing import STOPWORDS
 from gensim.models.phrases import Phrases, ENGLISH_CONNECTOR_WORDS
+import threading
+import time
+from itertools import islice
 
+def total_size(obj):
+    size = sys.getsizeof(obj)
+    if isinstance(obj, list):
+        size += sum(total_size(item) for item in obj)
+    return size / 1024 // 1024
+
+def batched(iterable, n, *, strict=False):
+    # batched('ABCDEFG', 3) → ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    iterator = iter(iterable)
+    while batch := tuple(islice(iterator, n)):
+        if strict and len(batch) != n:
+            raise ValueError('batched(): incomplete batch')
+        yield batch
+
+def file_batch(fname: str, batch_size: int):
+    byte_offset = 0
+    current_lines = 0
+    
+    yield 0
+
+    with open(fname, "r") as f:
+        for line in f:
+            byte_offset += len(line.encode('utf-8'))
+
+            if current_lines == batch_size - 1:
+                yield byte_offset
+                current_lines = 0
+            else:
+                current_lines += 1
 #===================================================================================
 
 def create_index(client: Elasticsearch, index_name: str, mapping_path: str = "mapping.json"):
@@ -64,44 +94,30 @@ if __name__ == "__main__":
     parser.add_argument("--empty", action="store_true", help="Empty index")
     args = parser.parse_args()
 
-    index_name = "test-index"
+    index_name = "arxiv-index"
     client = elasticsearch_client()
 
     if args.empty:
         empty_index(client, index_name)
     else:
+        offsets = file_batch("collection/test.txt", 1000)
+
+        with open("collection/test.txt", "r") as f:
+            for offset in offsets:
+                f.seek(offset)
+                print(f.readline()[:100])
+        '''
         create_index(client, index_name)
 
         collection_path = "collection"
-        docs = []
+        models_path = "models"
 
-        files = map(
-            partial(os.path.join, collection_path),
-            filter(
-                lambda file: re.match(r"cf\d{2}\.xml", file),
-                os.listdir(collection_path)
-            )
-        )
+        bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt")))
 
-        docs = list(chain.from_iterable(map(parse_xml, files)))
-        tokenized_docs = [simple_preprocess(get_abstract(doc)) for doc in docs]
+        batch_size = 1500
+        batches = map(lambda batch: "\n".join(batch), batched(bulk, 2*batch_size))
 
-        #Train and save model
-        phrase_model = Phrases(tokenized_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
-        phrase_model.save("phrase_model.pkl")
-
-        #For every tokenized document, apply phrase model
-        #Then, filter out the remaining stopwords
-        #Train dictionary
-        #print(list(filter(lambda word: word not in STOPWORDS, phrase_model[tokenized_docs[0]])))
-
-        dic = Dictionary([filter(lambda word: word not in STOPWORDS, phrase_model[doc]) for doc in tokenized_docs])
-
-        print(dic.dfs[dic.token2id["cystic_fibrosis"]])
-
-        bulk_data = list(map(json.dumps, chain.from_iterable(map(to_json, docs))))
-        bulk_data = "\n".join(bulk_data) + "\n"
-        client.bulk(index=index_name, body=bulk_data)
-
-        dic.save("counts.dict")
-        dic.save_as_text("counts.txt")
+        for batch in batches:
+            #print(batch)
+            client.bulk(index=index_name, body=batch+"\n")'
+        '''

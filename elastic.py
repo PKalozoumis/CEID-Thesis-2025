@@ -4,7 +4,6 @@ from elasticsearch import Elasticsearch, AuthenticationException
 import sys
 import os
 from collection_helper import Query
-from collection_helper import parse_queries
 from itertools import chain
 from typing import Iterable
 
