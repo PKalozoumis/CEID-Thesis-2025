@@ -5,7 +5,7 @@ import os
 import re
 from itertools import chain
 from functools import partial
-from multiprocessing import Pool
+from multiprocessing import Pool, Array
 from elastic import elasticsearch_client
 from collection_helper import generate_examples, to_bulk_format
 import argparse
@@ -16,6 +16,7 @@ from gensim.models.phrases import Phrases, ENGLISH_CONNECTOR_WORDS
 import threading
 import time
 from itertools import islice
+from more_itertools import divide
 
 def total_size(obj):
     size = sys.getsizeof(obj)
@@ -100,24 +101,46 @@ if __name__ == "__main__":
     if args.empty:
         empty_index(client, index_name)
     else:
-        offsets = file_batch("collection/test.txt", 1000)
-
-        with open("collection/test.txt", "r") as f:
-            for offset in offsets:
-                f.seek(offset)
-                print(f.readline()[:100])
-        '''
         create_index(client, index_name)
 
         collection_path = "collection"
         models_path = "models"
 
-        bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt")))
+        nprocs = 5
+        batch_size = 1800
 
-        batch_size = 1500
-        batches = map(lambda batch: "\n".join(batch), batched(bulk, 2*batch_size))
+        #A list of iterables
+        #Each iterable has the line offsets the respective process will take
+        workload = divide(nprocs, file_batch("collection/test.txt", 1))
 
-        for batch in batches:
-            #print(batch)
-            client.bulk(index=index_name, body=batch+"\n")'
-        '''
+        shared_array = Array('i', nprocs)
+        shared_array[0] = 1
+
+        def init(arr):
+            global locks
+            locks = arr
+
+        def work(offsets, id):
+            bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt"), offsets))
+
+            #Each process needs to further divide its lines into batches of batch_size docs
+            batches = batched(bulk, 2*batch_size)
+
+            while locks[id] == 0:
+                pass            
+
+            #Submit to elasticsearch
+            print(id)
+            for batch in batches:
+                client.bulk(index=index_name, operations=batch)
+
+            #Unlock next process
+            if id < nprocs - 1:
+                locks[id+1] = 1
+
+        t = time.time()
+
+        with Pool(processes=nprocs, initializer=init, initargs=(shared_array, )) as pool:
+            results = pool.starmap(work, zip(workload, list(range(nprocs))))
+
+        print(time.time() - t)

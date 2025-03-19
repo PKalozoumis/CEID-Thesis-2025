@@ -20,10 +20,28 @@ def count_vectorizer(docs: list[str]) -> spmatrix:
 
 #===============================================================================================
 
-def generate_examples(path=None):
-    """Yields examples."""
+def generate_examples(path, byte_offsets=None):
+    """
+    Yields examples.
+
+    If byte_offsets = None, it returns all lines
+
+    Else you can specify the subset of lines you want returned
+    """
+
+    def next_line(f):
+        if byte_offsets is not None:
+            for offset in byte_offsets:
+                f.seek(offset)
+                yield f.readline()
+        else:
+            yield from f
+
     with open(path, encoding="utf-8") as f:
-        for line in f:
+        for i, line in enumerate(next_line(f)):
+            if line == "":
+                return
+            
             d = json.loads(line)
             summary = "\n".join(d["abstract_text"])
             summary = summary.replace("<S>", "").replace("</S>", "")
@@ -38,5 +56,5 @@ def generate_examples(path=None):
 
 def to_bulk_format(docs):
     for doc in docs:
-        yield json.dumps({"index": {"_id": doc['id']}})
-        yield json.dumps(doc)
+        yield {"index": {"_id": doc['id']}}
+        yield doc
