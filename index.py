@@ -15,7 +15,7 @@ from gensim.parsing.preprocessing import STOPWORDS
 from gensim.models.phrases import Phrases, ENGLISH_CONNECTOR_WORDS
 import threading
 import time
-from itertools import islice
+from itertools import islice, tee
 from more_itertools import divide
 
 def total_size(obj):
@@ -121,7 +121,14 @@ if __name__ == "__main__":
             locks = arr
 
         def work(offsets, id):
-            bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt"), offsets))
+            offsets1, offsets2 = tee(offsets, 2)
+
+            tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt"), offsets1))
+            phrase_model = Phrases(tokenized_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
+
+            print(phrase_model.export_phrases())
+
+            bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt"), offsets2))
 
             #Each process needs to further divide its lines into batches of batch_size docs
             batches = batched(bulk, 2*batch_size)
