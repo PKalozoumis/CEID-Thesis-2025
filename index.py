@@ -5,7 +5,7 @@ import os
 import re
 from itertools import chain
 from functools import partial
-from multiprocessing import Pool, Array
+from multiprocessing import Process
 from elastic import elasticsearch_client
 from collection_helper import generate_examples, to_bulk_format
 import argparse
@@ -15,7 +15,7 @@ from gensim.parsing.preprocessing import STOPWORDS
 from gensim.models.phrases import Phrases, ENGLISH_CONNECTOR_WORDS
 import threading
 import time
-from itertools import islice, tee
+from itertools import islice, tee, chain
 from more_itertools import divide
 
 def total_size(obj):
@@ -106,48 +106,33 @@ if __name__ == "__main__":
         collection_path = "collection"
         models_path = "models"
 
-        nprocs = 5
-        batch_size = 1800
+        batch_size = 1500
 
-        #A list of iterables
-        #Each iterable has the line offsets the respective process will take
-        workload = divide(nprocs, file_batch("collection/test.txt", 1))
+        total_t = time.time()
 
-        shared_array = Array('i', nprocs)
-        shared_array[0] = 1
-
-        def init(arr):
-            global locks
-            locks = arr
-
-        def work(offsets, id):
-            offsets1, offsets2 = tee(offsets, 2)
-
-            tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt"), offsets1))
+        def phrase_model():
+            t = time.time()
+            tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt")))
             phrase_model = Phrases(tokenized_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
+            print(f"Phrase time: {round(time.time() - t, 2)}s")
 
-            print(phrase_model.export_phrases())
+            return phrase_model
 
-            bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt"), offsets2))
-
-            #Each process needs to further divide its lines into batches of batch_size docs
+        def indexing():
+            t = time.time()
+            bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt")))
             batches = batched(bulk, 2*batch_size)
-
-            while locks[id] == 0:
-                pass            
-
-            #Submit to elasticsearch
-            print(id)
+            #Add to elasticsearch
             for batch in batches:
                 client.bulk(index=index_name, operations=batch)
+            print(f"Elastic time: {round(time.time() - t, 2)}s")
 
-            #Unlock next process
-            if id < nprocs - 1:
-                locks[id+1] = 1
+        p = Process(target=phrase_model)
+        #p = threading.Thread(target=phrase_model)
+        p.start()
 
-        t = time.time()
+        indexing()
+        
+        p.join()
 
-        with Pool(processes=nprocs, initializer=init, initargs=(shared_array, )) as pool:
-            results = pool.starmap(work, zip(workload, list(range(nprocs))))
-
-        print(time.time() - t)
+        print(f"Total time: {round(time.time() - total_t)}s")
