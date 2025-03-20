@@ -5,7 +5,7 @@ import os
 import re
 from itertools import chain
 from functools import partial
-from multiprocessing import Process
+from multiprocessing import Process, Queue, Pool
 from elastic import elasticsearch_client
 from collection_helper import generate_examples, to_bulk_format
 import argparse
@@ -15,8 +15,9 @@ from gensim.parsing.preprocessing import STOPWORDS
 from gensim.models.phrases import Phrases, ENGLISH_CONNECTOR_WORDS
 import threading
 import time
-from itertools import islice, tee, chain
+from itertools import islice, tee, chain, accumulate
 from more_itertools import divide
+import glob
 
 def total_size(obj):
     size = sys.getsizeof(obj)
@@ -85,7 +86,7 @@ def empty_index(client: Elasticsearch, index_name: str):
     })
 
     print(resp)
-    print(f"\nEmpties Elasticsearch index {index_name}")
+    print(f"\nEmptied Elasticsearch index {index_name}")
 
 #===================================================================================
 
@@ -93,46 +94,126 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Elasticsearch Index Management")
     parser.add_argument("--empty", action="store_true", help="Empty index")
+    parser.add_argument("--dict", action="store_true", help="Create dictionary")
+    parser.add_argument("--phrase", action="store_true", help="Train phrase model")
+    parser.add_argument("--no-index", action="store_true", help="Index documents", default=False)
+    parser.add_argument("-doc-limit", action="store", type=int, default=None)
+    parser.add_argument("-nprocs", action="store", type=int, default=7, help="Number of processes for dictionary")
     args = parser.parse_args()
 
     index_name = "arxiv-index"
     client = elasticsearch_client()
 
+    if args.empty and (args.dict or args.phrase or args.doc_limit):
+        print("You cannot have --empty with other actions")
+        sys.exit()
+
+    #WORK FUNCTIONS
+    #===================================================================================
+
+    def train_phrase_model():
+        t = time.time()
+        tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt"), doc_limit=args.doc_limit))
+        phrase_model = Phrases(tokenized_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
+        print(f"Phrase time: {round(time.time() - t, 2)}s")
+
+        phrase_model.freeze().save(os.path.join(models_path, "phrase_model.pkl"))
+
+    #------------------------------------------------------------------------------------------
+
+    def indexing():
+        t = time.time()
+        bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt"), doc_limit=args.doc_limit))
+        batches = batched(bulk, 2*batch_size)
+        #Add to elasticsearch
+        for batch in batches:
+            client.bulk(index=index_name, operations=batch)
+        print(f"Elastic time: {round(time.time() - t, 2)}s")
+
+    #------------------------------------------------------------------------------------------
+
+    def train_dictionary(id, offsets):
+        t = time.time()
+        print(id)
+
+        dic = Dictionary()
+
+        tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt"), doc_limit=args.doc_limit, byte_offsets=offsets))
+        phrase_model = Phrases.load(os.path.join(models_path, "phrase_model.pkl"))
+
+        for doc in tokenized_docs:
+            filtered_doc = filter(lambda word: word not in STOPWORDS, phrase_model[doc])
+            dic.add_documents([filtered_doc])
+        
+        dic.save(os.path.join(models_path, f"counts{id:03}.dict"))
+        print(f"Dictionary {id:03} time: {round(time.time() - t, 2)}s")
+    
+    #------------------------------------------------------------------------------------------
+
     if args.empty:
+        print(f"Emptying index {index_name}...")
         empty_index(client, index_name)
     else:
-        create_index(client, index_name)
-
         collection_path = "collection"
         models_path = "models"
 
+        #When indexind document using bulk queries, the docs will be split into batches
+        #This is because Elasticsearch had a 100MB limit on query bod (roughly 1500 docs)
+        #Ideally, the bulk queries would happen in parallel...
         batch_size = 1500
+
+        if args.dict and not os.path.exists(os.path.join(models_path, "phrase_model.pkl")):
+            print("Cannot train dictionary, because there is not an available phrase model")
+            sys.exit()
+
+        #Create index
+        create_index(client, index_name)
 
         total_t = time.time()
 
-        def phrase_model():
-            t = time.time()
-            tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt")))
-            phrase_model = Phrases(tokenized_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
-            print(f"Phrase time: {round(time.time() - t, 2)}s")
+        phrase_process = None
 
-            return phrase_model
+        #Train phrase model in a separate process
+        if args.phrase:
+            phrase_process = Process(target=train_phrase_model)
+            phrase_process.start()
 
-        def indexing():
-            t = time.time()
-            bulk = to_bulk_format(generate_examples(os.path.join(collection_path, "test.txt")))
-            batches = batched(bulk, 2*batch_size)
-            #Add to elasticsearch
-            for batch in batches:
-                client.bulk(index=index_name, operations=batch)
-            print(f"Elastic time: {round(time.time() - t, 2)}s")
-
-        p = Process(target=phrase_model)
-        #p = threading.Thread(target=phrase_model)
-        p.start()
-
-        indexing()
+        #Add docs to elasticsearch
+        if not args.no_index:
+            indexing()
         
-        p.join()
+        #Wait for phrase model to finish before training dictionary
+        if phrase_process:
+            phrase_process.join()
 
+        #Train the dictionary
+        #The docs are divided by the number of processes
+        #Each process takes exactly one batch of lines (docs)
+        #(alternatively we could have created batches of lines and allowed processes to take them dynamically)
+        workload = divide(args.nprocs, file_batch("collection/test.txt", 1))
+
+        with Pool(processes=args.nprocs) as pool:
+            pool.starmap(train_dictionary, zip(range(args.nprocs), workload))
+
+        #After each process saves its dictionary, we merge them into one
+        print("Merging dictionaries...")
+        t = time.time()
+
+        dic = Dictionary.load(os.path.join(models_path, "counts000.dict"))
+        os.remove(os.path.join(models_path, "counts000.dict"))
+
+        for dict_name in map(lambda i: os.path.join(models_path, f"counts{i:03}.dict"), range(1, args.nprocs)):
+            dic.merge_with(Dictionary.load(dict_name))
+
+        print(f"Merge time: {time.time() - t}")
+
+        #Cleanup
+        for file in glob.glob(os.path.join(models_path, "*.dict")):
+            os.remove(file)
+
+        #Save final dictionary
+        print("Saving final dictionary...")
+        dic.save(os.path.join(models_path, "counts.dict"))
+        dic.save_as_text(os.path.join(models_path, "counts.txt"))
+        
         print(f"Total time: {round(time.time() - total_t)}s")

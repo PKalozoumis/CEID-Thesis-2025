@@ -20,7 +20,7 @@ def count_vectorizer(docs: list[str]) -> spmatrix:
 
 #===============================================================================================
 
-def generate_examples(path, byte_offsets=None):
+def generate_examples(path,*, doc_limit :int|None = None, byte_offsets=None):
     """
     Yields examples.
 
@@ -29,13 +29,19 @@ def generate_examples(path, byte_offsets=None):
     Else you can specify the subset of lines you want returned
     """
 
+    assert(not(doc_limit != None and byte_offsets != None))
+
     def next_line(f):
         if byte_offsets is not None:
             for offset in byte_offsets:
                 f.seek(offset)
                 yield f.readline()
         else:
-            yield from f
+            for i, line in enumerate(f):
+                yield line
+
+                if doc_limit and (i == doc_limit - 1):
+                    break
 
     with open(path, encoding="utf-8") as f:
         for i, line in enumerate(next_line(f)):
