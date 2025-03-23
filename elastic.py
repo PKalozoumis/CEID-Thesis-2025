@@ -38,6 +38,57 @@ class DocumentList:
 
 #==============================================================================================
 
+class ScrollingCorpus:
+    '''
+    Receives batches of documents from Elasticsearch
+    '''
+
+    def __init__(self,   
+            client: Elasticsearch,
+            index_name: str,
+            *,
+            batch_size: int = 10,
+            scroll_time: str="5s",
+            doc_field: str,
+            fields_to_keep: list[str] = []
+        ):
+        self.client = client
+        self.index_name = index_name
+        self.batch_size = batch_size
+        self.scroll_time = scroll_time
+        self.fields_to_keep = fields_to_keep
+        self.doc_field = doc_field
+
+        if self.doc_field:
+            self.fields_to_keep.append(self.doc_field)
+
+    #================================================================================================================
+
+    def __iter__(self):
+        res = self.client.search(index=self.index_name, scroll=self.scroll_time, filter_path="_scroll_id,hits.hits", body={
+            "size": self.batch_size,
+            "_source": self.fields_to_keep,
+            "query":{"match_all": {}}
+        })
+
+        while True:
+            if 'error' in res:
+                print(res['error']['root_cause'])
+                break
+
+            scroll_id = res['_scroll_id']
+            docs = res['hits']['hits']
+
+            if docs:
+                #Send entire batch before asking for the next one
+                docs = map(lambda doc: doc['_source'][self.doc_field], docs)
+                yield from docs
+                res = self.client.scroll(scroll_id = scroll_id, scroll = self.scroll_time)
+            else:
+                break
+
+#================================================================================================================
+
 def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt") -> Elasticsearch:
 
     with open(credentials_path, "r") as f:
@@ -105,6 +156,8 @@ def docs_to_texts(doc_list: DocumentList) -> "map[str]":
 #===============================================================================================
 
 if __name__ == "__main__":
+    pass
+    '''
     index_name = "test-index"
 
     single_query = True
@@ -130,3 +183,4 @@ if __name__ == "__main__":
         print(f"Average NDCG: {metrics.average_ndcg(multiple_query_results, queries)[-1]}")
 
         print(docs[98][0])
+        '''

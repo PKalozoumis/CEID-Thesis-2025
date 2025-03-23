@@ -94,15 +94,23 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Elasticsearch Index Management")
     parser.add_argument("--empty", action="store_true", help="Empty index")
-    parser.add_argument("--dict", action="store_true", help="Create dictionary")
-    parser.add_argument("--phrase", action="store_true", help="Train phrase model")
+    parser.add_argument("--dict", action="store_true", help="Create dictionary", default=False)
+    parser.add_argument("--phrase", action="store_true", help="Train phrase model", default=False)
     parser.add_argument("--no-index", action="store_true", help="Index documents", default=False)
     parser.add_argument("-doc-limit", action="store", type=int, default=None)
-    parser.add_argument("-nprocs", action="store", type=int, default=7, help="Number of processes for dictionary")
+    parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes for dictionary")
     args = parser.parse_args()
 
     index_name = "arxiv-index"
-    client = elasticsearch_client()
+
+    if not args.no_index:
+        client = elasticsearch_client()
+
+    
+    task_flags = [args.empty, not args.no_index, args.phrase, args.dict]
+    tasks = ["Emptying Index", "Indexing", "Phrase Model", f"Dictionary ({args.nprocs} processes)"]
+    filtered = [task for task, flag in zip(tasks, task_flags) if flag]
+    print(f"Tasks: {', '.join(filtered)}")
 
     if args.empty and (args.dict or args.phrase or args.doc_limit):
         print("You cannot have --empty with other actions")
@@ -113,11 +121,13 @@ if __name__ == "__main__":
 
     def train_phrase_model():
         t = time.time()
-        tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt"), doc_limit=args.doc_limit))
-        phrase_model = Phrases(tokenized_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
+        stopwords = frozenset(set(STOPWORDS) - set(ENGLISH_CONNECTOR_WORDS))
+        tokenized_docs = map(lambda doc: simple_preprocess(doc['summary']), generate_examples(os.path.join(collection_path, "test.txt"), doc_limit=args.doc_limit))
+        filtered_docs = map(lambda doc: [token for token in doc if token not in stopwords], tokenized_docs)
+        phrase_model = Phrases(filtered_docs, 6, 15, connector_words=ENGLISH_CONNECTOR_WORDS)
         print(f"Phrase time: {round(time.time() - t, 2)}s")
 
-        phrase_model.freeze().save(os.path.join(models_path, "phrase_model.pkl"))
+        phrase_model.save(os.path.join(models_path, "phrase_model.pkl"))
 
     #------------------------------------------------------------------------------------------
 
@@ -138,11 +148,12 @@ if __name__ == "__main__":
 
         dic = Dictionary()
 
-        tokenized_docs = map(lambda doc: simple_preprocess(doc['article']), generate_examples(os.path.join(collection_path, "test.txt"), doc_limit=args.doc_limit, byte_offsets=offsets))
+        tokenized_docs = map(lambda doc: simple_preprocess(doc['summary']), generate_examples(os.path.join(collection_path, "test.txt"), doc_limit=args.doc_limit, byte_offsets=offsets))
         phrase_model = Phrases.load(os.path.join(models_path, "phrase_model.pkl"))
 
+        stopwords = frozenset(set(STOPWORDS) | {"xcite", "xmath", "fig", "eq"})
         for doc in tokenized_docs:
-            filtered_doc = filter(lambda word: word not in STOPWORDS, phrase_model[doc])
+            filtered_doc = filter(lambda word: word not in stopwords, phrase_model[doc])
             dic.add_documents([filtered_doc])
         
         dic.save(os.path.join(models_path, f"counts{id:03}.dict"))
@@ -166,54 +177,52 @@ if __name__ == "__main__":
             print("Cannot train dictionary, because there is not an available phrase model")
             sys.exit()
 
-        #Create index
-        create_index(client, index_name)
-
         total_t = time.time()
 
-        phrase_process = None
-
         #Train phrase model in a separate process
+        phrase_process = None
         if args.phrase:
             phrase_process = Process(target=train_phrase_model)
             phrase_process.start()
 
         #Add docs to elasticsearch
         if not args.no_index:
+            create_index(client, index_name)
             indexing()
         
         #Wait for phrase model to finish before training dictionary
         if phrase_process:
             phrase_process.join()
 
-        #Train the dictionary
-        #The docs are divided by the number of processes
-        #Each process takes exactly one batch of lines (docs)
-        #(alternatively we could have created batches of lines and allowed processes to take them dynamically)
-        workload = divide(args.nprocs, file_batch("collection/test.txt", 1))
+        if args.dict:
+            #Train the dictionary
+            #The docs are divided by the number of processes
+            #Each process takes exactly one batch of lines (docs)
+            #(alternatively we could have created batches of lines and allowed processes to take them dynamically)
+            workload = divide(args.nprocs, file_batch("collection/test.txt", 1))
 
-        with Pool(processes=args.nprocs) as pool:
-            pool.starmap(train_dictionary, zip(range(args.nprocs), workload))
+            with Pool(processes=args.nprocs) as pool:
+                pool.starmap(train_dictionary, zip(range(args.nprocs), workload))
 
-        #After each process saves its dictionary, we merge them into one
-        print("Merging dictionaries...")
-        t = time.time()
+            #After each process saves its dictionary, we merge them into one
+            print("Merging dictionaries...")
+            t = time.time()
 
-        dic = Dictionary.load(os.path.join(models_path, "counts000.dict"))
-        os.remove(os.path.join(models_path, "counts000.dict"))
+            dic = Dictionary.load(os.path.join(models_path, "counts000.dict"))
+            os.remove(os.path.join(models_path, "counts000.dict"))
 
-        for dict_name in map(lambda i: os.path.join(models_path, f"counts{i:03}.dict"), range(1, args.nprocs)):
-            dic.merge_with(Dictionary.load(dict_name))
+            for dict_name in map(lambda i: os.path.join(models_path, f"counts{i:03}.dict"), range(1, args.nprocs)):
+                dic.merge_with(Dictionary.load(dict_name))
 
-        print(f"Merge time: {time.time() - t}")
+            print(f"Merge time: {time.time() - t}")
 
-        #Cleanup
-        for file in glob.glob(os.path.join(models_path, "*.dict")):
-            os.remove(file)
+            #Cleanup
+            for file in glob.glob(os.path.join(models_path, "*.dict")):
+                os.remove(file)
 
-        #Save final dictionary
-        print("Saving final dictionary...")
-        dic.save(os.path.join(models_path, "counts.dict"))
-        dic.save_as_text(os.path.join(models_path, "counts.txt"))
-        
+            #Save final dictionary
+            print("Saving final dictionary...")
+            dic.save(os.path.join(models_path, "counts.dict"))
+            dic.save_as_text(os.path.join(models_path, "counts.txt"))
+            
         print(f"Total time: {round(time.time() - total_t)}s")

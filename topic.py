@@ -2,7 +2,6 @@ from elasticsearch import Elasticsearch
 from gensim.utils import simple_preprocess
 from gensim.corpora import Dictionary
 from elastic import elasticsearch_client, query, DocumentList, docs_to_texts
-from collection_helper import parse_queries
 from gensim.models.phrases import Phrases, FrozenPhrases
 from gensim.models.ldamodel import LdaModel
 import re
@@ -14,13 +13,24 @@ from matplotlib import pyplot as plt
 
 #===========================================================================================
 
-class ScrollingCorpus:
+class ScrollingCorpusVectorized:
     '''
     Receives batches of documents from Elasticsearch
     For each batch, it converts the documents to their vector representation
     '''
 
-    def __init__(self, client: Elasticsearch, index_name: str, dictionary: Dictionary | str, phrase_model: Phrases | str,*, batch_size: int = 10, scroll_time: str="5s"):
+    def __init__(self,
+                 
+                 client: Elasticsearch,
+                 index_name: str,
+                 dictionary: Dictionary | str,
+                 phrase_model: Phrases | str,
+                 *,
+                 batch_size: int = 10,
+                 scroll_time: str="5s",
+                 doc_field: str,
+                 fields_to_keep: list[str]
+        ):
         self.client = client
         self.index_name = index_name
 
@@ -42,13 +52,19 @@ class ScrollingCorpus:
         
         self.batch_size = batch_size
         self.scroll_time = scroll_time
+        self.fields_to_keep = fields_to_keep
+        self.doc_field = doc_field
+
+        if self.doc_field:
+            self.fields_to_keep.append(self.doc_field)
+            print(self.fields_to_keep)
 
     #================================================================================================================
 
     def __iter__(self):
         res = self.client.search(index=self.index_name, scroll=self.scroll_time, filter_path="_scroll_id,hits.hits", body={
             "size": self.batch_size,
-            "_source": ["abstract", "record_number"],
+            "_source": self.fields_to_keep,
             "query":{"match_all": {}}
         })
 
@@ -61,7 +77,7 @@ class ScrollingCorpus:
             docs = res['hits']['hits']
 
             if docs:
-                docs = map(self.dictionary.doc2bow, map(lambda doc: self.phrase_model[simple_preprocess(doc['_source']['abstract'])], docs))
+                docs = map(self.dictionary.doc2bow, map(lambda doc: self.phrase_model[simple_preprocess(doc['_source'][self.doc_field])], docs))
 
                 #Send entire batch before asking for the next one
                 for doc in docs:
@@ -81,12 +97,12 @@ class ScrollingCorpus:
     
 #================================================================================================================
     
-def train_lda(corpus: ScrollingCorpus, num_topics: int) -> LdaModel:
+def train_lda(corpus: ScrollingCorpusVectorized, num_topics: int) -> LdaModel:
     return LdaModel(corpus, id2word=corpus.dictionary, num_topics=num_topics, alpha="auto", eta="auto")
 
 #================================================================================================================
     
-def docs_to_topics(corpus: ScrollingCorpus, docs_list: list[str] | DocumentList, num_topics: int = 6, pretrained_lda: LdaModel = None) -> tuple[np.ndarray, list]:
+def docs_to_topics(corpus: ScrollingCorpusVectorized, docs_list: list[str] | DocumentList, num_topics: int = 6, pretrained_lda: LdaModel = None) -> tuple[np.ndarray, list]:
     '''
     Takes a list of documents and returns their topic vectors
 
@@ -173,15 +189,17 @@ def visualize_clusters(topic_matrix: np.ndarray, labels: list):
 #==========================================================================================
 
 if __name__ == "__main__":
+    pass
+    '''
     client = elasticsearch_client("credentials.json", "http_ca.crt")
     index_name = "test-index"
     collection_path = "collection"
 
     corpus = ScrollingCorpus(client, index_name, "counts.dict", "phrase_model.pkl")
     
-    queries = parse_queries("collection")
-    print(queries[0].text)
-    docs, doc_ids = query(client, index_name, queries[0])
+    #queries = parse_queries("collection")
+    #print(queries[0].text)
+    #docs, doc_ids = query(client, index_name, queries[0])
 
     print(doc_ids)
 
@@ -191,6 +209,7 @@ if __name__ == "__main__":
     visualize_clusters(topic_matrix, labels)
 
     print(clusters)
+    '''
 
 
 

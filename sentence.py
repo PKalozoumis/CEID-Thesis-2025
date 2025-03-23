@@ -4,7 +4,8 @@ from sklearn.metrics.pairwise import cosine_distances
 from kmedoids import KMedoids
 from kneed import KneeLocator
 from matplotlib import pyplot as plt
-
+from elastic import ScrollingCorpus, elasticsearch_client
+from itertools import groupby
 #============================================================================================
 
 def cosine_sim(vec1, vec2) -> float:
@@ -24,6 +25,11 @@ def doc_to_sentence_embeddings(sentence_transformer: SentenceTransformer, doc: s
 #============================================================================================
 
 def sentence_clustering(embeddings):
+    '''
+    Returns:
+    - Labels
+    - Medoids
+    '''
     dista = cosine_distances(embeddings)
 
     inertia = []
@@ -60,7 +66,14 @@ def sentence_clustering(embeddings):
 #============================================================================================
 
 if __name__ == "__main__":
+    client = elasticsearch_client()
     model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-    embeddings, sentences = doc_to_sentence_embeddings(model, "dista 17 souvlaki gamer. pitsa gamer. billkort gaming.")
+    corpus = ScrollingCorpus(client, "arxiv-index", batch_size=10, doc_field="article")
 
-    sentence_clustering(embeddings)
+    for doc in corpus:
+        embeddings, sentences = doc_to_sentence_embeddings(model, doc)
+        labels, medoids = sentence_clustering(embeddings)
+        sorted_data = sorted(zip(labels, sentences), key=lambda x: x[0])
+        clusters = {k: [v for _, v in g] for k, g in groupby(sorted_data, key=lambda x: x[0])}
+        print(clusters)
+        break
