@@ -44,7 +44,7 @@ def generate_examples(path,*, doc_limit :int|None = None, byte_offsets=None):
                     break
 
     with open(path, encoding="utf-8") as f:
-        for i, line in enumerate(next_line(f)):
+        for line in next_line(f):
             if line == "":
                 return
             
@@ -52,7 +52,7 @@ def generate_examples(path,*, doc_limit :int|None = None, byte_offsets=None):
             summary = "\n".join(d["abstract_text"])
             summary = summary.replace("<S>", "").replace("</S>", "")
             yield {
-                "id": d["article_id"],
+                "article_id": d["article_id"],
                 "article": "\n".join(d["article_text"]),
                 "summary": summary,
                 "section_names": "\n".join(d["section_names"])
@@ -61,6 +61,6 @@ def generate_examples(path,*, doc_limit :int|None = None, byte_offsets=None):
 #===============================================================================================
 
 def to_bulk_format(docs):
-    for doc in docs:
-        yield {"index": {"_id": doc['id']}}
+    for i, doc in enumerate(docs):
+        yield {"index": {"_id": i}}
         yield doc

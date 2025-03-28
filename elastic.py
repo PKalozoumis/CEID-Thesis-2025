@@ -6,17 +6,47 @@ import os
 from collection_helper import Query
 from itertools import chain
 from typing import Iterable
+from collections import namedtuple
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+Session = namedtuple("Session", ["client", "index_name"])
+
+#================================================================================================================
+
+class Document:
+    '''
+    Class for retrieving and storing a single document from Elasticsearch
+    '''
+
+    def __init__(self, session:Session, id: int, filter_path: str = "_source"):
+        self.doc = None
+        self.client = session.client
+        self.index_name = session.index_name
+        self.id = id
+        self.filter_path = filter_path
+
+    def get(self):
+        if self.doc is None:
+            self.doc = self.client.get(index=self.index_name, id=f"{self.id}", filter_path=self.filter_path)
+
+            if self.filter_path and len(self.filter_path.split(",")) == 1:
+                keys = self.filter_path.split(".")
+                for key in keys:
+                    self.doc = self.doc[key]
+
+        return self.doc
+        
+#================================================================================================================
 
 class DocumentList:
     '''
     Lazy document list
     '''
-    def __init__(self, client: Elasticsearch, index_name: str, doc_ids: Iterable, filter_path: str ="_source"):
+    def __init__(self, session: Session, doc_ids: Iterable, filter_path: str ="_source"):
         self.doc_ids = doc_ids
-        self.client = client
-        self.index_name= index_name
+        self.client = session.client
+        self.index_name= session.index_name
         self.filter_path = filter_path
 
         self.docs = [None for _ in doc_ids]
@@ -44,16 +74,15 @@ class ScrollingCorpus:
     '''
 
     def __init__(self,   
-            client: Elasticsearch,
-            index_name: str,
+            session: Session,
             *,
             batch_size: int = 10,
             scroll_time: str="5s",
             doc_field: str,
             fields_to_keep: list[str] = []
         ):
-        self.client = client
-        self.index_name = index_name
+        self.client = session.client
+        self.index_name = session.index_name
         self.batch_size = batch_size
         self.scroll_time = scroll_time
         self.fields_to_keep = fields_to_keep
@@ -62,7 +91,7 @@ class ScrollingCorpus:
         if self.doc_field:
             self.fields_to_keep.append(self.doc_field)
 
-    #================================================================================================================
+    #--------------------------------------------------------------------------------------
 
     def __iter__(self):
         res = self.client.search(index=self.index_name, scroll=self.scroll_time, filter_path="_scroll_id,hits.hits", body={
@@ -110,9 +139,14 @@ def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: 
 
     return client
 
+#================================================================================================================
+
+def elastic_session(index_name: str, credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt") -> Session:
+    return Session(elasticsearch_client(credentials_path, cert_path), index_name)
+
 #===============================================================================================
 
-def query(client: Elasticsearch, index_name: str, query_list: Query | list[Query], filter_path: str = "_source") -> tuple[list[DocumentList], list[list[int]]]:
+def query(session: Session, query_list: Query | list[Query], filter_path: str = "_source") -> tuple[list[DocumentList], list[list[int]]]:
     '''
     Perform a single query (Query) or multiple queries (list[Query]) and get back results
     
@@ -131,7 +165,7 @@ def query(client: Elasticsearch, index_name: str, query_list: Query | list[Query
             "match": {"abstract": query.text}
         }
 
-        res = client.search(index=index_name, query=search_body, filter_path=["hits.hits._source.abstract", "hits.hits._id"])
+        res = session.client.search(index=session.index_name, query=search_body, filter_path=["hits.hits._source.abstract", "hits.hits._id"])
         if len(res) == 0:
             return iter(()), []
         
@@ -140,7 +174,7 @@ def query(client: Elasticsearch, index_name: str, query_list: Query | list[Query
         id_list = [int(temp['_id']) for temp in res['hits']]
         #docs.append([temp['_source']['abstract'] for temp in res['hits']])
         multiple_query_results.append(id_list) 
-        docs.append(DocumentList(client, index_name, id_list, filter_path))
+        docs.append(DocumentList(session.client, session.index_name, id_list, filter_path))
         
 
     if len(query_list) == 1:
@@ -156,7 +190,12 @@ def docs_to_texts(doc_list: DocumentList) -> "map[str]":
 #===============================================================================================
 
 if __name__ == "__main__":
-    pass
+    
+    session = elastic_session("arxiv-index")
+    doc = Document(session, 0)
+
+    print(doc.get())
+
     '''
     index_name = "test-index"
 
