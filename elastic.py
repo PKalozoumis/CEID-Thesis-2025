@@ -7,6 +7,7 @@ from collection_helper import Query
 from itertools import chain
 from typing import Iterable
 from collections import namedtuple
+import re
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -19,23 +20,71 @@ class Document:
     Class for retrieving and storing a single document from Elasticsearch
     '''
 
-    def __init__(self, session:Session, id: int, filter_path: str = "_source"):
+    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
+        '''
+        **session**: An Elasticsearch session\n
+        **id**: The numeric ID of the requested document in Elasticsearch\n
+        **filter_path**: Path to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead 
+        **text_path**: Name of the field (after filter_path is applied, if specified) where the document's body is located\n
+        '''
         self.doc = None
         self.client = session.client
         self.index_name = session.index_name
         self.id = id
         self.filter_path = filter_path
 
+        if type(self.filter_path) is str and type(text_path) is str:
+
+            matched = False
+
+            #Check if the text field is contaned in any of the filter paths
+            paths = self.filter_path.split(",")
+            for path in paths:
+                if not (text_path == path or text_path.startswith(path + ".")):
+                    continue
+                matched = True
+
+                #If multiple filter paths, then the full text field path stays as is
+                if len(paths) > 1:
+                    self.text_field = text_path
+                else:                
+                    pattern = re.compile(f"{path}\.(\w+)(\..+)?")
+                    self.text_field = re.sub(pattern, r"\1\2", text_path)
+                    break
+
+            if not matched:
+                raise ValueError(f"Text field path {text_path} not contained in filter path {self.filter_path}")
+
     def get(self):
         if self.doc is None:
             self.doc = self.client.get(index=self.index_name, id=f"{self.id}", filter_path=self.filter_path)
 
             if self.filter_path and len(self.filter_path.split(",")) == 1:
-                keys = self.filter_path.split(".")
-                for key in keys:
+                for key in self.filter_path.split("."):
                     self.doc = self.doc[key]
 
         return self.doc
+    
+    def __str__(self):
+        return json.dumps(self.get())
+    
+    def text(self):
+        if self.text_field is None:
+            return
+        
+        temp = self.doc
+            
+        if temp is None:
+            temp = self.get()
+
+        #If the document is a dictionary, then we can (potentially) traverse the text_field path more, until we find the final field
+        #Else we just return the single field
+        if type(temp) is dict:
+            for key in self.text_field.split("."):
+                temp = temp[key]
+
+        return temp
+
         
 #================================================================================================================
 
@@ -192,9 +241,9 @@ def docs_to_texts(doc_list: DocumentList) -> "map[str]":
 if __name__ == "__main__":
     
     session = elastic_session("arxiv-index")
-    doc = Document(session, 0)
+    docs = [Document(session, i, text_path="_source.abstract") for i in range(10)]
 
-    print(doc.get())
+    print(docs)
 
     '''
     index_name = "test-index"

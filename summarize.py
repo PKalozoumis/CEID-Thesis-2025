@@ -15,7 +15,7 @@ if __name__ == "__main__":
     model = BigBirdPegasusForConditionalGeneration.from_pretrained(model_path)
 
     session = elastic_session("arxiv-index")
-    doc = Document(session, 0, filter_path="_source.article").get()
+    doc = Document(session, 325, filter_path="_source.article").get()
 
     inputs = tokenizer(doc, return_tensors='pt', truncation=True, max_length=4096)
     streamer = TextIteratorStreamer(tokenizer = tokenizer, decode_kwargs={'skip_special_tokens': True})

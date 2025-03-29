@@ -6,6 +6,14 @@ from kneed import KneeLocator
 from matplotlib import pyplot as plt
 from elastic import ScrollingCorpus, elasticsearch_client
 from itertools import groupby
+from elastic import Document
+
+class Sentence():
+    def __init__(self, doc: str | Document, transformer: SentenceTransformer | None = None):
+        '''
+        **doc**: The
+        '''
+
 #============================================================================================
 
 def cosine_sim(vec1, vec2) -> float:
@@ -13,7 +21,7 @@ def cosine_sim(vec1, vec2) -> float:
 
 #============================================================================================
 
-def doc_to_sentence_embeddings(sentence_transformer: SentenceTransformer, doc: str):
+def doc_to_sentences(sentence_transformer: SentenceTransformer, doc: str):
     sentences = doc.split(".")
     if sentences[-1] == '':
         #print("Removed empty sentence")
