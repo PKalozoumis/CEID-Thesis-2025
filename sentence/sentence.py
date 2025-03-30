@@ -14,7 +14,7 @@ from helper import panel_print
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
-from metrics import intra_chain_distance
+from metrics import chain_silhouette_score
 from classes import *
 
 #============================================================================================
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         print(len(merged[0]))
         print(merged[0].sentences)
         panel_print(merged[0].text)
-        intra_chain_distance(merged[0])
+        chain_silhouette_score(merged)
 
         '''
         labels, medoids = sentence_clustering(embeddings)
