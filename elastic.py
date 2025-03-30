@@ -5,13 +5,14 @@ import sys
 import os
 from collection_helper import Query
 from itertools import chain
-from typing import Iterable
-from collections import namedtuple
+from typing import Iterable, NamedTuple
 import re
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-Session = namedtuple("Session", ["client", "index_name"])
+class Session(NamedTuple):
+    client: Elasticsearch
+    index_name: str
 
 #================================================================================================================
 
@@ -20,40 +21,24 @@ class Document:
     Class for retrieving and storing a single document from Elasticsearch
     '''
 
-    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
+    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None, doc: str | None = None):
         '''
         **session**: An Elasticsearch session\n
         **id**: The numeric ID of the requested document in Elasticsearch\n
         **filter_path**: Path to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead 
         **text_path**: Name of the field (after filter_path is applied, if specified) where the document's body is located\n
+        **doc**: Preloaded document content, if we have already retrieved it somehow. Skips the extra request
         '''
-        self.doc = None
+        self.doc = doc
         self.client = session.client
         self.index_name = session.index_name
         self.id = id
         self.filter_path = filter_path
 
-        if type(self.filter_path) is str and type(text_path) is str:
-
-            matched = False
-
-            #Check if the text field is contaned in any of the filter paths
-            paths = self.filter_path.split(",")
-            for path in paths:
-                if not (text_path == path or text_path.startswith(path + ".")):
-                    continue
-                matched = True
-
-                #If multiple filter paths, then the full text field path stays as is
-                if len(paths) > 1:
-                    self.text_field = text_path
-                else:                
-                    pattern = re.compile(f"{path}\.(\w+)(\..+)?")
-                    self.text_field = re.sub(pattern, r"\1\2", text_path)
-                    break
-
-            if not matched:
-                raise ValueError(f"Text field path {text_path} not contained in filter path {self.filter_path}")
+        if doc is not None:
+            self.text_path = "PRELOADED"
+        else:
+            self.text_path = text_path
 
     def get(self):
         if self.doc is None:
@@ -63,15 +48,17 @@ class Document:
                 for key in self.filter_path.split("."):
                     self.doc = self.doc[key]
 
-        return self.doc
+                return self.doc
+
+        return dict(self.doc)
     
     def __str__(self):
         return json.dumps(self.get())
     
+    def __repr__(self):
+        return f"Document(id={self.id})"
+    
     def text(self):
-        if self.text_field is None:
-            return
-        
         temp = self.doc
             
         if temp is None:
@@ -80,7 +67,15 @@ class Document:
         #If the document is a dictionary, then we can (potentially) traverse the text_field path more, until we find the final field
         #Else we just return the single field
         if type(temp) is dict:
-            for key in self.text_field.split("."):
+
+            #There is no path to follow
+            if self.text_path is None:
+                return
+        
+            for key in self.text_path.split("."):
+                if key not in temp:
+                    raise ValueError(f"filter_path '{self.filter_path}' does not contain text_path '{self.text_path}'")
+
                 temp = temp[key]
 
         return temp
@@ -119,7 +114,8 @@ class DocumentList:
 
 class ScrollingCorpus:
     '''
-    Receives batches of documents from Elasticsearch
+    Receives batches of documents from Elasticsearch\n
+    Used to retrieve the actual documents only. Cannot return metadata
     '''
 
     def __init__(self,   
@@ -130,8 +126,7 @@ class ScrollingCorpus:
             doc_field: str,
             fields_to_keep: list[str] = []
         ):
-        self.client = session.client
-        self.index_name = session.index_name
+        self.session = session
         self.batch_size = batch_size
         self.scroll_time = scroll_time
         self.fields_to_keep = fields_to_keep
@@ -143,7 +138,7 @@ class ScrollingCorpus:
     #--------------------------------------------------------------------------------------
 
     def __iter__(self):
-        res = self.client.search(index=self.index_name, scroll=self.scroll_time, filter_path="_scroll_id,hits.hits", body={
+        res = self.session.client.search(index=self.session.index_name, scroll=self.scroll_time, filter_path="_scroll_id,hits.hits", body={
             "size": self.batch_size,
             "_source": self.fields_to_keep,
             "query":{"match_all": {}}
@@ -159,9 +154,11 @@ class ScrollingCorpus:
 
             if docs:
                 #Send entire batch before asking for the next one
-                docs = map(lambda doc: doc['_source'][self.doc_field], docs)
-                yield from docs
-                res = self.client.scroll(scroll_id = scroll_id, scroll = self.scroll_time)
+                for doc in docs:
+                    doc_obj = Document(self.session, doc['_id'], doc=doc['_source'][self.doc_field])
+                    yield doc_obj
+
+                res = self.session.client.scroll(scroll_id = scroll_id, scroll = self.scroll_time)
             else:
                 break
 
@@ -230,45 +227,25 @@ def query(session: Session, query_list: Query | list[Query], filter_path: str = 
         return docs[0], multiple_query_results[0]
     else:
         return docs, multiple_query_results
-    
-#===============================================================================================
-    
-def docs_to_texts(doc_list: DocumentList) -> "map[str]":
-    return map(lambda x: x["abstract"], doc_list)
 
 #===============================================================================================
 
 if __name__ == "__main__":
+
+    from rich.panel import Panel
+    from rich.console import Console
+
+    console = Console()
     
     session = elastic_session("arxiv-index")
-    docs = [Document(session, i, text_path="_source.abstract") for i in range(10)]
+    docs = [
+            Panel(
+                Document(session, i, filter_path="_source.article_id,_source.summary", text_path="_source.summary").text(),
+                title="Text",
+                title_align="left",
+                border_style="cyan"
+            )
+            for i in range(1)
+        ]
 
-    print(docs)
-
-    '''
-    index_name = "test-index"
-
-    single_query = True
-
-    client = elasticsearch_client()
-    queries = parse_queries() #99 queries
-
-    if single_query:
-        queries = queries[98]
-        docs, single_query_results = query(client, index_name, queries)
-
-        print(single_query_results)
-        
-        print(f"NDCG: {metrics.ndcg(single_query_results, queries)}")
-        print(docs[0])
-    else:
-        client = elasticsearch_client()
-        #queries = parse_queries()[98:99] #99 queries
-        queries = parse_queries() #99 queries
-
-        docs, multiple_query_results = query(client, index_name, queries)
-        
-        print(f"Average NDCG: {metrics.average_ndcg(multiple_query_results, queries)[-1]}")
-
-        print(docs[98][0])
-        '''
+    console.print(docs[0])
