@@ -5,8 +5,10 @@ import sys
 import os
 from collection_helper import Query
 from itertools import chain
-from typing import Iterable, NamedTuple
+from typing import Iterable, NamedTuple, Any
 import re
+from dataclasses import dataclass, field
+from helper import overrides
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -16,12 +18,50 @@ class Session(NamedTuple):
 
 #================================================================================================================
 
+@dataclass
 class Document:
     '''
-    Class for retrieving and storing a single document from Elasticsearch
+    A class representing a document
+    '''
+    doc: Any
+    id: int
+    text_path: str = field(default=None)
+
+    #--------------------------------------------------------------------------------
+
+    def get(self) -> Any:
+        return self.doc
+    
+    #--------------------------------------------------------------------------------
+    
+    def text(self) -> str:
+        temp = self.doc
+
+        if type(temp) is dict:
+            if self.text_path is None:
+                raise ValueError("Called Document.text() on a dictionary document, but text_path was None")
+        
+            for key in self.text_path.split("."):
+                if key not in temp:
+                    raise ValueError(f"Key '{key}' in text_path '{self.text_path}' does not exist")
+
+                temp = temp[key]
+
+        return temp
+    
+    #--------------------------------------------------------------------------------
+
+    def __str__(self):
+        return json.dumps(self.get())
+    
+#================================================================================================================
+
+class ElasticDocument(Document):
+    '''
+    A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
     '''
 
-    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None, doc: str | None = None):
+    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
         '''
         **session**: An Elasticsearch session\n
         **id**: The numeric ID of the requested document in Elasticsearch\n
@@ -29,57 +69,40 @@ class Document:
         **text_path**: Name of the field (after filter_path is applied, if specified) where the document's body is located\n
         **doc**: Preloaded document content, if we have already retrieved it somehow. Skips the extra request
         '''
-        self.doc = doc
-        self.client = session.client
-        self.index_name = session.index_name
-        self.id = id
+        super().__init__(None, id, text_path)
+        self.session = session
         self.filter_path = filter_path
 
-        if doc is not None:
-            self.text_path = "PRELOADED"
-        else:
-            self.text_path = text_path
+    #--------------------------------------------------------------------------------
 
+    @overrides(Document)
     def get(self):
         if self.doc is None:
-            self.doc = self.client.get(index=self.index_name, id=f"{self.id}", filter_path=self.filter_path)
+            print(f"Fetching Document(ID={self.id})")
+            self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
 
+            #If the filter path points to a single field, return the value inside that field
             if self.filter_path and len(self.filter_path.split(",")) == 1:
                 for key in self.filter_path.split("."):
                     self.doc = self.doc[key]
 
                 return self.doc
 
-        return dict(self.doc)
+        self.doc = dict(self.doc)
+        return self.doc
     
-    def __str__(self):
-        return json.dumps(self.get())
+    #--------------------------------------------------------------------------------
+    
+    @overrides(Document)
+    def text(self):
+        self.get()
+    
+        return super().text()
+    
+    #--------------------------------------------------------------------------------
     
     def __repr__(self):
-        return f"Document(id={self.id})"
-    
-    def text(self):
-        temp = self.doc
-            
-        if temp is None:
-            temp = self.get()
-
-        #If the document is a dictionary, then we can (potentially) traverse the text_field path more, until we find the final field
-        #Else we just return the single field
-        if type(temp) is dict:
-
-            #There is no path to follow
-            if self.text_path is None:
-                return
-        
-            for key in self.text_path.split("."):
-                if key not in temp:
-                    raise ValueError(f"filter_path '{self.filter_path}' does not contain text_path '{self.text_path}'")
-
-                temp = temp[key]
-
-        return temp
-
+        return f"ElasticDocument(id={self.id})"
         
 #================================================================================================================
 
@@ -155,7 +178,7 @@ class ScrollingCorpus:
             if docs:
                 #Send entire batch before asking for the next one
                 for doc in docs:
-                    doc_obj = Document(self.session, doc['_id'], doc=doc['_source'][self.doc_field])
+                    doc_obj = Document(doc['_source'][self.doc_field], doc['_id'])
                     yield doc_obj
 
                 res = self.session.client.scroll(scroll_id = scroll_id, scroll = self.scroll_time)
@@ -240,7 +263,7 @@ if __name__ == "__main__":
     session = elastic_session("arxiv-index")
     docs = [
             Panel(
-                Document(session, i, filter_path="_source.article_id,_source.summary", text_path="_source.summary").text(),
+                ElasticDocument(session, i, filter_path="_source.article_id,_source.summary", text_path="_source.summary").text(),
                 title="Text",
                 title_align="left",
                 border_style="cyan"

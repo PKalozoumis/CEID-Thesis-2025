@@ -1,10 +1,14 @@
+import sys
+import os
+sys.path.append(os.path.abspath(".."))
+
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances
 from kmedoids import KMedoids
 from kneed import KneeLocator
 from matplotlib import pyplot as plt
-from elastic import ScrollingCorpus, elasticsearch_client, Document, Session
+from elastic import ScrollingCorpus, elasticsearch_client, ElasticDocument, Session, Document
 from itertools import pairwise, starmap, chain
 from dataclasses import dataclass
 from numpy import ndarray
@@ -14,6 +18,9 @@ from abc import ABC, abstractmethod
 from operator import attrgetter
 import json
 from functools import cached_property
+from rich.table import Table
+from rich.console import Console
+from rich.markdown import Markdown
 
 #============================================================================================
 
@@ -28,7 +35,7 @@ class SentenceLike(ABC):
     def text(self):
         pass
 
-    def sim(self, other) -> float:
+    def similarity(self, other) -> float:
         return np.dot(self.vector, other.vector)/(np.linalg.norm(self.vector)*np.linalg.norm(other.vector))
 
 #============================================================================================    
@@ -44,7 +51,7 @@ class SimilarityPair:
 
     @classmethod
     def from_sentences(cls, s1: SentenceLike, s2: SentenceLike):
-        return cls(s1, s2, s1.sim(s2))
+        return cls(s1, s2, s1.similarity(s2))
 
     def __post_init__(self):
         if not isinstance(self.s1, SentenceLike):
@@ -59,7 +66,7 @@ class SimilarityPair:
 class Sentence(SentenceLike):
     _text: str
     _vector: ndarray
-    doc: Document
+    doc: ElasticDocument
 
     def __str__(self):
         return self.text
@@ -78,14 +85,23 @@ class SentenceChain(SentenceLike):
     '''
     Represents a chain of one or more sequential sentences that are very similar
     '''
+    @staticmethod
+    def pooling_average(sentences: list[Sentence]):
+        return np.average(np.row_stack([s.vector for s in sentences]), axis=0)
+    
+    @staticmethod
+    def pooling_max(sentences: list[Sentence]):
+        return np.max(np.row_stack([s.vector for s in sentences]), axis=0)
 
     @staticmethod
-    def polling_average(sentences: list[Sentence]):
-        return np.average(np.row_stack([s.vector for s in sentences]), axis=0)
+    def pooling(sentences: list[Sentence], pooling_method: str):
+        match pooling_method:
+            case "average": return SentenceChain.pooling_average(sentences)
+            case "max": return SentenceChain.pooling_max(sentences)
 
-    def __init__(self, sentences: list[Sentence], polling_approach: str = "average"):
+    def __init__(self, sentences: list[Sentence], pooling_method: str = "average"):
         self.sentences = sentences
-        self._vector = SentenceChain.polling_average(self.sentences)
+        self._vector = SentenceChain.pooling(self.sentences, pooling_method)
 
     def __iter__(self):
         return iter(self.sentences)
@@ -117,9 +133,6 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Se
     Returns:
         list[Sentence]: A list of Sentence objects
     '''
-    if doc.text_path is None:
-        raise ValueError(f"text_path not specified for Document(id={doc.id})")
-
     sentences = doc.text().split("\n")
     if sentences[-1] == '':
         sentences = sentences[:-1]
@@ -134,18 +147,61 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Se
 
 #============================================================================================
 
-def chain_clustering(sentences: list[Sentence]):
-    '''
-    Cluster similar neighboring sentneces together
+def print_pairs(sentences):
+    console = Console()
+    console.clear()
 
-    Args:
-        sentences (list[Sentence]): The sentences to cluster
+    table = Table()
+    table.add_column("Sentence Pair")
+    table.add_column("Similarity", vertical="top")
 
-    Returns:
-        Clustering
-    '''
-    sim = starmap(lambda x, y: cosine_sim(x.vector, y.vector), pairwise(sentences))
-    print(list(sim))
+    for thing in starmap(lambda x, y: (x,y,x.similarity(y)), pairwise(sentences)):
+        mytext = f'''
+- {thing[0].text.strip()}
+
+
+- {thing[1].text.strip()}
+
+---
+        '''
+        table.add_row(Markdown(mytext), "\n\n"+str(thing[2]))
+
+    console.print(table)
+
+#============================================================================================
+
+def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: int | None = 1, pooling_method="average"):
+    pairs = [SimilarityPair.from_sentences(s1, s2) for s1, s2 in pairwise(sentences)]
+
+    #No more merging can happen
+    if not any(filter(lambda x: x.sim > threshold, pairs)):
+        return sentences
+
+    chains = []
+
+    for i, pair in enumerate(pairs):
+        if pair.sim >= threshold: #Add to the chain
+            if i == 0:
+                chains.append([pair.s1, pair.s2])
+            else:
+                #We have already examined s1
+                chains[-1] += [pair.s2]
+
+        else: #Create new chain for this sentence
+            if i == 0:
+                chains.append([pair.s1, pair.s2])
+            else:
+                #We have already examined s1
+                chains.append([pair.s2])
+
+    result = [SentenceChain(c, pooling_method) for c in chains]
+    
+    if round_limit is None:
+        return iterative_merge(result, threshold=threshold, round_limit=None, pooling_method=pooling_method)
+    elif round_limit > 1:
+        return iterative_merge(result, threshold=threshold, round_limit=round_limit-1, pooling_method=pooling_method)
+    else:
+        return result
 
 #============================================================================================
 
@@ -196,13 +252,14 @@ def sentence_clustering(embeddings):
 #============================================================================================
 
 if __name__ == "__main__":
-    session = Session(elasticsearch_client(), "arxiv-index")
+    session = Session(elasticsearch_client("../credentials.json", "../http_ca.crt"), "arxiv-index")
     model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
     corpus = ScrollingCorpus(session, batch_size=10, doc_field="article")
 
     for doc in corpus:
         sentences = doc_to_sentences(doc, model)
-        chain_clustering(sentences)
+        merged = iterative_merge(sentences, threshold=0.6, round_limit=None, pooling_method="average")
+        print_pairs(merged)
 
         '''
         labels, medoids = sentence_clustering(embeddings)
