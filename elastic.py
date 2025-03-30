@@ -1,4 +1,4 @@
-import metrics
+import retrieval_metrics
 import json
 from elasticsearch import Elasticsearch, AuthenticationException
 import sys
