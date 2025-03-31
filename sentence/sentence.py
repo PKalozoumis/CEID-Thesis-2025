@@ -14,7 +14,7 @@ from helper import panel_print
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
-from metrics import chain_silhouette_score
+from metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
 from classes import *
 
 #============================================================================================
@@ -155,7 +155,8 @@ if __name__ == "__main__":
         print(len(merged[0]))
         print(merged[0].sentences)
         panel_print(merged[0].text)
-        chain_silhouette_score(merged)
+        
+        chain_metrics(merged)
 
         '''
         labels, medoids = sentence_clustering(embeddings)
