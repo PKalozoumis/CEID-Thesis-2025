@@ -1,7 +1,7 @@
 from elasticsearch import Elasticsearch
 from gensim.utils import simple_preprocess
 from gensim.corpora import Dictionary
-from elastic import elasticsearch_client, query, DocumentList, docs_to_texts
+from mypackage.elastic import elasticsearch_client, query, DocumentList, docs_to_texts
 from gensim.models.phrases import Phrases, FrozenPhrases
 from gensim.models.ldamodel import LdaModel
 import re

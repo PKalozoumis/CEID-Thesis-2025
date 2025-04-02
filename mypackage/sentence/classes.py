@@ -1,12 +1,8 @@
-import sys
-import os
-sys.path.append(os.path.abspath(".."))
-
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
-from elastic import ElasticDocument
+from mypackage.elastic import ElasticDocument
 from functools import cached_property
 import json
 from itertools import chain

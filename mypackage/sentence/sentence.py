@@ -1,21 +1,17 @@
-import sys
-import os
-sys.path.append(os.path.abspath(".."))
-
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances
 from kmedoids import KMedoids
 from kneed import KneeLocator
 from matplotlib import pyplot as plt
-from elastic import ScrollingCorpus, elasticsearch_client, Session, Document
+from mypackage.elastic import ScrollingCorpus, elasticsearch_client, Session, Document
 from itertools import pairwise, starmap
-from helper import panel_print
+from mypackage.helper import panel_print
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
-from metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
-from classes import *
+from mypackage.sentence.metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
+from mypackage.sentence.classes import *
 
 #============================================================================================
 

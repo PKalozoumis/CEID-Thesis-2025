@@ -2,7 +2,7 @@
 from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, TextIteratorStreamer, TextStreamer
 import sys
 import os
-from elastic import elastic_session, ElasticDocument
+from mypackage.elastic import elastic_session, ElasticDocument
 from threading import Thread
 from rich.live import Live
 from rich.console import Console

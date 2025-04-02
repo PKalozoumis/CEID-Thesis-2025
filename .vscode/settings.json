@@ -4,5 +4,17 @@
     "editor.autoClosingComments": "never",
     "editor.autoClosingDelete": "never",
     "editor.autoClosingOvertype": "never",
-    "editor.autoClosingQuotes": "never"
+    "editor.autoClosingQuotes": "never",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/venv": true,
+        "**/__pycache__": true,
+        "requirements.txt": true,
+        "**/credentials.json": true,
+        "**/http_ca.crt": true
+    }
 }
