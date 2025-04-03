@@ -9,3 +9,4 @@ __pycache__
 !requirements.txt
 arxiv_collection/vocab
 collection/vocab
+cached_docs

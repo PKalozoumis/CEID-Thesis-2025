@@ -9,6 +9,7 @@ from typing import Iterable, NamedTuple, Any
 import re
 from dataclasses import dataclass, field
 from mypackage.helper import overrides
+import json
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -21,11 +22,36 @@ class Session(NamedTuple):
 @dataclass
 class Document:
     '''
-    A class representing a document
+    A class representing a document. Does not necessarily have to be an Elasticsearch document
+
+    Args:
+        doc (Any): The document's contents. Typically ```str``` or ```dict```, but it can be any other type
+        id (int, optional): A numeric ID for the document. For Elasticsearch documents, corresponds to the ID in the index
+        text_path (str, optional): Path to the document's main body where the text is located. Only applicable when document is of type ```dict```
     '''
     doc: Any
-    id: int
+    id: int = field(default=None)
     text_path: str = field(default=None)
+
+    @classmethod
+    def from_json(cls, path: str, id: int = None, text_path: str = None) -> 'Document':
+        '''
+        Create a Document from a JSON file
+
+        Args:
+            path (str): Path to the file
+            id (int, optional): A numeric ID for the document
+            text_path (str, optional): Path to the document's main body where the text is located
+        '''
+        doc = None
+        
+        if not os.path.isfile(path):
+            raise FileNotFoundError("Path does not lead to existing file")
+        
+        with open(path, "r") as f:
+            doc = json.load(f)
+
+        return cls(doc, id, text_path)
 
     #--------------------------------------------------------------------------------
 
@@ -61,13 +87,15 @@ class ElasticDocument(Document):
     A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
     '''
 
-    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
+    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None, cache: bool = False, cache_location: str = None):
         '''
-        **session**: An Elasticsearch session\n
-        **id**: The numeric ID of the requested document in Elasticsearch\n
-        **filter_path**: Path to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead 
-        **text_path**: Name of the field (after filter_path is applied, if specified) where the document's body is located\n
-        **doc**: Preloaded document content, if we have already retrieved it somehow. Skips the extra request
+        A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
+
+        Args:
+            session (Session): An Elasticsearch session
+            id (int): The numeric ID of the requested document in Elasticsearch
+            filter_path (str, optional): Path to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead. Defaults to ```_source```
+            text_path (str, optional): Name of the field (after filter_path is applied, if specified) where the document's body is located
         '''
         super().__init__(None, id, text_path)
         self.session = session
@@ -137,7 +165,7 @@ class DocumentList:
 
 class ScrollingCorpus:
     '''
-    Receives batches of documents from Elasticsearch\n
+    Receives batches of documents from Elasticsearch.
     Used to retrieve the actual documents only. Cannot return metadata
     '''
 
@@ -220,8 +248,8 @@ def query(session: Session, query_list: Query | list[Query], filter_path: str = 
     Perform a single query (Query) or multiple queries (list[Query]) and get back results
     
     Returns:
-    - A single DocumentList (for one query) or a list of DocumentLists (for list of queries)
-    - A single list of document IDs, or a list of lists
+        DocumentList | list[DocumentList]: A single DocumentList (for one query) or a list of DocumentLists (for list of queries)
+        int | list[int]: A single list of document IDs, or a list of lists
     '''
     if type(query_list) is Query:
         query_list = [query_list]
