@@ -5,7 +5,6 @@
     "editor.autoClosingDelete": "never",
     "editor.autoClosingOvertype": "never",
     "editor.autoClosingQuotes": "never",
-    "python.analysis.exclude": ["**"],
     "files.exclude": {
         "**/.git": true,
         "**/.svn": true,

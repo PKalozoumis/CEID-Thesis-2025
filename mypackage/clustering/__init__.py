@@ -1,2 +1,2 @@
-from .clustering import chain_clustering
+from .clustering import *
 from .classes import *

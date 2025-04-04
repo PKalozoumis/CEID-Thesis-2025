@@ -10,6 +10,9 @@ from itertools import chain
 #============================================================================================
 
 class SentenceLike(ABC):
+    '''
+    Represents an arbitrarily long text sequence. Can be a single sentence or multiple consecutive sentences.
+    '''
     @property
     @abstractmethod
     def vector(self):
@@ -28,7 +31,7 @@ class SentenceLike(ABC):
 @dataclass(repr=False)
 class SimilarityPair:
     '''
-    Pair of CosineComparable objects, along with their similarity score
+    Pair of SentenceLike objects, along with their similarity score
     '''
     s1: SentenceLike
     s2: SentenceLike
@@ -49,6 +52,10 @@ class SimilarityPair:
 
 @dataclass(repr=False)
 class Sentence(SentenceLike):
+    '''
+    Represents a single sentence
+    '''
+
     _text: str
     _vector: ndarray
     doc: ElasticDocument
@@ -68,7 +75,7 @@ class Sentence(SentenceLike):
     
 class SentenceChain(SentenceLike):
     '''
-    Represents a chain of one or more sequential sentences that are very similar
+    Represents a chain of one or more consecutive sentences that are very similar
     '''
     @staticmethod
     def pooling_average(sentences: list[Sentence]) -> ndarray:
