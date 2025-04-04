@@ -10,8 +10,8 @@ from mypackage.helper import panel_print
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
-from mypackage.sentence.metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
-from mypackage.sentence.classes import *
+from .metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
+from .classes import *
 
 #============================================================================================
 

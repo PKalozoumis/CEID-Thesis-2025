@@ -1,4 +1,4 @@
-from mypackage.sentence.classes import SentenceChain
+from .classes import SentenceChain
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances, cosine_similarity
 import sys

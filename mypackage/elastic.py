@@ -1,14 +1,13 @@
-import mypackage.retrieval_metrics
 import json
 from elasticsearch import Elasticsearch, AuthenticationException
 import sys
 import os
-from mypackage.collection_helper import Query
+from .collection_helper import Query
 from itertools import chain
 from typing import Iterable, NamedTuple, Any
 import re
 from dataclasses import dataclass, field
-from mypackage.helper import overrides
+from .helper import overrides
 import json
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
