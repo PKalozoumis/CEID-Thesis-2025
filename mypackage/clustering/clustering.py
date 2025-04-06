@@ -7,12 +7,14 @@ from matplotlib import pyplot as plt
 from umap import UMAP
 from numpy import ndarray
 import warnings
+from matplotlib.patches import Patch
 
 #===================================================================================================
 
 def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) -> dict[int, list[SentenceChain]]:
     '''
-    Groups the chains into lists based on the labels returned by ```chain_clustering```
+    Groups the chains into lists based on the labels returned by ```chain_clustering```.
+    The chains are ordered 
 
     Args:
         chains (list[SentenceChain]): The original set of chains
@@ -59,9 +61,10 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 
 def chain_clustering(chains: list[SentenceChain]) -> tuple[list[int], dict[int, ChainCluster]]:
     '''
-    Clusters a list of sentence chains for a single document
+    Clusters a list of sentence chains for a single document.
+    The chains inside each returned cluster are ordered based on their offset inside the document
 
-    Parameters
+    Arguments
     --------------------------------------------------------
     chain: list[SentenceChain]
         The list of chains to cluster
@@ -109,12 +112,13 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         chains (list[SentenceChain]): The original set of chains
         clustering (list[int]): A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
     '''
+    cmap = plt.cm.get_cmap("tab20").colors
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning) #when using seed
 
         matrix = np.array([chain.vector for chain in chains])
         
-        colors = [sns.color_palette()[label] if label >= 0 else (0,0,0) for label in clustering_labels]
+        colors = [cmap[(2*label + 1*(label > 19)%20)] if label >= 0 else (0,0,0) for label in clustering_labels]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
@@ -122,7 +126,68 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         
         reduced = visualization_reducer.fit_transform(matrix)
 
+        n_clusters = len(list(set(clustering_labels)))
+
+        legend_elements = [Patch(facecolor=(0,0,0), label="Outliers")]
+        legend_elements += [Patch(facecolor=cmap[(2*i + 1*(i > 19))%20], label=f'Cluster {i:02}') for i in range(n_clusters-1)]
         plt.scatter(reduced[:, 0], reduced[:, 1], c=colors)
+        plt.legend(handles = legend_elements)
         plt.show()
 
 #===================================================================================================
+
+def cluster_mask(clusters: dict[int, ChainCluster]) -> list[int]:
+    '''
+    Assigns each of the document's initial sentences to one of the clusters
+
+    Arguments
+    ---
+    clusters: list[ChainCluster]
+        The clustering returned by ```chain_clustering```.
+        It is important that the unaltered output of the clustering function is passed here, as it assumes a specific ordering
+
+    Returns
+    ---
+    mask: list[int]
+        The sentence clustering
+    '''
+
+    #Shows the current chain we're examining within the cluster
+    #Remember that in each cluster chains are in order of appearance in the document
+    positions = [0 for _ in range(len(clusters))]
+
+    #The next sentence we're looking for
+    current_offset = 0
+
+    #A list holding the label for each sentence in the document, in order of appearance
+    result = []
+
+    reached_end = False
+
+    while not reached_end:
+        #We will know we reached the end when the next sentence offset cannot be found
+        #(because it is beyond the document's limits, indicating we reached the end)
+        reached_end = True
+
+        for label, cluster in clusters.items():
+
+            try:
+                cur_chain = cluster[positions[label]]
+            except IndexError:
+                continue
+
+            #If this cluster's current chain contains the next sentence we're looking for
+            if cur_chain.offset == current_offset:
+                reached_end = False
+                
+                #For each sentence in that chain, we must append this cluster's label to the result
+                for _ in range(len(cur_chain)):
+                    result.append(label)
+
+                current_offset += len(cur_chain)
+                positions[label] += 1
+
+                #Continue the search from the beginning
+                break
+
+    return result

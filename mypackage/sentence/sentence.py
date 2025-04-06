@@ -19,22 +19,27 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Se
     '''
     Breaks down a document into sentences. For the entire set of sentences, the embeddings are calculated
 
-    Args:
-        doc (Document): The document to extract sentences from
-        transformer (SentenceTransformer): The model that will generate the embeddings
+    Arguments
+    ---
+    doc: Document
+        The document to extract sentences from
+    transformer: SentenceTransformer
+        The model that will generate the embeddings
 
-    Returns:
-        list[Sentence]: A list of Sentence objects
+    Returns
+    ---
+    out: list[Sentence]
+        A list of the document's sentences as ```Sentence``` objects
     '''
-    sentences = doc.text().split("\n")
+    sentences = doc.text.split("\n")
     if sentences[-1] == '':
         sentences = sentences[:-1]
 
     embeddings = transformer.encode(sentences)
 
     result = []
-    for s, e in zip(sentences, embeddings):
-        result.append(Sentence(s, e, doc))
+    for offset, (sentence, embedding) in enumerate(zip(sentences, embeddings)):
+        result.append(Sentence(sentence, embedding, doc, offset))
 
     return result
 

@@ -109,7 +109,13 @@ if __name__ == "__main__":
     parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes for dictionary")
     args = parser.parse_args()
 
-    index_name = "arxiv-index"
+    #Paths
+    #---------------------------------------------
+    index_name = "pubmed-index"
+    collection_path = "collection"
+    dataset_file_name = "pubmed.txt"
+    models_path = "models"
+    #---------------------------------------------
 
     if not args.no_index:
         client = elasticsearch_client()
@@ -135,9 +141,7 @@ if __name__ == "__main__":
         print(f"Emptying index {index_name}...")
         empty_index(client, index_name)
     else:
-        collection_path = "collection"
-        models_path = "models"
-        file_path = os.path.join(collection_path, "test.txt")
+        file_path = os.path.join(collection_path, dataset_file_name)
         num_docs = line_count(file_path)
 
         #When indexind document using bulk queries, the docs will be split into batches

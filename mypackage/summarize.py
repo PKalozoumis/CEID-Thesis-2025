@@ -2,7 +2,7 @@
 from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, TextIteratorStreamer, TextStreamer
 import sys
 import os
-from .elastic import elastic_session, ElasticDocument
+from .elastic import Session, ElasticDocument
 from threading import Thread
 from rich.live import Live
 from rich.console import Console
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = BigBirdPegasusForConditionalGeneration.from_pretrained(model_path)
 
-    session = elastic_session("arxiv-index")
+    session = Session("arxiv-index")
     doc = ElasticDocument(session, 325, filter_path="_source.article").get()
 
     inputs = tokenizer(doc, return_tensors='pt', truncation=True, max_length=4096)

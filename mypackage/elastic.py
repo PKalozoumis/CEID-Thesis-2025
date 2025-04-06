@@ -12,9 +12,16 @@ import json
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-class Session(NamedTuple):
-    client: Elasticsearch
-    index_name: str
+class Session():
+
+    def __init__(self, index_name: str, *, client: Elasticsearch = None, credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt"):
+        
+        if client:
+            self.client = client
+        else:
+            self.client = elasticsearch_client(credentials_path, cert_path)
+
+        self.index_name = index_name
 
 #================================================================================================================
 
@@ -59,6 +66,7 @@ class Document:
     
     #--------------------------------------------------------------------------------
     
+    @property
     def text(self) -> str:
         temp = self.doc
 
@@ -86,7 +94,7 @@ class ElasticDocument(Document):
     A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
     '''
 
-    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None, cache: bool = False, cache_location: str = None):
+    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
         '''
         A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
 
@@ -120,11 +128,12 @@ class ElasticDocument(Document):
     
     #--------------------------------------------------------------------------------
     
+    @property
     @overrides(Document)
     def text(self):
         self.get()
     
-        return super().text()
+        return super().text
     
     #--------------------------------------------------------------------------------
     
@@ -137,11 +146,12 @@ class DocumentList:
     '''
     Lazy document list
     '''
-    def __init__(self, session: Session, doc_ids: Iterable, filter_path: str ="_source"):
+    def __init__(self, session: Session, doc_ids: Iterable, filter_path: str ="_source", text_path: str | None = None):
         self.doc_ids = doc_ids
         self.client = session.client
         self.index_name= session.index_name
         self.filter_path = filter_path
+        self.text_path = text_path
 
         self.docs = [None for _ in doc_ids]
 
@@ -235,11 +245,6 @@ def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: 
 
     return client
 
-#================================================================================================================
-
-def elastic_session(index_name: str, credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt") -> Session:
-    return Session(elasticsearch_client(credentials_path, cert_path), index_name)
-
 #===============================================================================================
 
 def query(session: Session, query_list: Query | list[Query], filter_path: str = "_source") -> tuple[list[DocumentList], list[list[int]]]:
@@ -287,7 +292,7 @@ if __name__ == "__main__":
 
     console = Console()
     
-    session = elastic_session("arxiv-index")
+    session = Session("arxiv-index")
     docs = [
             Panel(
                 ElasticDocument(session, i, filter_path="_source.article_id,_source.summary", text_path="_source.summary").text(),

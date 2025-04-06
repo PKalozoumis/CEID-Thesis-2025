@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from ..sentence import SentenceChain
+from ..elastic import Document
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -29,5 +30,15 @@ class ChainCluster:
         else:
             return None
         
+    def __getitem__(self, i: int) -> SentenceChain:
+        return self.chains[i]
+        
     def __iter__(self):
         return iter(self.chains)
+    
+    def text(self):
+        return "\n\n".join([c.text for c in self.chains])
+    
+    @property
+    def doc(self) -> Document:
+        return self.chains[0].doc
