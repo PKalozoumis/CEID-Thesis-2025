@@ -1,0 +1,124 @@
+{"doc": 0, "q1": "Parkinson's disease cognitive impairment with anxiety", "q2": "Does anxiety affect cognition in Parkinson's disease?"}
+{"doc": 1, "q1": "What rnas are involved in regulating mammary gland tumorigenesis", "q2": "Do pirna and snorna play a role in breast cancer"}
+{"doc": 2, "q1": "severe ovarian hyperstimulation syndrome management without hospitalization", "q2": "when to intervene with pigtail catheter in OHSS"}
+{"doc": 3, "q1": "congenital adrenal hyperplasia in females", "q2": "why do some female babies with congenital adrenal hyperplasia not get treated until late adolescence?"}
+{"doc": 4, "q1": "what effects does pentoxifylline have on diabetic mice", "q2": "can pentoxifylline prevent hyperglycemia and increase insulin levels"}
+{"doc": 5, "q1": "asthma staphylococcal superantigen IgE levels", "q2": "Is staphylococcal enterotoxin A associated with asthma severity?"}
+{"doc": 6, "q1": "icu hospitalization stress for families", "q2": "do icu families get better care"}
+{"doc": 7, "q1": "what are the effects of peplau therapeutic communication model on patients with coronary artery bypass", "q2": "can peplau's therapeutic communication reduce anxiety and depression in heart surgery candidates?"}
+{"doc": 8, "q1": "why was the h3n2 influenza a vaccine changed in 2005-2006", "q2": "what prompted a change to the h3n2 influenza a vaccine in 2005-2006?"}
+{"doc": 9, "q1": "obesity linked to health risks in US population", "q2": "how does weight affect health for Americans?"}
+{"doc": 10, "q1": "male patients with macroprolactinomas and suppurative meningitis", "q2": "suppurative meningitis occurring after bromocriptine treatment for aggressive prolactinoma"}
+{"doc": 11, "q1": "destandau endospine system lumbar discectomy", "q2": "effective treatment for lumbar disc herniation with minimal invasive"}
+{"doc": 12, "q1": "travel benefits and risks for medical tourism", "q2": "what are the risks and benefits of traveling abroad for medical treatment?"}
+{"doc": 13, "q1": "EGFR targeted therapy resistance mechanisms", "q2": "Why is EGFR targeted therapy resistant in head and neck cancer?"}
+{"doc": 14, "q1": "what is thymoquinone's effect on dopaminergic neurons", "q2": "can thymoquinone rescue mpp+-damaged dopaminergic neurons?"}
+{"doc": 15, "q1": "orthopedic treatment for femoral neck fracture", "q2": "why wait so long to fix non-union of femoral neck fracture?"}
+{"doc": 16, "q1": "granuloma faciale symptoms", "q2": "can granuloma faciale be treated with tacrolimus"}
+{"doc": 17, "q1": "osteomyelitis treatment success", "q2": "why did CMMOL patient's condition worsen despite surgery"}
+{"doc": 18, "q1": "bivalirudin ecmo cardiopulmonary bypass thrombosis", "q2": "is there still blood flow under bivalirudin anticoagulation during ecmo?"}
+{"doc": 19, "q1": "what is left ventricular ejection fraction using 64-slice coronary CT angiography?", "q2": "how does fully automated software calculate left ventricle functional parameters from CTA data?"}
+{"doc": 20, "q1": "Aristolochia bracteolata methanol extract antimicrobial activity", "q2": "What compounds in Aristolochia bracteolata have antibacterial activity against Moraxella catarrhalis?"}
+{"doc": 21, "q1": "infected descending aortic pseudoaneurysm symptoms", "q2": "what causes luminal pathognomonic oscillating vegetation on aortic imaging"}
+{"doc": 22, "q1": "endometriosis symptoms treatment", "q2": "Does Vitamin D help with endometriosis pain?"}
+{"doc": 23, "q1": "Root canal fillings with epoxy resin + Ah Plus combined or not with Resinous Primer", "q2": "Does epoxy resin filling without primer cause gaps leading to microleakage?"}
+{"doc": 24, "q1": "permanent neonatal diabetes before 6 months age", "q2": "can permanent neonatal diabetes be treated with sulfonylureas?"}
+{"doc": 25, "q1": "radiocontrast agents cause renal failure in patients", "q2": "when does plasma creatinine start to rise after radiocontrast administration?"}
+{"doc": 26, "q1": "implant biomaterials infections", "q2": "why can't we kill bacteria that stick to implants?"}
+{"doc": 27, "q1": "Antimicrobial resistant bacteria in a tertiary care hospital", "q2": "What types of bacterial isolates are resistant to multiple antibiotics?"}
+{"doc": 28, "q1": "ureterocele diagnosis methods", "q2": "what causes photopenia in urinary bladder ultrasonography"}
+{"doc": 29, "q1": "older women with asymptomatic vertebral fractures have lower quality of life", "q2": "do asymptomatic vertebral fractures affect physical function in older women?"}
+{"doc": 30, "q1": "endometrial sampling methods comparison", "q2": "what is the difference in specimen adequacy between Endometrial Explora and D&C?"}
+{"doc": 31, "q1": "fluvial deposits in Miocene Solimes Formation", "q2": "What type of ecosystem existed in Western Amazonia during Miocene times?"}
+{"doc": 32, "q1": "incidental adrenal enlargement: what are the clinical characteristics and functional status", "q2": "What are the common types of functional lesions found in patients with nodular adrenal enlargement?"}
+{"doc": 33, "q1": "What percentage of parents answered correctly on the pretest about pediatric infectious diseases prevention?", "q2": "Does knowledge degree affect the results of this health education method?"}
+{"doc": 34, "q1": "shoulder pain in adults due to liver disease", "q2": "can septic arthritis of the shoulder be misdiagnosed?"}
+{"doc": 35, "q1": "intrahepatic bile duct dilatation after split liver transplantation", "q2": "why does a segmentary bile duct go unidentified during a split-liver procedure?"}
+{"doc": 36, "q1": "ribonucleotide reductase inhibitors for cancer treatment", "q2": "can ribonucleotide reductase be sensitized by radiation therapy?"}
+{"doc": 37, "q1": "how to dissect femur and tibia", "q2": "what is the best method for bone marrow isolation from long bones?"}
+{"doc": 38, "q1": " elderly woman diagnosed with tuberculosis after wrist pain", "q2": "Why was 76-year-old woman's TB misdiagnosed for three years?"}
+{"doc": 39, "q1": "ketogenic diet epilepsy treatment", "q2": "what effects does a ketogenic diet have on the brain"}
+{"doc": 40, "q1": "what is the optimal level for an endotracheal tube in adults", "q2": "where is the mid-trachea located in relation to the cricoid cartilage and suprasternal notch"}
+{"doc": 41, "q1": "embryo donation in uk switzerland and china", "q2": "Why do people donate embryos for stem cell research?"}
+{"doc": 42, "q1": "what causes medullary thyroid carcinoma", "q2": "how is medullary thyroid carcinoma treated in children"}
+{"doc": 43, "q1": "can neuronavigation systems adapt to changing conditions", "q2": "how do you update preoperative images during surgery?"}
+{"doc": 44, "q1": "omega-3 fatty acids benefits", "q2": "can omega-3s prevent gastrointestinal cancer?"}
+{"doc": 45, "q1": "46xy disorders treatment options", "q2": "What causes ambiguous genitalia in 46xy individuals?"}
+{"doc": 46, "q1": " Urinary infections MRSA hospital patients 2010-2014", "q2": "What antibiotics work for urinary MRSA in hospital?"}
+{"doc": 47, "q1": "acute surgical abdomen symptoms", "q2": "what causes incapacitating abdominal pain?"}
+{"doc": 48, "q1": "distal clavicle fracture with coracoclavicular ligament disruption treatment outcomes", "q2": "best surgical approach for unstable distal clavicle fractures"}
+{"doc": 49, "q1": "woman with post-op hip pain and swelling", "q2": "why is woman's thigh warm and swollen after surgery?"}
+{"doc": 50, "q1": "Brachial plexus surgery with da vinci robot", "q2": "Is robotic axillary approach for brachial plexus surgery effective?"}
+{"doc": 51, "q1": "What do Iranian elderly people consider as a calming factor for their spiritual health?", "q2": "How can seeking help from God in difficult times contribute to the well-being of Iranian elderly individuals?"}
+{"doc": 52, "q1": "computed tomographic angiography protocol for brain death diagnosis", "q2": "why do patients with brain death have delayed and weak cerebral artery enhancement?"}
+{"doc": 53, "q1": "stomach cancer causing renal colic", "q2": "can stomach cancer metastasize to ureter?"}
+{"doc": 54, "q1": "eosinophilic gastritis treatment", "q2": "what causes necrotizing gastritis?"}
+{"doc": 55, "q1": "what is caspase 14", "q2": "how does caspase 14 affect keratinocyte differentiation"}
+{"doc": 56, "q1": "cotton mass in abdominal cavity", "q2": "what causes a cottony foreign body inside the abdomen?"}
+{"doc": 57, "q1": "choroidal nevus 60-year-old woman", "q2": "What are the dimensions of a choroidal nevus in the superior macula?"}
+{"doc": 58, "q1": "nrf2 and oxidative stress", "q2": "How does nrf2 inhibit cancer cell proliferation"}
+{"doc": 59, "q1": "childhood rhabdomyolysis causes", "q2": "why is high creatine kinase level life threatening in children?"}
+{"doc": 60, "q1": " Cryopreserved corneal lenticules for hyperopia treatment", "q2": "Are cryopreserved corneal lenticules safe for hyperopia correction?"}
+{"doc": 61, "q1": "sepsis biomarkers", "q2": "can Strem-1 predict sepsis death?"}
+{"doc": 62, "q1": "how long is a 43.4 km cycling time trial", "q2": "what is the optimal power output for a 43.4 km cycling time trial?"}
+{"doc": 63, "q1": "what optical parameters affect protection against infrared radiation", "q2": "how do new filters compare to old ones in blocking near-infrared light"}
+{"doc": 64, "q1": "type 2 diabetes treatment", "q2": "what are the benefits of achieving LDL cholesterol and HbA1c goals?"}
+{"doc": 65, "q1": "how thick is neck at hyoid bone", "q2": "can ultrasound measure how deep is larynx"}
+{"doc": 66, "q1": "coronary artery surgery complications", "q2": "effectiveness of posterior chest tubes after surgery"}
+{"doc": 67, "q1": "cisplatin treatment side effects hearing loss", "q2": "can cisplatin cause permanent hearing damage"}
+{"doc": 68, "q1": "chemical tools for protein surface modification", "q2": "oxidative strategy for modifying peptide and protein surfaces"}
+{"doc": 69, "q1": "what are the symptoms of alcohol withdrawal in male patients", "q2": "What factors contribute to the multidimensionality of alcohol withdrawal syndrome?"}
+{"doc": 70, "q1": "heat stress prevention measures for sugarcane harvesters", "q2": "How does hydration affect productivity in sugarcane harvesters?"}
+{"doc": 71, "q1": "choroid plexus papilloma in adults", "q2": "adults with calcified choroid plexus papilloma cerebellopontine angle"}
+{"doc": 72, "q1": "microwave imaging near field signal corruption", "q2": "how to eliminate multipath signals in microwave imaging?"}
+{"doc": 73, "q1": "effectiveness of decompression for jaw cyst treatment", "q2": "how does decompression reduce jaw cyst size"}
+{"doc": 74, "q1": "Retin A gene variant linked to acne severity", "q2": "Is Retn-420C/G polymorphism associated with familial acne?"}
+{"doc": 75, "q1": "indium promoted coupling propargyl aldehydes chloropropargylphenyl sulfide", "q2": "why does n-methylformamide accelerate indium metal promoted reactions"}
+{"doc": 76, "q1": "pediatric sepsis aki treatment", "q2": "Does baicalin help with kidney function in children with sepsis?"}
+{"doc": 77, "q1": "Effects of glycer-ages on A549 cells", "q2": "Can glycer-ages promote lung cancer cell migration?"}
+{"doc": 78, "q1": "demand from dental implant patients increasing", "q2": "how accurate are dental implant stents"}
+{"doc": 79, "q1": "type 1 diabetes b cell subset phenotype", "q2": "What is the role of B10 cells in autoimmune diabetes?"}
+{"doc": 80, "q1": "human papillomavirus (hpv) proteins and their effects", "q2": "what diseases are caused by human papillomavirus strains"}
+{"doc": 81, "q1": "astigmatism correction phacoemulsification", "q2": "why does toric IOL rotate post surgery?"}
+{"doc": 82, "q1": "what is the effect of NMDA on RA projection neuron gain", "q2": "how does NMDA activation affect RA neuron responsiveness"}
+{"doc": 83, "q1": "vascular pythiosis treatment", "q2": "what causes vascular pythiosis?"}
+{"doc": 84, "q1": "oral keratinocytes and fibroblasts 3d cell culture irradiated with 12 gy", "q2": "what effects does chemotherapy and radiation treatment have on oral mucositis cells in a 3d model?"}
+{"doc": 85, "q1": "hiv testing in adolescents", "q2": "is hiv diagnosis reliable in low prevalence areas among teens?"}
+{"doc": 86, "q1": "treatment for refractory intracranial hypertension in toddlers", "q2": "effectiveness of decompressive craniectomy and duroplasty in pediatric patients"}
+{"doc": 87, "q1": "Effectiveness of aliskiren in reducing albuminuria", "q2": "What is the combined effect of aliskiren and irbesartan on albuminuria"}
+{"doc": 88, "q1": "nanostructured surfaces in medicine", "q2": "how do cell surface interactions influence biomaterials in orthopaedics?"}
+{"doc": 89, "q1": "what are legumes", "q2": "how did legumes develop nitrogen fixation ability"}
+{"doc": 90, "q1": "bipolar hip arthroplasty treatment outcomes for avascular necrosis", "q2": "Why do some bipolar hip replacements lead to acetabular erosion?"}
+{"doc": 91, "q1": "valproic acid side effects", "q2": "what happens when valproic acid levels get too high"}
+{"doc": 92, "q1": "mastitis treatment based on bacteriological diagnosis", "q2": "what is best treatment approach for mastitis without laboratory results"}
+{"doc": 93, "q1": "what causes HIV not to be transmitted by blood feeding arthropods?", "q2": "Why has HIV not evolved to transmit through blood feeding insects?"}
+{"doc": 94, "q1": "asma expression in glomerulonephritis", "q2": "relation between asma and kidney function in gn"}
+{"doc": 95, "q1": "what is chondroblastoma", "q2": "What are the characteristics of chondroblastoma on FNAC?"}
+{"doc": 96, "q1": "suicide prevention in medical students", "q2": "is maternal care linked to reduced suicidal thoughts?"}
+{"doc": 97, "q1": "copd treatment adherence in Turkey", "q2": "Why do pulmonologists in Turkey not follow COPD guidelines?"}
+{"doc": 98, "q1": "Amphotericin B side effects kidney", "q2": "How common is Amphotericin B nephrotoxicity?"}
+{"doc": 99, "q1": "snail o-glycans structure", "q2": "what are snail proteins modified with?"}
+{"doc": 100, "q1": "correlation between adiponectin and cad", "q2": "link between waist hip ratio and cad severity"}
+{"doc": 101, "q1": "rare disorder with one-sided facial neurofibromas", "q2": "one-sided segmental neurofibromatosis affecting face"}
+{"doc": 102, "q1": "zygomatic complex fracture treatment with transconjunctival approach", "q2": "what are the benefits of zygomatic complex fracture fixation via lateral canthal and frontozygomatic suture"}
+{"doc": 103, "q1": "pasteurella multocida infections", "q2": "what is Pasteurella multocida?"}
+{"doc": 104, "q1": "kidney tumor extranodal lymphoma", "q2": "cancerous kidney tumor in lymphoma patients"}
+{"doc": 105, "q1": "myocardial viability coronary artery disease PET CT scan", "q2": "can you see if the heart tissue is still viable after a blockage"}
+{"doc": 106, "q1": "What ecological processes impact invasive species colonization?", "q2": "How does genetic variation affect an invasive species' ability to adapt?"}
+{"doc": 107, "q1": "cervical infection symptoms in HIV-positive women", "q2": "Why do HIV-positive women get cervical infections?"}
+{"doc": 108, "q1": "tranexamic acid reducing blood loss in cervical laminectomy", "q2": "Does tranexamic acid decrease blood loss during and after cervical surgery?"}
+{"doc": 109, "q1": "high mortality rates after hip fracture surgery for elderly with heart disease", "q2": "can laboratory tests predict mortality in elderly patients with hip fractures?"}
+{"doc": 110, "q1": "herpetic encephalitis cause unilateral acute retinal necrosis", "q2": "can herpetic encephalitis lead to retinal damage in one eye?"}
+{"doc": 111, "q1": "rhomboid protein", "q2": "origin of rhomboid family"}
+{"doc": 112, "q1": "treatment for sickle cell pain in 1970s", "q2": "why opioid response varies from person to person"}
+{"doc": 113, "q1": "sirna treatment for undruggable targets", "q2": "can sirnas be delivered to dendritic cells using dec-lnps"}
+{"doc": 114, "q1": "Sevoflurane side effects", "q2": "Is isorhythmic atrioventricular dissociation reversible"}
+{"doc": 115, "q1": "mental health law for everyone", "q2": "can people with psychiatric diagnosis make their own decisions?"}
+{"doc": 116, "q1": "familial dysbetalipoproteinemia symptoms", "q2": "What are the characteristics of cauliflower xanthoma in familial dysbetalipoproteinemia?"}
+{"doc": 117, "q1": "Japanese COPD patient prognosis after 1 year", "q2": "Do Japanese patients with frequent COPD exacerbations live longer?"}
+{"doc": 118, "q1": "intra-abdominal fat tumors with adipocytes", "q2": "what types of cancer are found in intra-abdominal fat"}
+{"doc": 119, "q1": "japan thyroid association guidelines thyroid nodules", "q2": "what is subclassification follicular neoplasms Japan"}
+{"doc": 120, "q1": "repeated aptt test for unexplained bleeding", "q2": "why prolonged aptt is concerning for undiagnosed bleeding disorder?"}
+{"doc": 121, "q1": "What is the function of cell wall integrity in plants?", "q2": "Does a dedicated mechanism maintain plant cell wall integrity during stress?"}
+{"doc": 122, "q1": "What genes are hypermethylated in AML patients", "q2": "Which specific genes are associated with AML compared to CML?"}
+{"doc": 123, "q1": "patellar dislocation under sedation", "q2": "why was open reduction necessary for this patient's patellar dislocation?"}

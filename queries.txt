@@ -1,0 +1,100 @@
+{"doc": 113, "q1": "sirna treatment for undruggable disease targets", "q2": "can sirnas be targeted specifically to dendritic cells for immunotherapy"}
+{"doc": 114, "q1": "Sevoflurane induction for anesthesia", "q2": "What happens to heart rhythms with Sevoflurane?"}
+{"doc": 115, "q1": "Capacity laws for everyone", "q2": "Should psychiatric diagnosis impact mental capacity?"}
+{"doc": 116, "q1": "FDL-related cholesterol and triglyceride elevation symptoms", "q2": "Rare skin condition associated with inherited lipid disorder"}
+{"doc": 117, "q1": "COPD patients with frequent exacerbations Japanese", "q2": "Why do Japanese COPD patients experience repeated worsening?"}
+{"doc": 118, "q1": "cancerous lesions intra abdominal fat", "q2": "what are tumors found outside organs in belly fat?"}
+{"doc": 119, "q1": "thyroid nodule diagnosis", "q2": "what is subclassification of follicular neoplasms"}
+{"doc": 120, "q1": "symptoms of unexplained bleeding in elderly woman", "q2": "why is an elderly woman's prolonged activated partial thromboplastin time abnormal?"}
+{"doc": 121, "q1": "plant cell wall function", "q2": "cell wall integrity mechanism"}
+{"doc": 122, "q1": "gene promoter hypermethylation leukemia", "q2": "what genes are differently methylated in AML vs CML?"}
+{"doc": 123, "q1": "patellar dislocation lateral displacement", "q2": "why can't you reduce a patella that's rotated on its axis?"}
+{"doc": 124, "q1": "make cu2o more active in co2 reduction", "q2": "what is the most effective way to improve co2 reduction with cu2o?"}
+{"doc": 125, "q1": "digital image analysis caries diagnosis", "q2": "can digital images detect tooth decay?"}
+{"doc": 126, "q1": "upper lip reconstruction after median cleft", "q2": "treatment options for isolated median upper lip cleft"}
+{"doc": 127, "q1": "Pseudomonas aeruginosa antibiotic resistance", "q2": "What are genetic related strains of P. aeruginosa in hospitals?"}
+{"doc": 128, "q1": "polyarginine peptides for drug delivery", "q2": "how do acylated arginine peptides enter cells?"}
+{"doc": 129, "q1": "Diabetes screening Peru", "q2": "Is 35 Peru diabetic?"}
+{"doc": 130, "q1": "cancer therapy with sirna targeting p53", "q2": "can sirna restore normal cell function in cancer"}
+{"doc": 131, "q1": "atherosclerosis cause", "q2": "is chlamydophila pneumoniae linked to heart disease?"}
+{"doc": 132, "q1": "diabetes effects on spirituality", "q2": "spirituality and diabetes crisis"}
+{"doc": 133, "q1": "effect of puberty on insulin resistance in obese asian indian children", "q2": "does vitamin D deficiency affect insulin sensitivity in adolescent obesity?"}
+{"doc": 134, "q1": "tonsillectomy complication PTH", "q2": "what happens during tonsillectomy hemorrhage"}
+{"doc": 135, "q1": "infertility treatment success rate", "q2": "how effective is IVF"}
+{"doc": 136, "q1": "vitamin D deficiency and type 2 diabetes risk", "q2": "does vitamin D protect against type 2 diabetes in the elderly?"}
+{"doc": 137, "q1": "leaf senescence genes database", "q2": "what causes leaf senescence in plants"}
+{"doc": 138, "q1": "women with type 1 diabetes and lower bmi have decreased bone mineral density", "q2": "do young women with type 1 diabetes develop stronger bones as they age?"}
+{"doc": 139, "q1": "new bonding technique for metal brackets", "q2": "which bonding agent protects tooth enamel?"}
+{"doc": 140, "q1": "facial skin irritation after product use", "q2": "what causes severe facial burning after cosmetic application"}
+{"doc": 141, "q1": "primary spontaneous pneumothorax in adults", "q2": "can primary spontaneous pneumothorax occur in obese people"}
+{"doc": 142, "q1": "familial adenomatous polyposis patients colectomized fatty acid analysis", "q2": "Fatty acids in feces of familial adenomatous polyposis patients"}
+{"doc": 143, "q1": "pain level comparison between conventional and Wand techniques", "q2": "Is Wand technique more effective at reducing pain during injection?"}
+{"doc": 144, "q1": "pulmonary rehab services accessible", "q2": "can telerehabilitation replace in-person pulmonary rehab?"}
+{"doc": 145, "q1": "AMS high altitude symptoms", "q2": "NGAL levels at high altitude"}
+{"doc": 146, "q1": "mica substrate morphology nnn", "q2": "NNN crystals on mica with specific orientation"}
+{"doc": 147, "q1": "adult onset Still's disease symptoms", "q2": "What causes adult Onset Still's disease to cause fever, rash, and swollen joints?"}
+{"doc": 148, "q1": "resin cement conversion ratio dual polymerization", "q2": "how does curing mode affect resin cement degree of conversion over time?"}
+{"doc": 149, "q1": "preconception health services near me", "q2": "can pregnant women get tested for hiv"}
+{"doc": 150, "q1": "pleural fluid analysis childhood", "q2": "Are levels of IL-1, IL-6, and IL-8 useful for diagnosing childhood pleural effusions?"}
+{"doc": 151, "q1": "total knee arthroplasty complications", "q2": "Treatment options for open patella fractures around TKA"}
+{"doc": 152, "q1": "nir eye damage prevention", "q2": "what happens to corneal cells when exposed to NIR radiation?"}
+{"doc": 153, "q1": "hypertension treatment karachi", "q2": "what happens if uncontrolled hypertension goes untreated"}
+{"doc": 154, "q1": "amyotrophic lateral sclerosis and multiple sclerosis pathology", "q2": "neuroinflammation markers in ALS and MS"}
+{"doc": 155, "q1": "ICU patients with acute kidney injury", "q2": "Is higher creatinine level before dialysis a risk factor for ICU mortality?"}
+{"doc": 156, "q1": "Parenting stress for children with disabilities", "q2": "Support for families of children with intellectual or physical disabilities"}
+{"doc": 157, "q1": "New Zealand Salmonella outbreak 2001", "q2": "Why are people getting sick from eating in New Zealand?"}
+{"doc": 158, "q1": "macromolecule structure", "q2": "symmetry in protein structures"}
+{"doc": 159, "q1": "Reducing daily screen time for kids can help prevent childhood overweight", "q2": "How much screen time does excessive screen time cause in children?"}
+{"doc": 160, "q1": "water safety test kit", "q2": "can i drink water contaminated with ricin or staphylococcal enterotoxin b?"}
+{"doc": 161, "q1": "osteosarcoma bone tumor lung metastasis", "q2": "p15 gene mutation osteosarcoma diagnosis"}
+{"doc": 162, "q1": "patchy hair loss on scalp", "q2": "why do people pull their own hair?"}
+{"doc": 163, "q1": "rectal cancer diagnosis treatment", "q2": "cancer caused by syphilis symptoms"}
+{"doc": 164, "q1": "vagus nerve and melatonin effects on ir injury", "q2": "Does vagus nerve stimulate melatonin's protective effects against ischemia/reperfusion damage?"}
+{"doc": 165, "q1": "early childhood famine type 2 diabetes risk", "q2": "did fetal famine lead to adult diabetes?"}
+{"doc": 166, "q1": "type 2 diabetes genetic risk markers", "q2": "what are the additional genetic factors that contribute to type 2 diabetes in African Americans?"}
+{"doc": 167, "q1": "circadian system impact on health", "q2": "can disruptions in circadian rhythm cause diseases"}
+{"doc": 168, "q1": "protein phosphatase 2a and substrate specificity", "q2": "how does protein phosphatase 2a target specific proteins"}
+{"doc": 169, "q1": "schizophrenia brain connectivity", "q2": "what goes wrong in schizophrenic brains?"}
+{"doc": 170, "q1": "swallowing problems due to enlarged thoracic aorta", "q2": "why is swelling in the chest affecting my ability to eat"}
+{"doc": 171, "q1": "female libido medication", "q2": "why is there no female viagra?"}
+{"doc": 172, "q1": "keratoacanthoma on hand or leg", "q2": "what causes keratoacanthoma to appear on the scalp in middle-aged men?"}
+{"doc": 173, "q1": "crab shells for teeth protection", "q2": "can crab shells prevent tooth decay?"}
+{"doc": 174, "q1": "cognitive impairments memory after brain injury treatment", "q2": "VR programs and cognitive evaluations for patients with brain injury rehabilitation"}
+{"doc": 175, "q1": "mosquito malaria vector Iran", "q2": "distinct Anopheles mosquito species Iran"}
+{"doc": 176, "q1": "abdominal schwannoma", "q2": "rare abdominal nerve tumor"}
+{"doc": 177, "q1": "coronary artery disease diagnosis", "q2": "can microRNAs predict coronary artery disease?"}
+{"doc": 178, "q1": "swarm wasp nests made of mud", "q2": "mud nests vs paper nests: why do swarm wasps flee?"}
+{"doc": 179, "q1": "glioma mpg expression", "q2": "is high mpg expression a bad glioma prognosis"}
+{"doc": 180, "q1": "teenagers overweight rate", "q2": "why are more adolescent boys obese than girls globally?"}
+{"doc": 181, "q1": "rhabdomyolysis treatment heart failure medication", "q2": "medication causing muscle pain in heart failure patient?"}
+{"doc": 182, "q1": "gout male korean patients", "q2": "Are P2X7R and CARD8 gene variations linked to gout?"}
+{"doc": 183, "q1": "appendicitis and Crohn's disease", "q2": "unexplained postop enterocutaneous fistula after appendicectomy"}
+{"doc": 184, "q1": "height increase in swedish teens through milk consumption", "q2": "can lactase variant affect teen growth from diet"}
+{"doc": 185, "q1": "parathyroid hormone assay success rate", "q2": "can intraoperative pth assay predict failed surgeries"}
+{"doc": 186, "q1": "diabetes comorbidity cardiovascular risk", "q2": "does depression increase heart disease risk in diabetics"}
+{"doc": 187, "q1": "proteinuria glomerulonephritis treatment", "q2": "rare kidney disease with protein loss and ANCA"}
+{"doc": 188, "q1": "african americans hypertension risk", "q2": "anxiety impact on african american blood pressure"}
+{"doc": 189, "q1": "dermatology condition presenting as sudden molluscoid pseudovesicles on neck and forearms", "q2": "rare skin eruption resembling 'gomm-button' disease on neck and arms?"}
+{"doc": 190, "q1": "how to clean food industry surfaces", "q2": "what can interfere with food industry disinfection"}
+{"doc": 191, "q1": "stress effects on drinking behavior", "q2": "how do stress and politics impact drinking habits?"}
+{"doc": 192, "q1": "implant supported prosthesis failure reasons", "q2": "which screw type produces most preload for single implant"}
+{"doc": 193, "q1": "HIV treatment CNS effects", "q2": "Can HIV cure central nervous system damage?"}
+{"doc": 194, "q1": "colorectal cancer treatment with fluoropyrimidine and oxaliplatin", "q2": "best treatment options for advanced colorectal cancer patients"}
+{"doc": 195, "q1": "lymphomatoid granulomatosis thoracic spine", "q2": "treatment for lymphomatoid granulomatosis spinal symptoms"}
+{"doc": 196, "q1": "colorectal cancer surgery in kidney transplant patients", "q2": "minimally invasive colon removal for kidney transplant recipients"}
+{"doc": 197, "q1": "Superior mesenteric artery occlusion symptoms", "q2": "Treatment for Superior Mesenteric Artery Occlusion in elderly patient"}
+{"doc": 198, "q1": "study design cervical sagittal alignment radiography", "q2": "Is whole-body stereoradiography comparable to standard radiography for measuring cervical sagittal alignment?"}
+{"doc": 199, "q1": "ner process importance in cancer prevention", "q2": "what triggers distorted base pairing in DNA lesions"}
+{"doc": 200, "q1": "genetic factors influencing male vs female lifespan", "q2": "why do males live shorter lives than females in some insect species?"}
+{"doc": 201, "q1": "sepsis test", "q2": "Is procalcitonin levels high for sepsis?"}
+{"doc": 202, "q1": "Climate change impacts on malaria", "q2": "Amazon basin malaria trends affected by climate"}
+{"doc": 203, "q1": "clavicle giant cell tumor", "q2": "can you remove clavicle giant cell tumor"}
+{"doc": 204, "q1": "Parkinson's disease and gambling", "q2": "Gambling and Parkinson's disease"}
+{"doc": 205, "q1": "htr2c gene variants and suicidal behavior", "q2": "Are HTR2C gene variants linked to increased risk of suicide attempts in Mexican women?"}
+{"doc": 206, "q1": "boric acid treatment yeast vaginitis", "q2": "can boric acid cause cell clumping in yeast?"}
+{"doc": 207, "q1": "foreign bodies in stomach", "q2": "removing stuck objects from stomach"}
+{"doc": 208, "q1": "how does concept mapping improve critical thinking in nursing students", "q2": "can concept maps enhance critical thinking skills in baccalaureate nursing students"}
+{"doc": 209, "q1": "femoral muscle activity in toe gripping", "q2": "Why do femoral muscles help with toe gripping?"}
+{"doc": 210, "q1": "dementia patients and healthy controls showed difference in face valence ratings", "q2": "do people with dementia learn to associate faces with emotions?"}
+{"doc": 211, "q1": "Pelvic lymphadenectomy complications after gynecologic cancer surgery", "q2": "Small bowel obstruction caused by herniation behind pelvic vessels"}
+{"doc": 212, "q1": "ru cyclin dependent kinase inhibitors", "q2": "os compounds with cdk inhibiting properties"}

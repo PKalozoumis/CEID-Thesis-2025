@@ -10,3 +10,4 @@ __pycache__
 arxiv_collection/vocab
 collection/vocab
 cached_docs
+!queries*.txt
