@@ -1,16 +1,30 @@
-import json
 from elasticsearch import Elasticsearch, AuthenticationException
-import sys
-import os
-from .collection_helper import Query
-from itertools import chain
-from typing import Iterable, NamedTuple, Any
-import re
 from dataclasses import dataclass, field
-from .helper import overrides
+from ..helper import overrides
+from typing import Iterable, Any, NamedTuple
+import os
 import json
+from .elastic import elasticsearch_client
+from elastic_transport import ObjectApiResponse
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+#================================================================================================================
+
+class Score(NamedTuple):
+    s1: int
+    s2: int
+    s3: int
+    s4: int
+
+#================================================================================================================
+
+class Query(NamedTuple):
+    id: int #Query ID
+    text: str #The actual query
+    num_results: int #Number of retrieved documents
+    relevant_doc_ids: list[int]
+    scores: list[Score] #Each position contains the relevance Score (used in DCG) for the respective relevant document in relevant_doc_ids
+
+#================================================================================================================
 
 class Session():
 
@@ -121,10 +135,14 @@ class ElasticDocument(Document):
                 for key in self.filter_path.split("."):
                     self.doc = self.doc[key]
 
+                #Here, we return the single value
+                #This is no longer a dictionary-like object
                 return self.doc
-
-        self.doc = dict(self.doc)
-        return self.doc
+            else: #The document is dictionary-like. Specifically, it is an ObjectApiResponse
+                assert isinstance(self.doc, ObjectApiResponse)
+                self.doc = dict(self.doc)
+        else:
+            return self.doc
     
     #--------------------------------------------------------------------------------
     
@@ -222,39 +240,31 @@ class ScrollingCorpus:
             else:
                 break
 
-#================================================================================================================
 
-def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt") -> Elasticsearch:
-
-    with open(credentials_path, "r") as f:
-        credentials = json.load(f)
-
-    client = Elasticsearch(
-        "https://localhost:9200",
-        ca_certs=cert_path,
-        basic_auth=(credentials['elastic_user'], credentials['elastic_password'])
-    )\
-    .options(ignore_status=400)
-
-    try:
-        info = client.info()
-
-    except AuthenticationException:
-        print("Wrong password idiot")
-        sys.exit()
-
-    return client
-
-#===============================================================================================
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 def query(session: Session, query_list: Query | list[Query], filter_path: str = "_source") -> tuple[list[DocumentList], list[list[int]]]:
     '''
     Perform a single query (Query) or multiple queries (list[Query]) and get back results
     
-    Returns:
-        DocumentList | list[DocumentList]: A single DocumentList (for one query) or a list of DocumentLists (for list of queries)
-        int | list[int]: A single list of document IDs, or a list of lists
+    Arguments
+    ---
+    session: Session
+        The Elasticsearch session
+
+    query_list: Query | list[Query]
+
+
+    Returns
+    ---
+    docs: DocumentList | list[DocumentList]:
+        A single DocumentList (for one query) or a list of DocumentLists (for list of queries)
+
+    doc_ids: int | list[int]:
+        A single list of document IDs, or a list of lists
     '''
+
+    #We treat a single query object as a list with only one query
     if type(query_list) is Query:
         query_list = [query_list]
 
@@ -282,25 +292,5 @@ def query(session: Session, query_list: Query | list[Query], filter_path: str = 
         return docs[0], multiple_query_results[0]
     else:
         return docs, multiple_query_results
-
-#===============================================================================================
-
-if __name__ == "__main__":
-
-    from rich.panel import Panel
-    from rich.console import Console
-
-    console = Console()
     
-    session = Session("arxiv-index")
-    docs = [
-            Panel(
-                ElasticDocument(session, i, filter_path="_source.article_id,_source.summary", text_path="_source.summary").text(),
-                title="Text",
-                title_align="left",
-                border_style="cyan"
-            )
-            for i in range(1)
-        ]
-
-    console.print(docs[0])
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

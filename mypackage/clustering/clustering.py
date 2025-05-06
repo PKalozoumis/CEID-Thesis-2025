@@ -36,6 +36,58 @@ def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) ->
 
 #===================================================================================================
 
+def chain_clustering(chains: list[SentenceChain], n_components: int = 25) -> tuple[list[int], dict[int, ChainCluster]]:
+    '''
+    Clusters a list of sentence chains for a single document.
+    The chains inside each returned cluster are ordered based on their offset inside the document
+
+    Arguments
+    --------------------------------------------------------
+    chain: list[SentenceChain]
+        The list of chains to cluster
+
+    n_components: int
+        The number of dimensions to reduce the embedding space to.
+        Set to ```None``` to skip dimensionality reduction
+
+    Returns
+    --------------------------------------------------------
+    labels: list[int]
+        A list of labels. One label for each input chain
+
+    clustered_chains: dict[int, ChainCluster]
+        A dictionary of clusters, with the label as the key
+    '''
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning) #when using seed
+        warnings.filterwarnings("ignore", category=FutureWarning) #not in my control
+
+        #Extract representative vectors from the chains
+        #Set them as rows of a new matrix
+        matrix = np.array([chain.vector for chain in chains])
+
+        if n_components is not None:
+            #Reduce dimensionality before clustering
+            clustering_reducer = UMAP(n_components=n_components, metric="cosine", random_state=42)
+            reduced_matrix = clustering_reducer.fit_transform(matrix)
+        else:
+            reduced_matrix = matrix
+
+        #Cluster
+        model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="cosine")
+        clustering = model.fit(reduced_matrix)
+
+    clusters = group_chains_by_label(chains, clustering.labels_)
+    cluster_objects = {}
+
+    #Create cluster objects
+    for label, cluster in clusters.items():
+        cluster_objects[label] = ChainCluster(cluster, label)
+
+    return list(clustering.labels_), cluster_objects
+
+#===================================================================================================
+
 def label_positions(labels: list[int]) -> dict[int, list[int]]:
     '''
     Inverts the label list. For each label, it returns the indices where it occurs
@@ -56,51 +108,6 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
             indices[label] = [i]
 
     return indices
-
-#===================================================================================================
-
-def chain_clustering(chains: list[SentenceChain]) -> tuple[list[int], dict[int, ChainCluster]]:
-    '''
-    Clusters a list of sentence chains for a single document.
-    The chains inside each returned cluster are ordered based on their offset inside the document
-
-    Arguments
-    --------------------------------------------------------
-    chain: list[SentenceChain]
-        The list of chains to cluster
-
-    Returns
-    --------------------------------------------------------
-    labels: list[int]
-        A list of labels. One label for each input chain
-
-    clustered_chains: dict[int, ChainCluster]
-        A dictionary of clusters, with the label as the key
-    '''
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning) #when using seed
-        warnings.filterwarnings("ignore", category=FutureWarning) #not in my control
-
-        #Extract representative vectors from the chains
-        #Set them as rows of a new matrix
-        matrix = np.array([chain.vector for chain in chains])
-
-        #Reduce dimensionality before clustering
-        clustering_reducer = UMAP(n_components=10, metric="cosine", random_state=42)
-        reduced_matrix = clustering_reducer.fit_transform(matrix)
-
-        #Cluster
-        model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="cosine")
-        clustering = model.fit(reduced_matrix)
-
-    clusters = group_chains_by_label(chains, clustering.labels_)
-    cluster_objects = {}
-
-    #Create cluster objects
-    for label, cluster in clusters.items():
-        cluster_objects[label] = ChainCluster(cluster, label)
-
-    return list(clustering.labels_), cluster_objects
 
 #===================================================================================================
 

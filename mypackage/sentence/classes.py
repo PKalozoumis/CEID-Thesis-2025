@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
-from mypackage.elastic import Document, ElasticDocument
+from mypackage.elastic.elastic import Document, ElasticDocument
 from functools import cached_property
 import json
 from itertools import chain
@@ -78,6 +78,9 @@ class SentenceChain(SentenceLike):
     '''
     Represents a chain of one or more consecutive sentences that are very similar
     '''
+    _vector: ndarray
+    sentences: list[SentenceLike]
+
     def __init__(self, sentences: list[SentenceLike], pooling_method: str = "average"):
         self._vector = SentenceChain.pooling(sentences, pooling_method)
 
@@ -103,6 +106,9 @@ class SentenceChain(SentenceLike):
             case "max": return SentenceChain.pooling_max(sentences)
     
     def sentence_matrix(self) -> ndarray:
+        '''
+        Converts the sentence chain (list) into a matrix, where each row is a sentence. Order is maintained
+        '''
         return np.array([x.vector for x in self.sentences])
 
     def __iter__(self):
@@ -122,6 +128,9 @@ class SentenceChain(SentenceLike):
     
     @property
     def vector(self):
+        '''
+        Get the representative vector of this chain
+        '''
         return self._vector
     
     @cached_property

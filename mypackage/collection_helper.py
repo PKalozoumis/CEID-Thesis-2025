@@ -1,10 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from scipy.sparse import spmatrix
 import json
-from collections import namedtuple
-
-Score = namedtuple("Score", ["s1", "s2", "s3", "s4"])
-Query = namedtuple("Query", ["id", "text", "num_results", "docs", "scores"])
 
 #===================================================================================
 

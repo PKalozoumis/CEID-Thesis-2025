@@ -1,6 +1,6 @@
-from mypackage.elastic import elasticsearch_client
+from mypackage.elastic.elastic import elasticsearch_client
 import base64
-from mypackage.index import create_index
+from mypackage.elastic.index import create_index
 from elasticsearch import NotFoundError
 
 if __name__ == "__main__":

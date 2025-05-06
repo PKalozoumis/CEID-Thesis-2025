@@ -4,7 +4,7 @@ from sklearn.metrics.pairwise import cosine_distances
 from kmedoids import KMedoids
 from kneed import KneeLocator
 from matplotlib import pyplot as plt
-from mypackage.elastic import ScrollingCorpus, elasticsearch_client, Session, Document
+from mypackage.elastic.elastic import ScrollingCorpus, elasticsearch_client, Session, Document
 from itertools import pairwise, starmap
 from mypackage.helper import panel_print
 from rich.table import Table
@@ -69,6 +69,27 @@ def print_pairs(sentences):
 #============================================================================================
 
 def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: int | None = 1, pooling_method="average"):
+    '''
+    Clusters a list of sentence chains for a single document.
+    The chains inside each returned cluster are ordered based on their offset inside the document
+
+    Arguments
+    --------------------------------------------------------
+    chain: list[SentenceChain]
+        The list of chains to cluster
+
+    n_components: int
+        The number of dimensions to reduce the embedding space to.
+        Set to ```None``` to skip dimensionality reduction
+
+    Returns
+    --------------------------------------------------------
+    labels: list[int]
+        A list of labels. One label for each input chain
+
+    clustered_chains: dict[int, ChainCluster]
+        A dictionary of clusters, with the label as the key
+    '''
     pairs = [SimilarityPair.from_sentences(s1, s2) for s1, s2 in pairwise(sentences)]
 
     #No more merging can happen

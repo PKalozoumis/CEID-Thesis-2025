@@ -7,7 +7,7 @@ from itertools import chain
 from functools import partial
 from multiprocessing import Process, Queue, Pool
 from .elastic import elasticsearch_client
-from .collection_helper import generate_examples, to_bulk_format
+from ..collection_helper import generate_examples, to_bulk_format
 import argparse
 from gensim.utils import simple_preprocess
 from gensim.corpora import Dictionary

@@ -41,7 +41,7 @@ def generate_query(text: str):
     Generates a query from the given document
 
     Arguments
-    ----------------------------------------
+    ---
     text: str
         The document
     '''
