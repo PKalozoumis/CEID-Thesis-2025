@@ -1,0 +1,66 @@
+[
+	{
+		"query":"What are the common cognitive functions affected by anxiety in neurological diseases like Parkinson's Disease and Multiple Sclerosis?",
+		"docs":[
+			"0",
+			"3870",
+			"1669"
+		]
+	},
+	{
+		"query":"What are small non-coding RNAs involved in regulating cellular processes?",
+		"docs":[
+			"1",
+			"1539",
+			"2748"
+		]
+	},
+	{
+		"query":"Ovarian hyperstimulation syndrome management",
+		"docs":[
+			"2",
+			"3145",
+			"3862"
+		]
+	},
+	{
+		"query":"what are common health issues affecting congenital adrenal hyperplasia patients?",
+		"docs":[
+			"3",
+			"5562",
+			"4963"
+		]
+	},
+	{
+		"query":"How does pentoxifylline affect liver health in patients with non-alcoholic steatohepatitis (NASH)?",
+		"docs":[
+			"4",
+			"1864",
+			"256"
+		]
+	},
+	{
+		"query":"What is the relationship between staphylococcal superantigen-specific IgE antibodies and asthma severity in adult patients?",
+		"docs":[
+			"5",
+			"6278",
+			"4008"
+		]
+	},
+	{
+		"query":"family support in icu",
+		"docs":[
+			"6",
+			"818",
+			"3608"
+		]
+	},
+	{
+		"query":"What is the effect of therapeutic communication on anxiety and depression in heart surgery patients?",
+		"docs":[
+			"7",
+			"918",
+			"188"
+		]
+	}
+]

@@ -6,6 +6,10 @@ import os
 import json
 from .elastic import elasticsearch_client
 from elastic_transport import ObjectApiResponse
+import warnings
+from rich.console import Console
+
+console = Console()
 
 #================================================================================================================
 
@@ -14,15 +18,6 @@ class Score(NamedTuple):
     s2: int
     s3: int
     s4: int
-
-#================================================================================================================
-
-class Query(NamedTuple):
-    id: int #Query ID
-    text: str #The actual query
-    num_results: int #Number of retrieved documents
-    relevant_doc_ids: list[int]
-    scores: list[Score] #Each position contains the relevance Score (used in DCG) for the respective relevant document in relevant_doc_ids
 
 #================================================================================================================
 
@@ -40,7 +35,7 @@ class Session():
 #================================================================================================================
 
 @dataclass
-class Document:
+class Document():
     '''
     A class representing a document. Does not necessarily have to be an Elasticsearch document
 
@@ -50,11 +45,14 @@ class Document:
         text_path (str, optional): Path to the document's main body where the text is located. Only applicable when document is of type ```dict```
     '''
     doc: Any
-    id: int = field(default=None)
+    id: str = field(default=None)
     text_path: str = field(default=None)
 
+    def __post_init__(self):
+        self.id = str(self.id)
+
     @classmethod
-    def from_json(cls, path: str, id: int = None, text_path: str = None) -> 'Document':
+    def from_json(cls, path: str, id: str = None, text_path: str = None) -> 'Document':
         '''
         Create a Document from a JSON file
 
@@ -93,6 +91,8 @@ class Document:
                     raise ValueError(f"Key '{key}' in text_path '{self.text_path}' does not exist")
 
                 temp = temp[key]
+        elif self.text_path is not None:
+            warnings.warn(f"text_path '{self.text_path}' ignored, as the document is not a dictionary. Both text and get() will return the same result")
 
         return temp
     
@@ -101,21 +101,36 @@ class Document:
     def __str__(self):
         return json.dumps(self.get())
     
+    def __repr__(self):
+        return f"Document(id={self.id})"
+    
+    #--------------------------------------------------------------------------------
+
+    def __eq__(self, other: 'Document') -> bool:
+        return self.id == other.id
+    
+    def __hash__(self):
+        return hash(id)
 #================================================================================================================
 
 class ElasticDocument(Document):
     '''
     A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
     '''
+    doc: str|dict
+    id: str
+    text_path: str|None
+    session: Session
+    filter_path: str
 
-    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
+    def __init__(self, session: Session, id: str, *, filter_path: str = "_source", text_path: str | None = None):
         '''
         A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
 
         Args:
             session (Session): An Elasticsearch session
             id (int): The numeric ID of the requested document in Elasticsearch
-            filter_path (str, optional): Path to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead. Defaults to ```_source```
+            filter_path (str, optional): Comma-separated paths to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead. Defaults to ```_source```
             text_path (str, optional): Name of the field (after filter_path is applied, if specified) where the document's body is located
         '''
         super().__init__(None, id, text_path)
@@ -157,36 +172,114 @@ class ElasticDocument(Document):
     
     def __repr__(self):
         return f"ElasticDocument(id={self.id})"
-        
-#================================================================================================================
 
-class DocumentList:
+#==============================================================================================
+
+class Query():
     '''
-    Lazy document list
+    A class representing an Elasticsearch query.
     '''
-    def __init__(self, session: Session, doc_ids: Iterable, filter_path: str ="_source", text_path: str | None = None):
-        self.doc_ids = doc_ids
-        self.client = session.client
-        self.index_name= session.index_name
-        self.filter_path = filter_path
+    id: int #Query ID
+    text: str #The actual query
+    match_field: str 
+    source: list[str]
+    text_path: str
+
+    #------------------------------------------------------------------------------------------
+
+    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None):
+        '''
+        A class representing an Elasticsearch query.
+        
+        Arguments
+        ---
+        id: int
+            The query ID
+
+        text: str
+            The query
+        '''
+        self.id = id
+        self.text = text
+        self.match_field = match_field
+        self.source = source
         self.text_path = text_path
 
-        self.docs = [None for _ in doc_ids]
+    #------------------------------------------------------------------------------------------
 
-    def __getitem__(self, pos: int) -> str:
-        assert(type(pos) is int)
+    def execute(self, sess: Session) -> list[ElasticDocument]:
 
-        if self.docs[pos] is None:
-            self.docs[pos] = self.client.get(index=self.index_name, id=f"{self.doc_ids[pos]:05}", filter_path=self.filter_path)["_source"]
+        '''
+        search_body = {
+            "_source": self.source,
+            "query":
+            {
+                "match": {self.match_field: self.text}
+            }
+        }
+        '''
+        search_body = {
+            "_source": self.source,
+            "query": {
+                "multi_match": {
+                    "query": self.text,
+                    "fields": ["summary^1.5", "article"]
+                }
+            }
+        }
 
-        return self.docs[pos]
-    
-    def __len__(self) -> int:
-        return len(self.doc_ids)
-    
-    def __iter__(self):
-        for i in range(len(self.doc_ids)):
-            yield self[i]
+        results = sess.client.search(index=sess.index_name, body=search_body)
+        #console.print(results)
+        results = results['hits']['hits']
+
+        doc_list = []
+
+        for res in results:
+            filter_path = ",".join(["_source." + s for s in self.source])
+            elastic_doc = ElasticDocument(sess, res['_id'], filter_path=filter_path, text_path=self.text_path)
+
+            temp_doc = res
+
+
+            if len(res['_source']) > 0:
+                if filter_path and len(filter_path.split(",")) == 1:
+                    for key in filter_path.split("."):
+                        temp_doc = temp_doc[key]
+                else:
+                    temp_doc = res['_source']
+            else:
+                temp_doc = None
+            
+            elastic_doc.doc = temp_doc
+            doc_list.append(elastic_doc)
+
+        return doc_list
+
+#==============================================================================================
+
+class EvaluableQuery(Query):
+    '''
+    A class representing an Elasticsearch query. Also contains it's relevant docs for evaluation purposes
+    '''
+
+    id: int #Query ID
+    text: str #The actual query
+    relevant_docs: list[int] #List with the relevant doc IDs
+
+    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None, relevant_docs: list[int]):
+        '''
+        A class representing an Elasticsearch query. Also contains it's relevant docs for evaluation purposes
+        
+        Arguments
+        ---
+        id: int
+            The query ID
+
+        text: str
+            The query
+        '''
+        super().__init__(id, text, match_field=match_field, source=source, text_path=text_path)
+        self.relevant_docs = relevant_docs
 
 #==============================================================================================
 
@@ -239,58 +332,3 @@ class ScrollingCorpus:
                 res = self.session.client.scroll(scroll_id = scroll_id, scroll = self.scroll_time)
             else:
                 break
-
-
-#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-def query(session: Session, query_list: Query | list[Query], filter_path: str = "_source") -> tuple[list[DocumentList], list[list[int]]]:
-    '''
-    Perform a single query (Query) or multiple queries (list[Query]) and get back results
-    
-    Arguments
-    ---
-    session: Session
-        The Elasticsearch session
-
-    query_list: Query | list[Query]
-
-
-    Returns
-    ---
-    docs: DocumentList | list[DocumentList]:
-        A single DocumentList (for one query) or a list of DocumentLists (for list of queries)
-
-    doc_ids: int | list[int]:
-        A single list of document IDs, or a list of lists
-    '''
-
-    #We treat a single query object as a list with only one query
-    if type(query_list) is Query:
-        query_list = [query_list]
-
-    multiple_query_results = []
-    docs = []
-
-    for query in query_list:
-        search_body = {
-            "match": {"abstract": query.text}
-        }
-
-        res = session.client.search(index=session.index_name, query=search_body, filter_path=["hits.hits._source.abstract", "hits.hits._id"])
-        if len(res) == 0:
-            return iter(()), []
-        
-        res = res['hits']
-
-        id_list = [int(temp['_id']) for temp in res['hits']]
-        #docs.append([temp['_source']['abstract'] for temp in res['hits']])
-        multiple_query_results.append(id_list) 
-        docs.append(DocumentList(session.client, session.index_name, id_list, filter_path))
-        
-
-    if len(query_list) == 1:
-        return docs[0], multiple_query_results[0]
-    else:
-        return docs, multiple_query_results
-    
-#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
