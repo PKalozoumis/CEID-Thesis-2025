@@ -23,8 +23,12 @@ class Score(NamedTuple):
 
 class Session():
 
-    def __init__(self, index_name: str, *, client: Elasticsearch = None, credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt"):
+    def __init__(self, index_name: str, *, client: Elasticsearch = None, base_path: str = None, credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt"):
         
+        if base_path:
+            credentials_path = os.path.join(base_path, credentials_path)
+            cert_path = os.path.join(base_path, cert_path)
+
         if client:
             self.client = client
         else:
@@ -84,7 +88,7 @@ class Document():
 
         if type(temp) is dict:
             if self.text_path is None:
-                raise ValueError("Called Document.text() on a dictionary document, but text_path was None")
+                raise ValueError("Called Document.text on a dictionary document, but text_path was None")
         
             for key in self.text_path.split("."):
                 if key not in temp:
@@ -122,8 +126,9 @@ class ElasticDocument(Document):
     text_path: str|None
     session: Session
     filter_path: str
+    cache_dir: str
 
-    def __init__(self, session: Session, id: str, *, filter_path: str = "_source", text_path: str | None = None):
+    def __init__(self, session: Session, id: str, *, filter_path: str = "_source", text_path: str | None = None, cache_dir: str | None = None):
         '''
         A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
 
@@ -132,10 +137,12 @@ class ElasticDocument(Document):
             id (int): The numeric ID of the requested document in Elasticsearch
             filter_path (str, optional): Comma-separated paths to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead. Defaults to ```_source```
             text_path (str, optional): Name of the field (after filter_path is applied, if specified) where the document's body is located
+            cache_dir (str, optional): Optional directory to cache documents in or retrieve from
         '''
         super().__init__(None, id, text_path)
         self.session = session
         self.filter_path = filter_path
+        self.cache_dir = cache_dir
 
     #--------------------------------------------------------------------------------
 
@@ -143,7 +150,18 @@ class ElasticDocument(Document):
     def get(self):
         if self.doc is None:
             print(f"Fetching Document(ID={self.id})")
-            self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
+
+            #Try to load from cache first
+            if self.cache_dir:
+                fname = os.path.join(self.cache_dir, f"{self.session.index_name.replace('-', '_')}_{self.id:04}.json")
+                if os.path.isfile(fname):
+                    with open(fname, "r") as f:
+                        self.doc = json.load(f)
+
+            #If loading from cache failed
+            if self.doc is None:
+                self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
+                self.cache(self.doc)
 
             #If the filter path points to a single field, return the value inside that field
             if self.filter_path and len(self.filter_path.split(",")) == 1:
@@ -172,6 +190,20 @@ class ElasticDocument(Document):
     
     def __repr__(self):
         return f"ElasticDocument(id={self.id})"
+    
+    #--------------------------------------------------------------------------------
+    
+    def cache(self, raw_elasticsearch_doc: ObjectApiResponse):
+        if self.cache_dir:
+            fname = os.path.join(self.cache_dir, f"{self.session.index_name.replace('-', '_')}_{self.id:04}.json")
+
+            #Create cache dir if it doesn't exist
+            os.makedirs(self.cache_dir, exist_ok=True)
+
+            with open(fname, "w") as f:
+                json.dump(dict(raw_elasticsearch_doc), f)
+        else:
+            warnings.warn(f"Called ElasticDocument.cache, but the cache_dir was not set")
 
 #==============================================================================================
 
@@ -187,7 +219,7 @@ class Query():
 
     #------------------------------------------------------------------------------------------
 
-    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None):
+    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None, cache_dir: str | None = None):
         '''
         A class representing an Elasticsearch query.
         
@@ -198,12 +230,23 @@ class Query():
 
         text: str
             The query
+
+        source: list[str], optional
+            List of the fields to return from the document. Corresponds to the ```_source``` argument in Elasticsearch
+
+        text_path: str | None, optional
+            Name of the field inside the document (inside ```_source```) that is the main text.
+            This is forwarded to the generated documents' ```text_path``` argument
+
+        cache_dir: str | None, optional
+            Path to cache the returned documents in
         '''
         self.id = id
         self.text = text
         self.match_field = match_field
         self.source = source
         self.text_path = text_path
+        self.cache_dir = cache_dir
 
     #------------------------------------------------------------------------------------------
 
@@ -236,10 +279,11 @@ class Query():
 
         for res in results:
             filter_path = ",".join(["_source." + s for s in self.source])
-            elastic_doc = ElasticDocument(sess, res['_id'], filter_path=filter_path, text_path=self.text_path)
-
+            elastic_doc = ElasticDocument(sess, res['_id'], filter_path=filter_path, text_path=self.text_path, cache_dir=self.cache_dir)
+            
+            #Store to cache
+            elastic_doc.cache(res)
             temp_doc = res
-
 
             if len(res['_source']) > 0:
                 if filter_path and len(filter_path.split(",")) == 1:

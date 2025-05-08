@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from ..sentence import SentenceChain
-from ..elastic.elastic import Document
+from ..elastic import Document
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 

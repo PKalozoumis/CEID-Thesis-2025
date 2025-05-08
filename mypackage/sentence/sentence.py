@@ -4,9 +4,9 @@ from sklearn.metrics.pairwise import cosine_distances
 from kmedoids import KMedoids
 from kneed import KneeLocator
 from matplotlib import pyplot as plt
-from mypackage.elastic.elastic import ScrollingCorpus, elasticsearch_client, Session, Document
+from ..elastic import elasticsearch_client, ScrollingCorpus, Session, Document
 from itertools import pairwise, starmap
-from mypackage.helper import panel_print
+from ..helper import panel_print
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown

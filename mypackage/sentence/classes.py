@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
-from mypackage.elastic.elastic import Document, ElasticDocument
+from mypackage.elastic import Document, ElasticDocument
 from functools import cached_property
 import json
 from itertools import chain
