@@ -111,13 +111,23 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 
 #===================================================================================================
 
-def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int]):
+def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = True):
     '''
-    Visualize clustered chains
+    Creates a scatter plot of the clustered chains
 
-    Args:
-        chains (list[SentenceChain]): The original set of chains
-        clustering (list[int]): A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
+    Arguments
+    ---
+    chains: list[SentenceChain]
+        The original set of chains
+
+    clustering: list[int]
+        A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
+    
+    save_to: str, optional
+        Path to save the plot to. By default, the path is ```None``` and the plot does not get saved
+
+    show: bool
+        Whether to display the plot on the screen or not. Defaults to ```True```
     '''
     cmap = plt.cm.get_cmap("tab20").colors
     with warnings.catch_warnings():
@@ -129,7 +139,7 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
-            visualization_reducer = UMAP(n_components=10, metric="cosine", random_state=42)
+            visualization_reducer = UMAP(n_components=2, metric="cosine", random_state=42)
         
         reduced = visualization_reducer.fit_transform(matrix)
 
@@ -139,7 +149,14 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         legend_elements += [Patch(facecolor=cmap[(2*i + 1*(i > 19))%20], label=f'Cluster {i:02}') for i in range(n_clusters-1)]
         plt.scatter(reduced[:, 0], reduced[:, 1], c=colors)
         plt.legend(handles = legend_elements)
-        plt.show()
+
+        if save_to:
+            plt.savefig(save_to)
+
+        if show:
+            plt.show()
+        
+        plt.clf()
 
 #===================================================================================================
 

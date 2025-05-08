@@ -11,7 +11,7 @@ from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
 from .metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
-from .classes import *
+from .classes import Sentence, SentenceChain, SentenceLike
 
 #============================================================================================
 

@@ -23,16 +23,60 @@ class Score(NamedTuple):
 
 class Session():
 
-    def __init__(self, index_name: str, *, client: Elasticsearch = None, base_path: str = None, credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt"):
-        
-        if base_path:
-            credentials_path = os.path.join(base_path, credentials_path)
-            cert_path = os.path.join(base_path, cert_path)
+    client: Elasticsearch
+    index_name: str
 
-        if client:
-            self.client = client
+    def __init__(
+            self,
+            index_name: str,
+            *
+            ,
+            client: Elasticsearch = None,
+            base_path: str = None,
+            credentials_path: str = "credentials.json",
+            cert_path: str = "http_ca.crt",
+            no_connect: bool = False
+        ):
+        '''
+        Represents an Elasticsearch session for querying and retrieving documents from a specific index.
+        Groups information about the client, the index and the authentication methods
+
+        Arguments
+        ---
+        index_name: str
+            The index to connect to
+
+        client: Elasticsearch, optional
+            The Elasticsearch client. If not set, it's automatically generated from ```credentials_path``` and ```cert_path```
+
+        credentials_path: str
+            Path to a JSON file containing the Elasticsearch username (```elastic_user```), password (```elastic_password```)
+            and certificate fingerprint (```cert_fingerprint```). If not set, defaults to ```credentials.json```
+
+        cert_path: str
+            Path to the Elasticsearch certificate. If not set, defaults to ```http_ca.crt```
+
+        base_path: str
+            By default, the files ```credentials.json``` and ```http_ca.crt``` should be in the directory we run the script from.
+            We can change the directory where these files are searched for by setting ```base_path```.
+            This is useful if we want to maintain the default names, but the files are stored somewhere else
+
+        no_connect: bool, optional
+            Set to ```True``` when there is no need to connect to an Elasticsearch instance, because the docs are retrieved from a cache.
+            Skips automatic client creation
+        '''
+        
+        if not no_connect:
+            if base_path:
+                credentials_path = os.path.join(base_path, credentials_path)
+                cert_path = os.path.join(base_path, cert_path)
+
+            if client:
+                self.client = client
+            else:
+                self.client = elasticsearch_client(credentials_path, cert_path)
         else:
-            self.client = elasticsearch_client(credentials_path, cert_path)
+            self.client = None
 
         self.index_name = index_name
 
@@ -140,16 +184,20 @@ class ElasticDocument(Document):
             cache_dir (str, optional): Optional directory to cache documents in or retrieve from
         '''
         super().__init__(None, id, text_path)
+
         self.session = session
         self.filter_path = filter_path
         self.cache_dir = cache_dir
+
+        if not cache_dir and not session.client:
+            raise ValueError("No retrieval method provided: both cache_dir and session.client are None")
 
     #--------------------------------------------------------------------------------
 
     @overrides(Document)
     def get(self):
         if self.doc is None:
-            print(f"Fetching Document(ID={self.id})")
+            #print(f"Fetching Document(ID={self.id})")
 
             #Try to load from cache first
             if self.cache_dir:
