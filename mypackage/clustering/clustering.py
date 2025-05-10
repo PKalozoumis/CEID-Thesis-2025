@@ -8,6 +8,7 @@ from umap import UMAP
 from numpy import ndarray
 import warnings
 from matplotlib.patches import Patch
+from matplotlib.axes import Axes
 
 #===================================================================================================
 
@@ -129,13 +130,21 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
     show: bool
         Whether to display the plot on the screen or not. Defaults to ```True```
     '''
+    ax: list[list[Axes]]
+    fig = plt.figure(figsize=(15,10))
+    ax = []
+    pos = [1,4,5,6,7,8,9,10,11,12]
+    for i in range(10):
+        ax.append(fig.add_subplot(3,4,pos[i]))
+
     cmap = plt.cm.get_cmap("tab20").colors
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning) #when using seed
+        warnings.filterwarnings("ignore", category=FutureWarning)
 
         matrix = np.array([chain.vector for chain in chains])
         
-        colors = [cmap[(2*label + 1*(label > 19)%20)] if label >= 0 else (0,0,0) for label in clustering_labels]
+        colors = [cmap[(2*label + int(label > 9))%20] if label >= 0 else (0,0,0) for label in clustering_labels]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
@@ -146,17 +155,37 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         n_clusters = len(list(set(clustering_labels)))
 
         legend_elements = [Patch(facecolor=(0,0,0), label="Outliers")]
-        legend_elements += [Patch(facecolor=cmap[(2*i + 1*(i > 19))%20], label=f'Cluster {i:02}') for i in range(n_clusters-1)]
-        plt.scatter(reduced[:, 0], reduced[:, 1], c=colors)
-        plt.legend(handles = legend_elements)
+        print([(2*i + int(i > 9))%20 for i in range(n_clusters-1)])
+        legend_elements += [Patch(facecolor=cmap[(2*i + int(i > 9))%20], label=f'Cluster {i:02}') for i in range(n_clusters-1)]
+        ax[0].scatter(reduced[:, 0], reduced[:, 1], c=colors)
+        #ax[0][0].legend(handles = legend_elements)
+
+        for x in ax:
+            x: Axes
+
+            x.set_xticks([])
+            x.set_yticks([])
+
+        fig.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.95)
+        
+        temp = fig.add_subplot(3,4,2)
+        pos = temp.get_position()
+        fig.delaxes(temp)
+        from matplotlib.font_manager import FontProperties
+        fig.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=pos, ncols=3, prop=FontProperties(size=14), columnspacing=5)
+
+
+
+        fig.suptitle("Plots")
 
         if save_to:
-            plt.savefig(save_to)
+            fig.savefig(save_to)
 
         if show:
             plt.show()
         
         plt.clf()
+        plt.close(fig)
 
 #===================================================================================================
 

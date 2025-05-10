@@ -25,6 +25,8 @@ class Session():
 
     client: Elasticsearch
     index_name: str
+    cache_dir: str
+    use: str
 
     def __init__(
             self,
@@ -32,10 +34,11 @@ class Session():
             *
             ,
             client: Elasticsearch = None,
+            cache_dir: str = None,
             base_path: str = None,
             credentials_path: str = "credentials.json",
             cert_path: str = "http_ca.crt",
-            no_connect: bool = False
+            use: str = "client"
         ):
         '''
         Represents an Elasticsearch session for querying and retrieving documents from a specific index.
@@ -47,7 +50,15 @@ class Session():
             The index to connect to
 
         client: Elasticsearch, optional
-            The Elasticsearch client. If not set, it's automatically generated from ```credentials_path``` and ```cert_path```
+            The Elasticsearch client. If not set, it's automatically generated from ```credentials_path``` and ```cert_path```.
+            Either ```client/credentials``` or ```cache_dir``` needs to be set. Using both gives priority to the cache
+            for retrieval
+
+        cache_dir: str, optional
+            An alternative retrieval method to the Elasticsearch client. A cache directory to retrieve and store documents.
+            When using the cache instead of the client, we can skip providing the credentials and the certificate.
+            Either ```cache_dir``` or ```client/credentials``` needs to be set. Using both gives priority to the cache
+            for retrieval
 
         credentials_path: str
             Path to a JSON file containing the Elasticsearch username (```elastic_user```), password (```elastic_password```)
@@ -56,29 +67,53 @@ class Session():
         cert_path: str
             Path to the Elasticsearch certificate. If not set, defaults to ```http_ca.crt```
 
-        base_path: str
+        base_path: str, optional
             By default, the files ```credentials.json``` and ```http_ca.crt``` should be in the directory we run the script from.
             We can change the directory where these files are searched for by setting ```base_path```.
             This is useful if we want to maintain the default names, but the files are stored somewhere else
 
-        no_connect: bool, optional
-            Set to ```True``` when there is no need to connect to an Elasticsearch instance, because the docs are retrieved from a cache.
-            Skips automatic client creation
+        use: str
+            Which method to use to retrieve documents.
+            Possible values are ```client```, ```cache``` and ```both```. Defaults to ```client```
         '''
-        
-        if not no_connect:
-            if base_path:
-                credentials_path = os.path.join(base_path, credentials_path)
-                cert_path = os.path.join(base_path, cert_path)
-
-            if client:
-                self.client = client
-            else:
-                self.client = elasticsearch_client(credentials_path, cert_path)
-        else:
-            self.client = None
-
+        self.client = client
+        self.cache_dir = cache_dir
+        self.use = use
         self.index_name = index_name
+
+        if use == 'cache' or use == 'both':
+            if self.cache_dir and not os.path.isdir(self.cache_dir):
+                raise Exception(f"The cache directory {self.cache_dir} does not exist")
+        
+        if use == 'client' or use == 'both':
+            if not self.client:
+                if base_path:
+                    credentials_path = os.path.join(base_path, credentials_path)
+                    cert_path = os.path.join(base_path, cert_path)
+                
+                self.client = elasticsearch_client(credentials_path, cert_path)
+
+    #----------------------------------------------------------------------------------------------
+
+    def cache_store(self, raw_elasticsearch_doc: ObjectApiResponse, id: str):
+        if self.cache_dir:
+            fname = os.path.join(self.cache_dir, f"{self.index_name.replace('-', '_')}_{id:04}.json")
+
+            with open(fname, "w") as f:
+                json.dump(dict(raw_elasticsearch_doc), f, ensure_ascii=False)
+        else:
+            warnings.warn(f"Called Session.cache_store, but the cache_dir was not set")
+
+    #----------------------------------------------------------------------------------------------
+
+    def cache_load(self, id: str) -> dict | None:
+        if self.cache_dir:
+            fname = os.path.join(self.cache_dir, f"{self.index_name.replace('-', '_')}_{id:04}.json")
+            if os.path.isfile(fname):
+                with open(fname, "r") as f:
+                    return json.load(f)
+        else:
+            return None
 
 #================================================================================================================
 
@@ -170,27 +205,29 @@ class ElasticDocument(Document):
     text_path: str|None
     session: Session
     filter_path: str
-    cache_dir: str
 
-    def __init__(self, session: Session, id: str, *, filter_path: str = "_source", text_path: str | None = None, cache_dir: str | None = None):
+    def __init__(self, session: Session, id: str, *, filter_path: str = "_source", text_path: str | None = None):
         '''
         A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
 
-        Args:
-            session (Session): An Elasticsearch session
-            id (int): The numeric ID of the requested document in Elasticsearch
-            filter_path (str, optional): Comma-separated paths to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead. Defaults to ```_source```
-            text_path (str, optional): Name of the field (after filter_path is applied, if specified) where the document's body is located
-            cache_dir (str, optional): Optional directory to cache documents in or retrieve from
+        Arguments
+        ---
+        session: Session
+            An Elasticsearch session
+
+        id: int
+            The numeric ID of the requested document in Elasticsearch
+
+        filter_path: str
+            Comma-separated paths to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead. Defaults to ```_source```
+        
+        text_path: str, optional
+            Name of the field (after filter_path is applied, if specified) where the document's body is located
         '''
         super().__init__(None, id, text_path)
 
         self.session = session
         self.filter_path = filter_path
-        self.cache_dir = cache_dir
-
-        if not cache_dir and not session.client:
-            raise ValueError("No retrieval method provided: both cache_dir and session.client are None")
 
     #--------------------------------------------------------------------------------
 
@@ -200,16 +237,12 @@ class ElasticDocument(Document):
             #print(f"Fetching Document(ID={self.id})")
 
             #Try to load from cache first
-            if self.cache_dir:
-                fname = os.path.join(self.cache_dir, f"{self.session.index_name.replace('-', '_')}_{self.id:04}.json")
-                if os.path.isfile(fname):
-                    with open(fname, "r") as f:
-                        self.doc = json.load(f)
+            self.doc = self.session.cache_load(self.id)
 
             #If loading from cache failed
             if self.doc is None:
                 self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
-                self.cache(self.doc)
+                self.session.cache_store(self.doc, self.id)
 
             #If the filter path points to a single field, return the value inside that field
             if self.filter_path and len(self.filter_path.split(",")) == 1:
@@ -238,20 +271,6 @@ class ElasticDocument(Document):
     
     def __repr__(self):
         return f"ElasticDocument(id={self.id})"
-    
-    #--------------------------------------------------------------------------------
-    
-    def cache(self, raw_elasticsearch_doc: ObjectApiResponse):
-        if self.cache_dir:
-            fname = os.path.join(self.cache_dir, f"{self.session.index_name.replace('-', '_')}_{self.id:04}.json")
-
-            #Create cache dir if it doesn't exist
-            os.makedirs(self.cache_dir, exist_ok=True)
-
-            with open(fname, "w") as f:
-                json.dump(dict(raw_elasticsearch_doc), f)
-        else:
-            warnings.warn(f"Called ElasticDocument.cache, but the cache_dir was not set")
 
 #==============================================================================================
 

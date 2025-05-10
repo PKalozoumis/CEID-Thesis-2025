@@ -65,7 +65,7 @@ class Sentence(SentenceLike):
         return self.text
     
     def __len__(self) -> int:
-        return len(self._text)
+        return len(self._text.split())
     
     @property
     def vector(self):

@@ -11,7 +11,9 @@ from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
 from .metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
-from .classes import Sentence, SentenceChain, SentenceLike
+from .classes import Sentence, SentenceChain, SentenceLike, SimilarityPair
+
+console = Console()
 
 #============================================================================================
 
@@ -46,7 +48,6 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Se
 #============================================================================================
 
 def print_pairs(sentences):
-    console = Console()
     console.clear()
 
     table = Table()
@@ -68,46 +69,67 @@ def print_pairs(sentences):
 
 #============================================================================================
 
-def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: int | None = 1, pooling_method="average"):
+def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: int | None = 1, pooling_method: str = "average") -> list[SentenceLike]:
     '''
     Clusters a list of sentence chains for a single document.
     The chains inside each returned cluster are ordered based on their offset inside the document
 
     Arguments
     --------------------------------------------------------
-    chain: list[SentenceChain]
-        The list of chains to cluster
+    sentences: list[SentenceLike]
+        The list of sentences to chain
 
-    n_components: int
-        The number of dimensions to reduce the embedding space to.
-        Set to ```None``` to skip dimensionality reduction
+    threshold: float
+        The cosine similarity threshold for two ```SentenceLike``` objects to be considered similar enough
+        to merge into the same chain. Takes values between ```0``` and ```1```
+        
+    round_limit: int | None
+        The number of rounds. On the first round we try to chain as many sentences from the document as possible, using
+        the merging method (here ```iterative_merge```). After chaining, it's possible that the chains can
+        also be chained further, depending on what their new vector is (affected by ```pooling_method```, so this can
+        continue for more rounds. We can set this max number of rounds, which by default is set to ```1```.
+        Setting to ```None``` removes the limit entirely. Setting to ```0``` performes no chaining and just returns
+        the original sentences
+
+    pooling_method: str
+        The method we use to generate the new chain embedding from the partial ```SentenceLike``` objects' embeddings.
+        By default it's ```average```
 
     Returns
     --------------------------------------------------------
-    labels: list[int]
-        A list of labels. One label for each input chain
-
-    clustered_chains: dict[int, ChainCluster]
-        A dictionary of clusters, with the label as the key
+    chains: list[SentenceLike]
+        A list of chains. If ```round_limit == 0```, then the original set of sentences is returned
     '''
+    #Disable chaining
+    if round_limit == 0:
+        return sentences
+    
+    #We check the sentences in pairs to see if their similarity is above the threshold
     pairs = [SimilarityPair.from_sentences(s1, s2) for s1, s2 in pairwise(sentences)]
 
-    #No more merging can happen
-    if not any(filter(lambda x: x.sim > threshold, pairs)):
+    #No more merging can happen, sicne all pairs are below the threshold
+    if not any(filter(lambda x: x.sim >= threshold, pairs)):
         return sentences
 
-    chains = []
+    chains: list[list[SentenceLike]] = []
+    appended_first_full_pair = False
 
     for i, pair in enumerate(pairs):
-
-        if i == 0:
-            chains.append([pair.s1, pair.s2])
-            continue
-        
-        if pair.sim >= threshold: #Add to the chain
-            chains[-1].append(pair.s2)
-        else: #Create new chain for this sentence
-            chains.append([pair.s2])
+        #While we still haven't appended a full pair,
+        #then we exclusively create new chains, each with one sentence
+        if not appended_first_full_pair:
+            if pair.sim >= threshold:
+                chains.append([pair.s1, pair.s2])
+                appended_first_full_pair = True
+            else:
+                chains.append([pair.s1])
+        #After adding the first full pair, we only need to
+        #add the second element of any subsequent pair, because they're overlapping
+        else:
+            if pair.sim >= threshold: #Add to the chain
+                chains[-1].append(pair.s2)
+            else: #Create new chain for this sentence
+                chains.append([pair.s2])
 
     result = [SentenceChain(c, pooling_method) for c in chains]
     
