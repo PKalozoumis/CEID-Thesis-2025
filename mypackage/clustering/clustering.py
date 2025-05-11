@@ -9,6 +9,7 @@ from numpy import ndarray
 import warnings
 from matplotlib.patches import Patch
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 #===================================================================================================
 
@@ -112,7 +113,7 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 
 #===================================================================================================
 
-def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = True):
+def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False):
     '''
     Creates a scatter plot of the clustered chains
 
@@ -128,23 +129,43 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         Path to save the plot to. By default, the path is ```None``` and the plot does not get saved
 
     show: bool
-        Whether to display the plot on the screen or not. Defaults to ```True```
-    '''
-    ax: list[list[Axes]]
-    fig = plt.figure(figsize=(15,10))
-    ax = []
-    pos = [1,4,5,6,7,8,9,10,11,12]
-    for i in range(10):
-        ax.append(fig.add_subplot(3,4,pos[i]))
+        Whether to display the plot on the screen or not. Defaults to ```False```
 
+    ax: Axes
+        We can provide an optional subplot to plot on instead of generating the figure inside the function.
+        If this argument is provided, then ```save_to``` and ```show``` are ignored
+
+    return_legend: bool
+        If set to ```True```, then the legend elements are returned from the function instead of
+        drawn on the axis object. Defaults to ```False```
+    '''
+
+    #Parameters checks
+    #-----------------------------------------------------------------------
+    if ax is not None and show:
+        warnings.warn("A custom 'ax' object was provided, therefore setting 'show' to True will be ignored")
+        show = False
+    if ax is not None and save_to is not None:
+        warnings.warn("A custom 'ax' object was provided, therefore setting 'save_to' to True will be ignored")
+        save_to = None
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = None
+
+    #Creating the colors
+    #-----------------------------------------------------------------------
     cmap = plt.cm.get_cmap("tab20").colors
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning) #when using seed
         warnings.filterwarnings("ignore", category=FutureWarning)
-
-        matrix = np.array([chain.vector for chain in chains])
         
         colors = [cmap[(2*label + int(label > 9))%20] if label >= 0 else (0,0,0) for label in clustering_labels]
+
+        #Dimensionality reduction
+        #-----------------------------------------------------------------------
+        matrix = np.array([chain.vector for chain in chains])
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
@@ -152,40 +173,34 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         
         reduced = visualization_reducer.fit_transform(matrix)
 
+        #Legend creation
+        #-----------------------------------------------------------------------
         n_clusters = len(list(set(clustering_labels)))
-
         legend_elements = [Patch(facecolor=(0,0,0), label="Outliers")]
-        print([(2*i + int(i > 9))%20 for i in range(n_clusters-1)])
         legend_elements += [Patch(facecolor=cmap[(2*i + int(i > 9))%20], label=f'Cluster {i:02}') for i in range(n_clusters-1)]
-        ax[0].scatter(reduced[:, 0], reduced[:, 1], c=colors)
-        #ax[0][0].legend(handles = legend_elements)
 
-        for x in ax:
-            x: Axes
+        #Legend creation
+        #-----------------------------------------------------------------------
+        ax.scatter(reduced[:, 0], reduced[:, 1], c=colors)
+        if not return_legend:
+            ax.legend(handles=legend_elements)
+        ax.set_xticks([])
+        ax.set_yticks([])
 
-            x.set_xticks([])
-            x.set_yticks([])
-
-        fig.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.95)
-        
-        temp = fig.add_subplot(3,4,2)
-        pos = temp.get_position()
-        fig.delaxes(temp)
-        from matplotlib.font_manager import FontProperties
-        fig.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=pos, ncols=3, prop=FontProperties(size=14), columnspacing=5)
-
-
-
-        fig.suptitle("Plots")
-
+        #End
+        #-----------------------------------------------------------------------
         if save_to:
             fig.savefig(save_to)
 
         if show:
             plt.show()
         
-        plt.clf()
-        plt.close(fig)
+        if fig:
+            plt.clf()
+            plt.close(fig)
+
+        if return_legend:
+            return legend_elements
 
 #===================================================================================================
 

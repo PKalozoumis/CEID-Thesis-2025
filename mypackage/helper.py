@@ -2,6 +2,7 @@ from rich.panel import Panel
 from rich.console import Console
 import sys
 from itertools import islice
+from functools import wraps
 
 console = Console()
 
@@ -63,3 +64,12 @@ def line_count(file: str):
         line_count = sum(1 for _ in f)
 
     return line_count
+
+#===================================================================================
+
+def lock_kwargs(func, **locked_kwargs):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        kwargs.update(locked_kwargs)
+        return func(*args, **kwargs)
+    return wrapper

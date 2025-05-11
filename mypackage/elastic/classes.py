@@ -23,6 +23,8 @@ class Score(NamedTuple):
 
 class Session():
 
+    #Actually even better: replace cache_dir and use with 'source'
+    
     client: Elasticsearch
     index_name: str
     cache_dir: str
