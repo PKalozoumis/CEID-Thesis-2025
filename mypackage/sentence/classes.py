@@ -84,7 +84,11 @@ class SentenceChain(SentenceLike):
     _vector: ndarray
     sentences: list[SentenceLike]
 
-    def __init__(self, sentences: list[SentenceLike], pooling_method: str = "average"):
+    def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average"):
+        #Convert single sentence into a list with only one sentence
+        if isinstance(sentences, SentenceLike):
+            sentences = [sentences]
+            
         self._vector = SentenceChain.pooling(sentences, pooling_method)
 
         if isinstance(sentences[0], Sentence):

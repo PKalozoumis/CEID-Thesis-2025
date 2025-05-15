@@ -3,6 +3,8 @@ from rich.console import Console
 import sys
 from itertools import islice
 from functools import wraps
+import json
+import numpy as np
 
 console = Console()
 
@@ -73,3 +75,15 @@ def lock_kwargs(func, **locked_kwargs):
         kwargs.update(locked_kwargs)
         return func(*args, **kwargs)
     return wrapper
+
+#===================================================================================
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)

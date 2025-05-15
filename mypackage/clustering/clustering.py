@@ -38,7 +38,7 @@ def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) ->
 
 #===================================================================================================
 
-def chain_clustering(chains: list[SentenceChain], n_components: int = 25) -> tuple[list[int], dict[int, ChainCluster]]:
+def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_dista: float = 0.1) -> tuple[list[int], dict[int, ChainCluster]]:
     '''
     Clusters a list of sentence chains for a single document.
     The chains inside each returned cluster are ordered based on their offset inside the document
@@ -70,7 +70,7 @@ def chain_clustering(chains: list[SentenceChain], n_components: int = 25) -> tup
 
         if n_components is not None:
             #Reduce dimensionality before clustering
-            clustering_reducer = UMAP(n_components=n_components, metric="cosine", random_state=42)
+            clustering_reducer = UMAP(n_components=n_components, metric="cosine", random_state=42, min_dist=min_dista)
             reduced_matrix = clustering_reducer.fit_transform(matrix)
         else:
             reduced_matrix = matrix
@@ -113,7 +113,7 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 
 #===================================================================================================
 
-def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False):
+def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False, min_dista: float = 0.1):
     '''
     Creates a scatter plot of the clustered chains
 
@@ -169,7 +169,7 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
-            visualization_reducer = UMAP(n_components=2, metric="cosine", random_state=42)
+            visualization_reducer = UMAP(n_components=2, metric="cosine", random_state=42, min_dist=min_dista)
         
         reduced = visualization_reducer.fit_transform(matrix)
 

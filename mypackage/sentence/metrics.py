@@ -15,11 +15,15 @@ def within_chain_similarity(chain: SentenceChain) -> float:
     '''
     Caclculates the average similarity of every pair of sentences in the chain. 
 
-    Args:
-        chain (SentenceChain): The chain to calculate similarity for
+    Args
+    ---
+    chain: SentenceChain
+        The chain to calculate similarity for
     
-    Returns:
-        float: Average similarity within the chain
+    Returns
+    ---
+    sim: float
+        Average similarity within the chain
     '''
     if len(chain) == 1:
         return 1

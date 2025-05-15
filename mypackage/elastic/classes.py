@@ -86,7 +86,7 @@ class Session():
         if use == 'cache' or use == 'both':
             if self.cache_dir and not os.path.isdir(self.cache_dir):
                 raise Exception(f"The cache directory {self.cache_dir} does not exist")
-        
+
         if use == 'client' or use == 'both':
             if not self.client:
                 if base_path:
@@ -109,7 +109,7 @@ class Session():
     #----------------------------------------------------------------------------------------------
 
     def cache_load(self, id: str) -> dict | None:
-        if self.cache_dir:
+        if self.use in ["cache", "both"] and self.cache_dir:
             fname = os.path.join(self.cache_dir, f"{self.index_name.replace('-', '_')}_{id:04}.json")
             if os.path.isfile(fname):
                 with open(fname, "r") as f:
@@ -243,6 +243,9 @@ class ElasticDocument(Document):
 
             #If loading from cache failed
             if self.doc is None:
+                if self.session.client is None:
+                    if self.session.use == "cache":
+                        raise Exception("Session is in 'cache' mode, but the document was not found in cache. Consider setting mode to 'client' or 'both'")
                 self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
                 self.session.cache_store(self.doc, self.id)
 

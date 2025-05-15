@@ -155,7 +155,7 @@ def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_lim
     '''
     #Disable chaining
     if round_limit == 0:
-        return sentences
+        return list(map(SentenceChain, sentences))
     
     #We check the sentences in pairs to see if their similarity is above the threshold
     pairs = [SimilarityPair.from_sentences(s1, s2) for s1, s2 in pairwise(sentences)]
