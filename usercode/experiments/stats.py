@@ -15,7 +15,7 @@ from mypackage.sentence.metrics import chain_metrics
 
 import numpy as np
 
-from helper import experiment_wrapper
+from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS
 from mypackage.storage import load_pickles, ProcessedDocument
 
 import pickle
@@ -32,19 +32,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-docs", action="store", type=str, default=None, help="Comma-separated list of docs")
     parser.add_argument("name", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
-    parser.add_argument("-i", action="store", type=str, default="pubmed-index", help="Index name", choices=[
-        "pubmed-index",
-        "arxiv-index"
+    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
+        "pubmed",
+        "arxiv"
     ])
     args = parser.parse_args()
+
+    args.i += "-index"
 
     #-------------------------------------------------------------------------------------------
 
     if not args.docs:
         if args.i == "pubmed-index":
-            docs_to_retrieve = [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 6415]
+            docs_to_retrieve = PUBMED_DOCS
         elif args.i == "arxiv-index":
-            docs_to_retrieve = list(range(10))
+            docs_to_retrieve = ARXIV_DOCS
     else:
         docs_to_retrieve = [int(x) for x in args.docs.split(",")]
 

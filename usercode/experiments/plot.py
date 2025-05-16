@@ -22,7 +22,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.axes import Axes
 
 import numpy as np
-from helper import load_experiments, experiment_wrapper
+from helper import load_experiments, experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, index_from_doc
 from mypackage.storage import load_pickles
 import math
 
@@ -59,30 +59,37 @@ def full(pkl, imgpath, experiment, sess: Session):
         ax[i].set_title(f"{i:02}: Doc {p.doc.id:02} ({sess.index_name})")
         
     fig.legend(handles=max_legend, loc='upper left', bbox_to_anchor=(pos.x0 + 0.05, pos.y0 + pos.height), ncols=3, prop=FontProperties(size=14), columnspacing=5)
-    fig.savefig(os.path.join(imgpath, f"full_{sess.index_name.replace('-', '_')}_{experiment}.png"))
+    fig.savefig(os.path.join(imgpath, f"full_{sess.index_name.replace('-index', '')}_{experiment}.png"))
 
 #=============================================================================================================
 
-def compare(experiment_names: str|list[str], imgpath, docs, sess: Session):
+def compare(experiment_names: str|list[str], imgpath, docs: list[int], sess: Session):
 
     for i, doc in enumerate(docs):
-        #Determine grid size
-        N = len(experiment_names)
-        b = math.ceil(math.sqrt(N))
-        a = math.ceil(N / b) 
+        experiment_list = experiment_wrapper(experiment_names)
 
-        fig, ax = plt.subplots(a, b, figsize=(b*4.33, a*4))
+        #Determine grid size
+        N = len(experiment_list)
+        b = math.ceil(math.sqrt(N))
+        a = math.ceil(N / b)
+
+        fig, ax_grid = plt.subplots(a, b, figsize=(b*4.33, a*4))
         
         fig.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.83, wspace=0.05, hspace=0.1)
-        axes = ax.reshape((1, -1))[0]
-        console.print(f"Plotting document {doc}")
+
         axes: list[Axes]
+        if isinstance(ax_grid, np.ndarray):
+            axes = ax_grid.reshape((1, -1))[0]
+        else:
+            axes = [ax_grid]
+        
+        console.print(f"Plotting document {doc}")
 
         for ax in axes:
             ax.set_xticks([])
             ax.set_yticks([])
 
-        for ax, exp_params in zip(axes, experiment_wrapper(experiment_names)):
+        for ax, exp_params in zip(axes, experiment_list):
             pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", exp_params['name']), doc)
             visualize_clustering(pkl.chains, pkl.labels, ax=ax, return_legend=True, min_dista=exp_params['min_dista'])
 
@@ -90,7 +97,7 @@ def compare(experiment_names: str|list[str], imgpath, docs, sess: Session):
             ax.set_title(exp_params['title'])
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
-        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-', '_')}_{i:02}_{doc}.png"))
+        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{index_from_doc(sess.index_name, doc):02}_{doc}.png"))
         plt.close(fig)
 
 #=============================================================================================================
@@ -98,11 +105,11 @@ def compare(experiment_names: str|list[str], imgpath, docs, sess: Session):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-docs", action="store", default=None)
-    parser.add_argument("-i", action="store", type=str, default="pubmed-index", help="Index name", choices=[
-        "pubmed-index",
-        "arxiv-index"
+    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
+        "pubmed",
+        "arxiv"
     ])
-    parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Experiment name. Name of subdir in pickle/, images/ and /params")
+    parser.add_argument("-x", nargs="?", action="store", type=str, default=None, help="Experiment name. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("p", action="store", type=str, help="The type of plot to make", choices=[
         "full",
         "compare"
@@ -110,15 +117,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    #---------------------------------------------------------------------------
+    args.i += "-index"
 
+    #---------------------------------------------------------------------------
     console.print(f"Making plot: '{args.p}'")
 
     if not args.docs:
         if args.i == "pubmed-index":
-            docs_to_retrieve = [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 6415]
+            docs_to_retrieve = PUBMED_DOCS
         elif args.i == "arxiv-index":
-            docs_to_retrieve = list(range(10))
+            docs_to_retrieve = ARXIV_DOCS
     else:
         docs_to_retrieve = [int(x) for x in args.docs.split(",")]
 
@@ -133,12 +141,18 @@ if __name__ == "__main__":
     sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
 
     if args.p == 'full':
+        if args.x is None:
+            args.x = "default"
+        
         console.print(f"Plotting experiment '{args.x}'")
         pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", args.x), docs_to_retrieve)
         
-        full(pkl, imgpath, args.x, sess.index_name)
+        full(pkl, imgpath, args.x, sess)
 
-    elif args.p == 'compare':            
+    elif args.p == 'compare':
+        if args.x is None:
+            args.x = "all"
+             
         compare(args.x.split(","), imgpath, docs_to_retrieve, sess)
 
         

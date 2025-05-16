@@ -3,6 +3,15 @@ import pickle
 import os
 import json
 
+PUBMED_DOCS = [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 6415]
+ARXIV_DOCS = list(range(10))
+
+def index_from_doc(index_name: str, doc_id) -> int:
+    if index_name == "pubmed-index":
+        return PUBMED_DOCS.index(doc_id)
+    elif index_name == "arxiv-index":
+        return ARXIV_DOCS.index(doc_id)
+
 #=============================================================================================================
 
 def load_experiments(experiment_names: str|list[str]|None = None, must_exist: bool = False) -> dict | list[dict]:
@@ -43,7 +52,7 @@ def all_experiments():
 #=============================================================================================================
 
 def experiment_wrapper(experiment_names: str | list[str], must_exist: bool = False, strict_iterable: bool = True):
-    if experiment_names == "all":
+    if experiment_names == "all" or experiment_names == ["all"]:
         return list(all_experiments())
     else:
         xp = load_experiments(experiment_names, must_exist)
