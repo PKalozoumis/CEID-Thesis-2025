@@ -3,49 +3,35 @@ import pickle
 import os
 import json
 
-ProcessedDocument = namedtuple("ProcessedDocument", ["doc", "chains", "labels", "clusters"])
-
 #=============================================================================================================
 
-def load_pickles(experiment: str, docs, index_name) -> ProcessedDocument | list[ProcessedDocument]:
-    pkl = []
+def load_experiments(experiment_names: str|list[str]|None = None, must_exist: bool = False) -> dict | list[dict]:
 
-    if type(docs) is int:
-        temp = [docs]
-    else:
-        temp = docs
+    if isinstance(experiment_names, list) and len(experiment_names) == 1:
+        experiment_names = experiment_names[0]
 
-    for fname in map(lambda x: os.path.join(index_name, "pickles", experiment, f"{x}.pkl"), temp):
-        with open(fname, "rb") as f:
-            pkl.append(pickle.load(f))
-
-    if type(docs) is int:
-        return pkl[0]
-    else:
-        return pkl
-    
-#=============================================================================================================
-
-def load_experiment(experiments: str|list[str]|None) -> dict | list[dict]:
     with open("experiments.json", "r") as f:
         temp = json.load(f)
 
     default_experiment = temp['default'] | {'name': 'default'}
-
-    if type(experiments) is str:
-        if experiments in temp:
-            return default_experiment | temp[experiments] | {'name': experiments}
+    if type(experiment_names) is str:
+        
+        if experiment_names in temp:
+            return default_experiment | temp[experiment_names] | {'name': experiment_names}
         else:
-            print(f"Could not find experiment '{experiments}'. Using default params")
-            return default_experiment
-    elif isinstance(experiments, list):
-        return [default_experiment | v | {'name': k} for k,v in temp.items() if k in experiments]
-    elif experiments is None:
+            if must_exist:
+                raise Exception("THIS NEXT EXPERIMENT SEEMS... VACANT")
+            else:
+                print(f"Could not find experiment '{experiment_names}'. Using default params")
+                return default_experiment | {'name': "default"}
+    elif isinstance(experiment_names, list):
+        return [default_experiment | v | {'name': k} for k,v in temp.items() if k in experiment_names]
+    elif experiment_names is None:
         return [default_experiment | v | {'name': k} for k,v in temp.items()]
 
 #=============================================================================================================
 
-def experiment_generator():
+def all_experiments():
     with open("experiments.json", "r") as f:
         experiments = json.load(f)
 
@@ -56,8 +42,12 @@ def experiment_generator():
 
 #=============================================================================================================
 
-def experiment_wrapper(name):
-    if name == "all":
-        return experiment_generator()
+def experiment_wrapper(experiment_names: str | list[str], must_exist: bool = False, strict_iterable: bool = True):
+    if experiment_names == "all":
+        return list(all_experiments())
     else:
-        return load_experiment(name.split(','))
+        xp = load_experiments(experiment_names, must_exist)
+        if not strict_iterable or isinstance(xp, list):
+            return xp
+        else:
+            return [xp]

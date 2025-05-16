@@ -24,6 +24,10 @@
         "title": "Threshold 0.65",
         "threshold": 0.65
     },
+    "thres_7": {
+        "title": "Threshold 0.7",
+        "threshold": 0.7
+    },
     "dista": {
         "title": "Dista 0.05",
         "min_dista": 0.05

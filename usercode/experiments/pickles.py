@@ -22,24 +22,30 @@ from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
 from matplotlib.axes import Axes
 
-from helper import ProcessedDocument, experiment_wrapper
+from helper import experiment_wrapper
+
+from mypackage.storage import save_clusters
 
 console = Console()
 
 #==============================================================================================
 
 def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_name: str):
-    console.print(f"Document {int(doc.id):02}: Creating sentences...")
+    console.print(f"Document {doc.id:02}: Creating sentences...")
     sentences = doc_to_sentences(doc, model)
-    console.print(f"Document {int(doc.id):02}: Creating chains...")
+    console.print(f"Document {doc.id:02}: Creating chains...")
     merged = chaining(params['chaining_method'])(sentences, threshold=params['threshold'], round_limit=params['round_limit'], pooling_method=params['pooling_method'])
-    console.print(f"Document {int(doc.id):02}: Created {len(merged)} chains")
-    console.print(f"Document {int(doc.id):02}: Clustering chains...")
+    console.print(f"Document {doc.id:02}: Created {len(merged)} chains")
+    console.print(f"Document {doc.id:02}: Clustering chains...")
     labels, clusters = chain_clustering(merged, n_components=params['n_components'], min_dista=params['min_dista'])
     
+    path = os.path.join(index_name, "pickles", params['name'])
+    '''
     with open(os.path.join(index_name, "pickles", params['name'], f"{doc.id}.pkl"), "wb") as f:
         doc.session.client = None #Prepare for pickling
         pickle.dump(ProcessedDocument(doc, merged, labels, clusters), f)
+    '''
+    save_clusters(clusters, path)
 
 #=============================================================================================================
 
@@ -61,7 +67,7 @@ if __name__ == "__main__":
         elif args.i == "arxiv-index":
             docs_to_retrieve = list(range(10))
     else:
-        docs_to_retrieve = args.docs.split(",")
+        docs_to_retrieve = [int(x) for x in args.docs.split(",")]
 
     #-------------------------------------------------------------------------------------------
 
@@ -69,7 +75,7 @@ if __name__ == "__main__":
     console.print({'index_name': args.i, 'docs': docs_to_retrieve})
     print()
 
-    for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.name):
+    for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.name.split(','), strict_iterable=True):
         console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}'")
         console.print(THIS_NEXT_EXPERIMENT)
 

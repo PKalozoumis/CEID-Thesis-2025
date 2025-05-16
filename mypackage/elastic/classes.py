@@ -108,7 +108,7 @@ class Session():
 
     #----------------------------------------------------------------------------------------------
 
-    def cache_load(self, id: str) -> dict | None:
+    def cache_load(self, id: int) -> dict | None:
         if self.use in ["cache", "both"] and self.cache_dir:
             fname = os.path.join(self.cache_dir, f"{self.index_name.replace('-', '_')}_{id:04}.json")
             if os.path.isfile(fname):
@@ -130,14 +130,14 @@ class Document():
         text_path (str, optional): Path to the document's main body where the text is located. Only applicable when document is of type ```dict```
     '''
     doc: Any
-    id: str = field(default=None)
+    id: int = field(default=None)
     text_path: str = field(default=None)
 
     def __post_init__(self):
-        self.id = str(self.id)
+        self.id = int(self.id)
 
     @classmethod
-    def from_json(cls, path: str, id: str = None, text_path: str = None) -> 'Document':
+    def from_json(cls, path: str, id: int = None, text_path: str = None) -> 'Document':
         '''
         Create a Document from a JSON file
 
@@ -203,12 +203,12 @@ class ElasticDocument(Document):
     A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
     '''
     doc: str|dict
-    id: str
+    id: int
     text_path: str|None
     session: Session
     filter_path: str
 
-    def __init__(self, session: Session, id: str, *, filter_path: str = "_source", text_path: str | None = None):
+    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
         '''
         A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
 

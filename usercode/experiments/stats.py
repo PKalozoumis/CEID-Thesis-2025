@@ -11,10 +11,12 @@ sys.path.append(os.path.abspath("../.."))
 from collections import namedtuple
 from mypackage.elastic import Session, ElasticDocument
 from mypackage.helper import NpEncoder
+from mypackage.sentence.metrics import chain_metrics
 
 import numpy as np
 
-from helper import load_pickles, ProcessedDocument, experiment_wrapper
+from helper import experiment_wrapper
+from mypackage.storage import load_pickles, ProcessedDocument
 
 import pickle
 from rich.console import Console
@@ -44,19 +46,25 @@ if __name__ == "__main__":
         elif args.i == "arxiv-index":
             docs_to_retrieve = list(range(10))
     else:
-        docs_to_retrieve = args.docs.split(",")
+        docs_to_retrieve = [int(x) for x in args.docs.split(",")]
 
     #-------------------------------------------------------------------------------------------
     os.makedirs(os.path.join(args.i, "stats"), exist_ok=True)
+    sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
 
-    for experiment in experiment_wrapper(args.name):
+    for experiment in experiment_wrapper(args.name.split(','), True, strict_iterable=True):
+        if experiment is None:
+            break
+
         console.print(f"THIS NEXT EXPERIMENT:")
         console.print(experiment)
-        pkl = load_pickles(experiment['name'], docs_to_retrieve, args.i)
+        pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment['name']), docs_to_retrieve)
 
         out = []
 
         for i, p in enumerate(pkl):
+            print(type(p))
+            chain_metrics(p.chains)
             data = {'id':docs_to_retrieve[i], 'index': i}
 
             chain_lengths = [len(c) for c in p.chains]

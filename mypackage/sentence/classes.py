@@ -6,6 +6,7 @@ from mypackage.elastic import Document, ElasticDocument
 from functools import cached_property
 import json
 from itertools import chain
+from .helper import split_to_sentences
 
 #============================================================================================
 
@@ -82,15 +83,22 @@ class SentenceChain(SentenceLike):
     Represents a chain of one or more consecutive sentences that are very similar
     '''
     _vector: ndarray
-    sentences: list[SentenceLike]
+    sentences: list[Sentence]
+    pooling_method: str
+
+    EXEMPLAR_BASED_METHODS = []
 
     def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average"):
-        #Convert single sentence into a list with only one sentence
+        self.pooling_method = pooling_method
+
+        #Convert single sentence into a list with only one sentence (or chain)
+        #Don't worry, if it's a chain, we will extract its actual sentences below
         if isinstance(sentences, SentenceLike):
             sentences = [sentences]
             
         self._vector = SentenceChain.pooling(sentences, pooling_method)
 
+        #Extract sentences from 'sentences' argument
         if isinstance(sentences[0], Sentence):
             self.sentences = sentences
         elif isinstance(sentences[0], SentenceChain):
@@ -153,3 +161,23 @@ class SentenceChain(SentenceLike):
     @property
     def offset(self) -> int:
         return self.sentences[0].offset
+    
+    def data(self) -> dict:
+        return {
+            'vector': self.vector,
+            'offset': self.offset,
+            'pooling_method': self.pooling_method,
+            'sentences': [s.vector for s in self.sentences]
+        }
+    
+    @classmethod
+    def from_data(cls, data: dict, doc: Document) -> 'SentenceChain':
+        obj = cls.__new__(cls)
+        obj._vector = data['vector']
+        obj.pooling_method = data['pooling_method']
+
+        offset = data['offset']
+        text = split_to_sentences(doc.text)
+        obj.sentences = [Sentence(text[offset + i], vec, doc, offset + i) for i, vec in enumerate(data['sentences'])]
+
+        return obj

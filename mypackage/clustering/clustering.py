@@ -80,13 +80,13 @@ def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_di
         clustering = model.fit(reduced_matrix)
 
     clusters = group_chains_by_label(chains, clustering.labels_)
-    cluster_objects = {}
+    clustered_chains = {}
 
     #Create cluster objects
     for label, cluster in clusters.items():
-        cluster_objects[label] = ChainCluster(cluster, label)
+        clustered_chains[label] = ChainCluster(cluster, label)
 
-    return list(clustering.labels_), cluster_objects
+    return list(clustering.labels_), clustered_chains
 
 #===================================================================================================
 

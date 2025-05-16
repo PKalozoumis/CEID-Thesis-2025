@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from ..elastic import elasticsearch_client, ScrollingCorpus, Session, Document
 from itertools import pairwise, starmap
 from ..helper import panel_print, lock_kwargs
+from .helper import split_to_sentences
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
@@ -34,10 +35,7 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Se
     out: list[Sentence]
         A list of the document's sentences as ```Sentence``` objects
     '''
-    sentences = doc.text.split("\n")
-    if sentences[-1] == '':
-        sentences = sentences[:-1]
-
+    sentences = split_to_sentences(doc.text)
     embeddings = transformer.encode(sentences)
 
     result = []
@@ -194,9 +192,6 @@ def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_lim
         return result
 
 #============================================================================================
-
-def cosine_sim(vec1, vec2) -> float:
-    return np.dot(vec1, vec2)/(np.linalg.norm(vec1)*np.linalg.norm(vec2))
 
 def chaining(method: str):
 
