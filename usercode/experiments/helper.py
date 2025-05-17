@@ -6,11 +6,16 @@ import json
 PUBMED_DOCS = [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 6415]
 ARXIV_DOCS = list(range(10))
 
-def index_from_doc(index_name: str, doc_id) -> int:
-    if index_name == "pubmed-index":
-        return PUBMED_DOCS.index(doc_id)
-    elif index_name == "arxiv-index":
-        return ARXIV_DOCS.index(doc_id)
+#=============================================================================================================
+
+def document_index(index_name: str, doc_id, fallback: int = None) -> int:
+    try:
+        if index_name == "pubmed-index":
+            return PUBMED_DOCS.index(doc_id)
+        elif index_name == "arxiv-index":
+            return ARXIV_DOCS.index(doc_id)
+    except ValueError:
+        return fallback
 
 #=============================================================================================================
 

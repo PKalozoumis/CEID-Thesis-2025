@@ -1,15 +1,72 @@
 [
 	{
-		"id": 9,
-		"index": 0,
-		"num_chains": 217,
-		"avg_chain_length": 1.1658986175115207,
-		"min_chain_length": 1,
-		"max_chain_length": 8,
-		"num_sentences": 253,
-		"num_words": 8537,
-		"avg_sentence_length": 33.74308300395257,
-		"min_sentence_length": 3,
-		"max_sentence_length": 231
+		"id": [
+			"1"
+		],
+		"index": [
+			"0"
+		],
+		"num_chains": [
+			"176"
+		],
+		"avg_chain_length": [
+			"1.420"
+		],
+		"min_chain_length": [
+			"1"
+		],
+		"max_chain_length": [
+			"19"
+		],
+		"num_sentences": [
+			"250"
+		],
+		"num_words": [
+			"6526"
+		],
+		"avg_sentence_length": [
+			"26.104"
+		],
+		"min_sentence_length": [
+			"3"
+		],
+		"max_sentence_length": [
+			"107"
+		]
+	},
+	{
+		"id": [
+			"2"
+		],
+		"index": [
+			"1"
+		],
+		"num_chains": [
+			"73"
+		],
+		"avg_chain_length": [
+			"1.301"
+		],
+		"min_chain_length": [
+			"1"
+		],
+		"max_chain_length": [
+			"5"
+		],
+		"num_sentences": [
+			"95"
+		],
+		"num_words": [
+			"2483"
+		],
+		"avg_sentence_length": [
+			"26.137"
+		],
+		"min_sentence_length": [
+			"6"
+		],
+		"max_sentence_length": [
+			"158"
+		]
 	}
 ]

@@ -92,18 +92,26 @@ class NpEncoder(json.JSONEncoder):
 #===================================================================================
 
 def create_table(column_names: list[str], data: dict, *, title:str|None =None, round=True) -> Table:
-    console = Console()
-    table = Table(title=title, title_justify="left")
+    table = Table(title=title, title_justify="left", header_style="")
 
     if round:
         for key in data:
-            if isinstance(data[key], (float, np.double, np.float32, np.float64)):
-                data[key] = np.round(data[key], decimals=3)
+            if not isinstance(data[key], list):
+                data[key] = [data[key]]
 
-    for name in column_names:
-        table.add_column(name)
+            for i in range(len(data[key])):
+                if isinstance(data[key][i], (float, np.double, np.float32, np.float64)):
+                    data[key][i] = f"{np.round(data[key][i], decimals=3):.3f}"
+                else:
+                    data[key][i] = f"{data[key][i]}"
 
-    for name, value in data.items():
-        table.add_row(name, f"{value:.3f}" if isinstance(value, (float, np.double, np.float32, np.float64)) else f"{value}")
+    for i, name in enumerate(column_names):
+        if i == 0:
+            table.add_column(name, style="")
+        else:
+            table.add_column(name)
+
+    for name, value_list in data.items():
+        table.add_row(name, *value_list)
 
     return table

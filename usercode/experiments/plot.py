@@ -24,7 +24,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.axes import Axes
 
 import numpy as np
-from helper import load_experiments, experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, index_from_doc
+from helper import load_experiments, experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, document_index
 from mypackage.storage import load_pickles
 import math
 
@@ -100,7 +100,7 @@ def compare(experiment_names: str|list[str], imgpath, docs: list[int], sess: Ses
             ax.set_title(exp_params['title'] + score)
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
-        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{index_from_doc(sess.index_name, doc):02}_{doc}.png"))
+        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{document_index(sess.index_name, doc):02}_{doc}.png"))
         plt.close(fig)
 
 #=============================================================================================================

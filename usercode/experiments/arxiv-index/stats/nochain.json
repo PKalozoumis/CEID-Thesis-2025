@@ -1,15 +1,37 @@
 [
 	{
-		"id": 9,
-		"index": 0,
-		"num_chains": 253,
-		"avg_chain_length": 1.0,
-		"min_chain_length": 1,
-		"max_chain_length": 1,
-		"num_sentences": 253,
-		"num_words": 8537,
-		"avg_sentence_length": 33.74308300395257,
-		"min_sentence_length": 3,
-		"max_sentence_length": 231
+		"id": [
+			"2"
+		],
+		"index": [
+			"0"
+		],
+		"num_chains": [
+			"90"
+		],
+		"avg_chain_length": [
+			"1.000"
+		],
+		"min_chain_length": [
+			"1"
+		],
+		"max_chain_length": [
+			"1"
+		],
+		"num_sentences": [
+			"90"
+		],
+		"num_words": [
+			"2133"
+		],
+		"avg_sentence_length": [
+			"23.700"
+		],
+		"min_sentence_length": [
+			"6"
+		],
+		"max_sentence_length": [
+			"83"
+		]
 	}
 ]

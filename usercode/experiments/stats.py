@@ -17,7 +17,7 @@ from mypackage.clustering.metrics import clustering_metrics
 
 import numpy as np
 
-from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS
+from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, document_index
 from mypackage.storage import load_pickles, ProcessedDocument
 
 import pickle
@@ -70,9 +70,9 @@ if __name__ == "__main__":
         "arxiv"
     ]),
     parser.add_argument("mode", nargs="?", action="store", type=str, help="The type of plot to make", choices=[
-        "single", #Run each experiment on the list on its own
-        "compare"  #Compare the experiments side by side
-    ], default="single")
+        "doc", #Compare documents for each separate experiment
+        "exp"  #Compare experiments for each separate document
+    ], default="doc")
     args = parser.parse_args()
 
     args.i += "-index"
@@ -91,44 +91,64 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(args.i, "stats"), exist_ok=True)
     sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
 
-    if args.mode == "single":
+    if args.mode == "doc":
+
+        #We iterate over all the experiments
+        #For each experiment, we want to see how all documents behave
+        #Only then do we move on the next experiment
         for experiment in experiment_wrapper(args.x.split(','), must_exist=True, strict_iterable=True):
+            chain_rows = defaultdict(list)
+            cluster_rows = defaultdict(list)
+            stat_rows = defaultdict(list)
+            column_names = [] #The experiment names
+
             rich_group_items = []
             rich_group_items.append(Pretty(experiment))
 
             pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment['name']), docs_to_retrieve)
             out = []
 
+            rich_group_items.append(Padding(Rule(style="green"), (1,0)))
+
+            #Iterate over the documents
             for i, p in enumerate(pkl):
-                rich_group_items.append(Padding(Rule(f"{i:02}: Document {p.doc.id:04}", style="green"), (1,0)))
 
-                #Chaining metrics
-                rich_group_items.append(Padding(chain_metrics(p.chains, return_renderable=True)[1], (0,0,1,0)))
+                #Add new column (for new experiment) to the table data
+                #-----------------------------------------------------------------------
+                column_names.append(f"{p.doc.id:04}")
 
-                #Clustering metrics
-                rich_group_items.append(Padding(clustering_metrics(p.chains, p.labels, return_renderable=True)[1], (0,0,1,0)))
+                for temp in chain_metrics(p.chains).values():
+                    chain_rows[temp['name']].append(temp['value'])
 
-                #Stats
-                data = {'id':docs_to_retrieve[i], 'index': i} | stats(p.chains)
-                rich_group_items.append(Padding(create_table(['Statistic', 'Value'], data, title="Stats"), (0,0,1,0)))
-                out.append(data)
+                for temp in clustering_metrics(p.chains, p.labels).values():
+                    cluster_rows[temp['name']].append(temp['value'])
 
+                for k,v in ({'id':p.doc.id, 'index': i} | stats(p.chains)).items():
+                    stat_rows[k].append(v)
+
+            '''
             #Write to file
             with open(os.path.join(args.i, "stats", f"{experiment['name']}.json"), "w") as f:
                 json.dump(out, f, cls=NpEncoder, indent="\t")
+            '''
+            #Create tables
+            #-----------------------------------------------------------------------
+            rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
+            rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
+            rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
 
             console.print(Padding(Panel(Group(*rich_group_items), title=f"THIS NEXT EXPERIMENT: {experiment['name']}", border_style="green", highlight=True), (0,0,10,0)))
 
 
     #==========================================================================================================================
 
-    elif args.mode == "compare":
+    elif args.mode == "exp":
         experiments = experiment_wrapper(args.x.split(','))
 
-        if len(experiments) < 2:
-            raise Exception("I SEE, YOU INTEND FOR NO CORRELATION")
+        #if len(experiments) < 2:
+            #raise Exception("I SEE, YOU INTEND FOR NO CORRELATION")
         
-        if len(experiments) > 2:
+        if len(experiments) > 12:
             raise Exception("IT SPILLS BEYOND THE BRINK OF THE DEVICE")
         
         #We iterate over all the documents
@@ -139,7 +159,7 @@ if __name__ == "__main__":
             chain_rows = defaultdict(list)
             cluster_rows = defaultdict(list)
             stat_rows = defaultdict(list)
-            column_names = []
+            column_names = [] #The experiment names
 
             #Iterate over the experiments
             for xp_num, xp in enumerate(experiments):
@@ -161,15 +181,12 @@ if __name__ == "__main__":
                 for k,v in ({'id':doc, 'index': i} | stats(pkl.chains)).items():
                     stat_rows[k].append(v)
 
-                #-----------------------------------------------------------------------
+            #Create tables
+            #-----------------------------------------------------------------------
+            rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
+            rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
+            rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
 
-                rich_group_items.append(Padding(create_table(['Metric', 'Value'], data, title="Stats"), (0,0,1,0)))
-                rich_group_items.append(Padding(create_table(['Metric', 'Value'], data, title="Stats"), (0,0,1,0)))
-                rich_group_items.append(Padding(create_table(['Statistic', 'Value'], data, title="Stats"), (0,0,1,0)))
-
-                cols.append(Group(*rich_group_items))
-
-        console.print(Columns(cols))
-
+            console.print(Padding(Panel(Group(*rich_group_items), title=f"{document_index(args.i, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
 
 

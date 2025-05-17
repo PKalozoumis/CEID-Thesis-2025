@@ -7,16 +7,16 @@
 			"0"
 		],
 		"num_chains": [
-			"62"
+			"68"
 		],
 		"avg_chain_length": [
-			"1.452"
+			"1.324"
 		],
 		"min_chain_length": [
 			"1"
 		],
 		"max_chain_length": [
-			"10"
+			"5"
 		],
 		"num_sentences": [
 			"90"
