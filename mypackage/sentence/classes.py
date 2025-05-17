@@ -76,6 +76,10 @@ class Sentence(SentenceLike):
     def text(self):
         return self._text
     
+    #For wherever a numpy array is required as input
+    def __array__(self, dtype=None):
+        return self._vector
+    
 #============================================================================================
     
 class SentenceChain(SentenceLike):
@@ -132,6 +136,7 @@ class SentenceChain(SentenceLike):
     def __len__(self) -> int:
         return len(self.sentences)
     
+    #For wherever a numpy array is required as input
     def __array__(self, dtype=None):
         return self._vector
     

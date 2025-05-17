@@ -5,6 +5,7 @@ import sys
 from itertools import pairwise
 from rich.console import Console
 from rich.table import Table
+from ..helper import create_table
 
 import numpy
 #numpy.set_printoptions(threshold=sys.maxsize)
@@ -120,11 +121,10 @@ def avg_neighbor_chain_distance(chains: list[SentenceChain]):
 def avg_chain_length(chains: list[SentenceChain]):
     return np.average(np.array([len(c) for c in chains]))
 
-
-
 #================================================================================================
 
-def chain_metrics(chains: list[SentenceChain]):
+def chain_metrics(chains: list[SentenceChain], *, render=False, return_renderable=False) -> dict | tuple[dict, Table]:
+    
     console = Console()
     table = Table()
 
@@ -133,15 +133,26 @@ def chain_metrics(chains: list[SentenceChain]):
 
     chain_centroid_similarity(chains[0])
 
-    table.add_row("Average Within-Chain Similarity", str(np.round(avg_within_chain_similarity(chains), decimals=3)))
-    table.add_row("Average Within-Chain Similarity (len >= 2)", f"{np.round(avg_within_chain_similarity(chains, min_size=2), decimals=3):.3f}")
-    table.add_row("Average Within-Chain Similarity (len >= 3)", f"{np.round(avg_within_chain_similarity(chains, min_size=3), decimals=3):.3f}")
-    table.add_row("Average Within-Chain Similarity (len >= 4)", f"{np.round(avg_within_chain_similarity(chains, min_size=4), decimals=3):.3f}")
-    table.add_row("Average Within-Chain Similarity (len >= 5)", f"{np.round(avg_within_chain_similarity(chains, min_size=5), decimals=3):.3f}")
-    table.add_row("Average Within-Chain Similarity (len >= 6)", f"{np.round(avg_within_chain_similarity(chains, min_size=6), decimals=3):.3f}")
-    table.add_row("Average Within-Chain Similarity (len = 4)", f"{np.round(avg_within_chain_similarity(chains, min_size=4, max_size=4), decimals=3):.3f}")
-    table.add_row("Average Neighbor Chain Distance", f"{np.round(avg_neighbor_chain_distance(chains), decimals=3):.3f}")
-    table.add_row("Average Chain Length", f"{np.round(avg_chain_length(chains), decimals=3):.3f}")
-    table.add_row("Global Minimum Within-Chain Similarity", f"{np.round(np.min(np.array([min_within_chain_similarity(c) for c in chains]))):.3f}")
+    metrics = {
+        'avg_sim': {'name': "Average Within-Chain Similarity", 'value': avg_within_chain_similarity(chains)},
+        'avg_sim_2': {'name': "Average Within-Chain Similarity (len >= 2)", 'value': avg_within_chain_similarity(chains, min_size=2)},
+        'avg_sim_3': {'name': "Average Within-Chain Similarity (len >= 3)", 'value': avg_within_chain_similarity(chains, min_size=3)},
+        'avg_sim_4': {'name': "Average Within-Chain Similarity (len >= 4)", 'value': avg_within_chain_similarity(chains, min_size=4)},
+        'avg_sim_5': {'name': "Average Within-Chain Similarity (len >= 5)", 'value': avg_within_chain_similarity(chains, min_size=5)},
+        'avg_sim_6': {'name': "Average Within-Chain Similarity (len >= 6)", 'value': avg_within_chain_similarity(chains, min_size=6)},
+        'avg_sim_eq4': {'name': "Average Within-Chain Similarity (len = 4)", 'value': avg_within_chain_similarity(chains, min_size=4, max_size=4)},
+        'avg_dist': {'name': "Average Neighbor Chain Distance", 'value': avg_neighbor_chain_distance(chains)},
+        'avg_len': {'name': "Average Chain Length", 'value': avg_chain_length(chains)},
+        'min_sim': {'name': "Global Minimum Within-Chain Similarity", 'value': np.min(np.array([min_within_chain_similarity(c) for c in chains]))}
+    }
 
-    console.print(table)
+    console = Console()
+    table = create_table(['Metric', 'Score'], {temp['name']:temp['value'] for temp in metrics.values()}, title="Chaining Metrics")
+
+    if render:
+        console.print(table)
+
+    if return_renderable:
+        return metrics, table 
+    
+    return metrics

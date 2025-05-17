@@ -1,0 +1,15 @@
+[
+	{
+		"id": 6415,
+		"index": 0,
+		"num_chains": 165,
+		"avg_chain_length": 1.5333333333333334,
+		"min_chain_length": 1,
+		"max_chain_length": 9,
+		"num_sentences": 253,
+		"num_words": 9627,
+		"avg_sentence_length": 38.051383399209485,
+		"min_sentence_length": 17,
+		"max_sentence_length": 108
+	}
+]

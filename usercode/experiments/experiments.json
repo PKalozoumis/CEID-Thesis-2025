@@ -6,7 +6,8 @@
         "round_limit": null,
         "pooling_method": "average",
         "n_components": 25,
-        "min_dista": 0.1
+        "min_dista": 0.1,
+        "remove_duplicates": false
     },
     "buggy": {
         "title": "Old (broken) version",
@@ -28,12 +29,8 @@
         "title": "Threshold 0.7",
         "threshold": 0.7
     },
-    "dista": {
-        "title": "Dista 0.05",
-        "min_dista": 0.05
-    },
-    "dista1": {
-        "title": "Dista 0.01",
-        "min_dista": 0.01
+    "dedup": {
+        "title": "No duplicates",
+        "remove_duplicates": true
     }
 }

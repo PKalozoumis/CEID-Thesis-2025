@@ -10,12 +10,14 @@ from sentence_transformers import SentenceTransformer
 from mypackage.elastic import ElasticDocument, Session
 from mypackage.sentence import doc_to_sentences, iterative_merge, buggy_merge
 from mypackage.clustering import visualize_clustering
+from mypackage.clustering.metrics import clustering_metrics, VALID_METRICS
 from mypackage.storage import load_pickles
 import pickle
 from collections import namedtuple
 from multiprocessing import Process, set_start_method
 import argparse
 import json
+import shutil
 
 from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
@@ -63,7 +65,7 @@ def full(pkl, imgpath, experiment, sess: Session):
 
 #=============================================================================================================
 
-def compare(experiment_names: str|list[str], imgpath, docs: list[int], sess: Session):
+def compare(experiment_names: str|list[str], imgpath, docs: list[int], sess: Session, *, metric: str = None):
 
     for i, doc in enumerate(docs):
         experiment_list = experiment_wrapper(experiment_names)
@@ -94,7 +96,8 @@ def compare(experiment_names: str|list[str], imgpath, docs: list[int], sess: Ses
             visualize_clustering(pkl.chains, pkl.labels, ax=ax, return_legend=True, min_dista=exp_params['min_dista'])
 
             #Load experiment to get its title
-            ax.set_title(exp_params['title'])
+            score = f" ({clustering_metrics(pkl.chains, pkl.labels, print=False)[metric]['value']:.3f})" if metric is not None else ""
+            ax.set_title(exp_params['title'] + score)
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
         fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{index_from_doc(sess.index_name, doc):02}_{doc}.png"))
@@ -114,6 +117,7 @@ if __name__ == "__main__":
         "full",
         "compare"
     ], default="full")
+    parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=VALID_METRICS)
 
     args = parser.parse_args()
 
@@ -135,24 +139,29 @@ if __name__ == "__main__":
     print()
 
     imgpath = os.path.join(args.i, "images", args.p)
+    
+    if os.path.exists(imgpath):
+        shutil.rmtree(imgpath)
+    
     os.makedirs(imgpath, exist_ok=True)
-
     #---------------------------------------------------------------------------
     sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
 
     if args.p == 'full':
         if args.x is None:
             args.x = "default"
-        
-        console.print(f"Plotting experiment '{args.x}'")
-        pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", args.x), docs_to_retrieve)
-        
-        full(pkl, imgpath, args.x, sess)
+
+        for experiment_name in args.x.split(","):
+            console.print(f"Plotting experiment '{experiment_name}'")
+            pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)
+            
+            full(pkl, imgpath, experiment_name, sess)
+            print()
 
     elif args.p == 'compare':
         if args.x is None:
             args.x = "all"
              
-        compare(args.x.split(","), imgpath, docs_to_retrieve, sess)
+        compare(args.x.split(","), imgpath, docs_to_retrieve, sess, metric=args.metric)
 
         

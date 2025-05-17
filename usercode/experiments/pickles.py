@@ -32,7 +32,7 @@ console = Console()
 
 def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_name: str):
     console.print(f"Document {doc.id:02}: Creating sentences...")
-    sentences = doc_to_sentences(doc, model)
+    sentences = doc_to_sentences(doc, model, remove_duplicates=params['remove_duplicates'])
     console.print(f"Document {doc.id:02}: Creating chains...")
     merged = chaining(params['chaining_method'])(sentences, threshold=params['threshold'], round_limit=params['round_limit'], pooling_method=params['pooling_method'])
     console.print(f"Document {doc.id:02}: Created {len(merged)} chains")

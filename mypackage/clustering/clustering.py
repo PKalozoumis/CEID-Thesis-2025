@@ -1,4 +1,5 @@
-from sklearn.cluster._hdbscan.hdbscan import HDBSCAN
+#from sklearn.cluster._hdbscan.hdbscan import HDBSCAN
+from hdbscan import HDBSCAN
 from ..sentence import SentenceChain
 from .classes import ChainCluster
 import numpy as np
@@ -10,6 +11,8 @@ import warnings
 from matplotlib.patches import Patch
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+
+from sklearn.metrics.pairwise import cosine_distances
 
 #===================================================================================================
 
@@ -76,7 +79,10 @@ def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_di
             reduced_matrix = matrix
 
         #Cluster
-        model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="cosine")
+        #model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="cosine")
+        reduced_matrix = cosine_distances(reduced_matrix).astype(np.float64)
+        model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="precomputed")
+
         clustering = model.fit(reduced_matrix)
 
     clusters = group_chains_by_label(chains, clustering.labels_)

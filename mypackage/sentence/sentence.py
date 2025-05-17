@@ -19,7 +19,7 @@ console = Console()
 
 #============================================================================================
 
-def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Sentence]:
+def doc_to_sentences(doc: Document, transformer: SentenceTransformer, remove_duplicates = False) -> list[Sentence]:
     '''
     Breaks down a document into sentences. For the entire set of sentences, the embeddings are calculated
 
@@ -29,6 +29,8 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Se
         The document to extract sentences from
     transformer: SentenceTransformer
         The model that will generate the embeddings
+    remove_duplicates: bool
+        Removes sentences that are 
 
     Returns
     ---
@@ -36,10 +38,32 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer) -> list[Se
         A list of the document's sentences as ```Sentence``` objects
     '''
     sentences = split_to_sentences(doc.text)
-    embeddings = transformer.encode(sentences)
+
+    if remove_duplicates:
+        #Deduplicate sentences
+        #Some documents accidentally have the same sentences multiple times BECAUSE THE CREATORS ARE CLOWNS 😬😬😬
+        #Goofy ahh dataset bro istg
+
+        #Btw, ideally this should happen during indexing, but I've already cached these docs...
+
+        seen_sentences = set()
+        deduplicated = []
+
+        for sentence in sentences:
+            if len(sentence.split()) > 7:
+                if sentence in seen_sentences:
+                    #console.print(f"{doc.id}: {sentence}")
+                    pass
+                else:
+                    deduplicated.append(sentence)
+                    seen_sentences.add(sentence)
+    else:
+        deduplicated = sentences
+
+    embeddings = transformer.encode(deduplicated)
 
     result = []
-    for offset, (sentence, embedding) in enumerate(zip(sentences, embeddings)):
+    for offset, (sentence, embedding) in enumerate(zip(deduplicated, embeddings)):
         result.append(Sentence(sentence, embedding, doc, offset))
 
     return result

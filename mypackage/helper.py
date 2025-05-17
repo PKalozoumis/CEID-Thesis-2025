@@ -1,5 +1,6 @@
 from rich.panel import Panel
 from rich.console import Console
+from rich.table import Table
 import sys
 from itertools import islice
 from functools import wraps
@@ -87,3 +88,22 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(NpEncoder, self).default(obj)
+
+#===================================================================================
+
+def create_table(column_names: list[str], data: dict, *, title:str|None =None, round=True) -> Table:
+    console = Console()
+    table = Table(title=title, title_justify="left")
+
+    if round:
+        for key in data:
+            if isinstance(data[key], (float, np.double, np.float32, np.float64)):
+                data[key] = np.round(data[key], decimals=3)
+
+    for name in column_names:
+        table.add_column(name)
+
+    for name, value in data.items():
+        table.add_row(name, f"{value:.3f}" if isinstance(value, (float, np.double, np.float32, np.float64)) else f"{value}")
+
+    return table
