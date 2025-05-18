@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath("../.."))
 
 from collections import namedtuple
 from mypackage.elastic import Session, ElasticDocument
-from mypackage.helper import NpEncoder, create_table, write_to_excel_tab
+from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION
 from mypackage.sentence.metrics import chain_metrics
 from mypackage.clustering.metrics import clustering_metrics
 
@@ -42,7 +42,7 @@ console = Console()
 
 #=================================================================================================================
 
-def stats(chains):
+def stats(chains, clusters):
     chain_lengths = [len(c) for c in chains]
 
     data = {}
@@ -59,6 +59,8 @@ def stats(chains):
     data['min_sentence_length'] = np.min(sentence_lengths)
     data['max_sentence_length'] = np.max(sentence_lengths)
 
+    data['num_clusters'] = len(clusters) - 1 #Removing outlier cluster
+
     return data
 
 #=================================================================================================================
@@ -69,7 +71,8 @@ if __name__ == "__main__":
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
         "pubmed",
-        "arxiv"
+        "arxiv",
+        "both"
     ]),
     parser.add_argument("mode", nargs="?", action="store", type=str, help="The type of plot to make", choices=[
         "doc", #Compare documents for each separate experiment
@@ -77,155 +80,164 @@ if __name__ == "__main__":
     ], default="doc")
     args = parser.parse_args()
 
-    args.i += "-index"
-
-    #-------------------------------------------------------------------------------------------
-
-    if not args.d:
-        if args.i == "pubmed-index":
-            docs_to_retrieve = PUBMED_DOCS
-        elif args.i == "arxiv-index":
-            docs_to_retrieve = ARXIV_DOCS
+    if args.i == "both":
+        indexes = ["pubmed-index", "arxiv-index"]
+        if args.d is not None:
+            raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN BOTH, IT INVITES FRACTURE.")
     else:
-        docs_to_retrieve = [int(x) for x in args.d.split(",")]
+        indexes = [args.i + "-index"]
 
     #-------------------------------------------------------------------------------------------
-    os.makedirs(os.path.join(args.i, "stats"), exist_ok=True)
-    sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
 
-    if args.mode == "doc":
-        workbook = xlsxwriter.Workbook("documents.xlsx")
-        name_fmt = workbook.add_format({'bg_color': '#eeeeee', 'bold': True, 'border': 1})
-        border_fmt = workbook.add_format({'border': 1})
-        title_fmt = workbook.add_format({'border': 1, 'bg_color': '#eeeeee', 'bold': True, 'align': 'center', 'valign': 'vcenter'})
+    for index in indexes:
+        console.print(f"\nRunning for index '{index}'")
+        console.print(Rule())
 
-        #We iterate over all the experiments
-        #For each experiment, we want to see how all documents behave
-        #Only then do we move on the next experiment
-        for experiment in experiment_wrapper(args.x.split(','), must_exist=True, strict_iterable=True):
-            chain_rows = defaultdict(list)
-            cluster_rows = defaultdict(list)
-            stat_rows = defaultdict(list)
-            column_names = [] #The experiment names
+        if not args.d:
+            if index == "pubmed-index":
+                docs_to_retrieve = PUBMED_DOCS
+            elif index == "arxiv-index":
+                docs_to_retrieve = ARXIV_DOCS
+        else:
+            docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
-            rich_group_items = []
-            rich_group_items.append(Pretty(experiment))
+        #-------------------------------------------------------------------------------------------
+        os.makedirs(os.path.join(index, "stats"), exist_ok=True)
+        sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
 
-            pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment['name']), docs_to_retrieve)
-            out = []
+        if args.mode == "doc":
+            workbook = xlsxwriter.Workbook("documents.xlsx")
+            name_fmt = workbook.add_format({'bg_color': '#eeeeee', 'bold': True, 'border': 1})
+            border_fmt = workbook.add_format({'border': 1})
+            title_fmt = workbook.add_format({'border': 1, 'bg_color': '#eeeeee', 'bold': True, 'align': 'center', 'valign': 'vcenter'})
 
-            rich_group_items.append(Padding(Rule(style="green"), (1,0)))
+            #We iterate over all the experiments
+            #For each experiment, we want to see how all documents behave
+            #Only then do we move on the next experiment
+            for experiment in experiment_wrapper(args.x.split(','), must_exist=True, strict_iterable=True):
+                chain_rows = defaultdict(list)
+                cluster_rows = defaultdict(list)
+                stat_rows = defaultdict(list)
+                column_names = [] #The experiment names
 
-            #Iterate over the documents
-            for i, p in enumerate(pkl):
-
-                #Add new column (for new experiment) to the table data
-                #-----------------------------------------------------------------------
-                column_names.append(f"{p.doc.id:04}")
-
-                for temp in chain_metrics(p.chains).values():
-                    chain_rows[temp['name']].append(temp['value'])
-
-                for temp in clustering_metrics(p.chains, p.labels).values():
-                    cluster_rows[temp['name']].append(temp['value'])
-
-                for k,v in ({'id':p.doc.id, 'index': i} | stats(p.chains)).items():
-                    stat_rows[k].append(v)
-
-            #Write to excel file
-            #-----------------------------------------------------------------------
-            #Creates new tab
-            worksheet = workbook.add_worksheet(experiment['name'])
-
-            #Populate the tab with data
-            table_offset = 0
-            first_col_width = 0
-            write_in_rows = True
-
-            for title, dataset in [("Chain Metrics", chain_rows), ("Clustering Metrics", cluster_rows), ("Stats", stat_rows)]:
-                if write_in_rows:
-                    table_offset, first_col_width = write_to_excel_tab(worksheet, title, dataset, column_names, row_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt, first_width=first_col_width)
-                else:
-                    table_offset = write_to_excel_tab(worksheet, title, dataset, column_names, column_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt)
-            
-            #Create tables
-            #-----------------------------------------------------------------------
-            rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
-            rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
-            rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
-
-            console.print(Padding(Panel(Group(*rich_group_items), title=f"THIS NEXT EXPERIMENT: {experiment['name']}", border_style="green", highlight=True), (0,0,10,0)))
-
-        workbook.close()
-
-    #==========================================================================================================================
-
-    elif args.mode == "exp":
-        experiments = experiment_wrapper(args.x.split(','))
-
-        #if len(experiments) < 2:
-            #raise Exception("I SEE, YOU INTEND FOR NO CORRELATION")
-        
-        if len(experiments) > 12:
-            raise Exception("IT SPILLS BEYOND THE BRINK OF THE DEVICE")
-        
-        workbook = xlsxwriter.Workbook("experiments.xlsx")
-        name_fmt = workbook.add_format({'bg_color': '#eeeeee', 'bold': True, 'border': 1})
-        border_fmt = workbook.add_format({'border': 1})
-        title_fmt = workbook.add_format({'border': 1, 'bg_color': '#eeeeee', 'bold': True, 'align': 'center', 'valign': 'vcenter'})
-        
-        #We iterate over all the documents
-        #For each doc, we want to run and compare the selected experiments
-        #Only then do we move on to the next document
-        for i, doc in enumerate(docs_to_retrieve):
-
-            chain_rows = defaultdict(list)
-            cluster_rows = defaultdict(list)
-            stat_rows = defaultdict(list)
-            column_names = [] #The experiment names
-
-            #Iterate over the experiments
-            for xp_num, xp in enumerate(experiments):
                 rich_group_items = []
+                rich_group_items.append(Pretty(experiment))
 
-                #Open only one experiment
-                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", xp['name']), doc)
+                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment['name']), docs_to_retrieve)
+                out = []
 
-                #Add new column (for new experiment) to the table data
+                rich_group_items.append(Padding(Rule(style="green"), (1,0)))
+
+                #Iterate over the documents
+                for i, p in enumerate(pkl):
+
+                    #Add new column (for new experiment) to the table data
+                    #-----------------------------------------------------------------------
+                    column_names.append(f"{p.doc.id:04}")
+
+                    for temp in chain_metrics(p.chains).values():
+                        chain_rows[temp['name']].append(temp['value'])
+
+                    for temp in clustering_metrics(p.chains, p.labels).values():
+                        cluster_rows[temp['name']].append(temp['value'])
+
+                    for k,v in ({'id':p.doc.id, 'index': i} | stats(p.chains, p.clusters)).items():
+                        stat_rows[k].append(v)
+
+                #Write to excel file
                 #-----------------------------------------------------------------------
-                column_names.append(xp['name'])
+                #Creates new tab
+                worksheet = workbook.add_worksheet(experiment['name'])
 
-                for temp in chain_metrics(pkl.chains).values():
-                    chain_rows[temp['name']].append(temp['value'])
+                #Populate the tab with data
+                table_offset = 0
+                first_col_width = 0
+                write_in_rows = True
 
-                for temp in clustering_metrics(pkl.chains, pkl.labels).values():
-                    cluster_rows[temp['name']].append(temp['value'])
+                for title, dataset in [("Chain Metrics", chain_rows), ("Clustering Metrics", cluster_rows), ("Stats", stat_rows)]:
+                    if write_in_rows:
+                        table_offset, first_col_width = write_to_excel_tab(worksheet, title, dataset, column_names, row_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt, first_width=first_col_width)
+                    else:
+                        table_offset = write_to_excel_tab(worksheet, title, dataset, column_names, column_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt)
+                
+                #Create tables
+                #-----------------------------------------------------------------------
+                rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
+                rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
+                rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
 
-                for k,v in ({'id':doc, 'index': i} | stats(pkl.chains)).items():
-                    stat_rows[k].append(v)
+                console.print(Padding(Panel(Group(*rich_group_items), title=f"Experiment: {experiment['name']}\tIndex: {index}", border_style="green", highlight=True), (0,0,10,0)))
 
-            #Write to excel file
-            #-----------------------------------------------------------------------
-            #Creates new tab
-            worksheet = workbook.add_worksheet(f"{document_index(args.i, doc, i):02}. Doc {doc:04}")
+            workbook.close()
 
-            #Populate the tab with data
-            table_offset = 0
-            first_col_width = 0
-            write_in_rows = False
+        #==========================================================================================================================
 
-            for title, dataset in [("Chain Metrics", chain_rows), ("Clustering Metrics", cluster_rows), ("Stats", stat_rows)]:
-                if write_in_rows:
-                    table_offset, first_col_width = write_to_excel_tab(worksheet, title, dataset, column_names, row_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt, first_width=first_col_width)
-                else:
-                    table_offset = write_to_excel_tab(worksheet, title, dataset, column_names, column_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt)
+        elif args.mode == "exp":
+            experiments = experiment_wrapper(args.x.split(','))
+
+            #if len(experiments) < 2:
+                #raise Exception("I SEE, YOU INTEND FOR NO CORRELATION")
             
-            #Create tables
-            #-----------------------------------------------------------------------
-            rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
-            rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
-            rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
+            if len(experiments) > 12:
+                raise DEVICE_EXCEPTION("IT SPILLS BEYOND THE BRINK OF THE DEVICE")
+            
+            workbook = xlsxwriter.Workbook("experiments.xlsx")
+            name_fmt = workbook.add_format({'bg_color': '#eeeeee', 'bold': True, 'border': 1})
+            border_fmt = workbook.add_format({'border': 1})
+            title_fmt = workbook.add_format({'border': 1, 'bg_color': '#eeeeee', 'bold': True, 'align': 'center', 'valign': 'vcenter'})
+            
+            #We iterate over all the documents
+            #For each doc, we want to run and compare the selected experiments
+            #Only then do we move on to the next document
+            for i, doc in enumerate(docs_to_retrieve):
 
-            console.print(Padding(Panel(Group(*rich_group_items), title=f"{document_index(args.i, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
+                chain_rows = defaultdict(list)
+                cluster_rows = defaultdict(list)
+                stat_rows = defaultdict(list)
+                column_names = [] #The experiment names
 
-        workbook.close()
+                #Iterate over the experiments
+                for xp_num, xp in enumerate(experiments):
+                    rich_group_items = []
+
+                    #Open only one experiment
+                    pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", xp['name']), doc)
+
+                    #Add new column (for new experiment) to the table data
+                    #-----------------------------------------------------------------------
+                    column_names.append(xp['name'])
+
+                    for temp in chain_metrics(pkl.chains).values():
+                        chain_rows[temp['name']].append(temp['value'])
+
+                    for temp in clustering_metrics(pkl.chains, pkl.labels).values():
+                        cluster_rows[temp['name']].append(temp['value'])
+
+                    for k,v in ({'id':doc, 'index': i} | stats(pkl.chains, pkl.clusters)).items():
+                        stat_rows[k].append(v)
+
+                #Write to excel file
+                #-----------------------------------------------------------------------
+                #Creates new tab
+                worksheet = workbook.add_worksheet(f"{document_index(index, doc, i):02}. Doc {doc:04}")
+
+                #Populate the tab with data
+                table_offset = 0
+                first_col_width = 0
+                write_in_rows = False
+
+                for title, dataset in [("Chain Metrics", chain_rows), ("Clustering Metrics", cluster_rows), ("Stats", stat_rows)]:
+                    if write_in_rows:
+                        table_offset, first_col_width = write_to_excel_tab(worksheet, title, dataset, column_names, row_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt, first_width=first_col_width)
+                    else:
+                        table_offset = write_to_excel_tab(worksheet, title, dataset, column_names, column_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt)
+                
+                #Create tables
+                #-----------------------------------------------------------------------
+                rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
+                rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
+                rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
+
+                console.print(Padding(Panel(Group(*rich_group_items), title=f"{document_index(index, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
+
+            workbook.close()

@@ -11,6 +11,7 @@ from mypackage.elastic import ElasticDocument, Session
 from mypackage.clustering import visualize_clustering
 from mypackage.clustering.metrics import clustering_metrics, VALID_METRICS
 from mypackage.storage import load_pickles
+from mypackage.helper import DEVICE_EXCEPTION
 import pickle
 from collections import namedtuple
 from multiprocessing import Process, set_start_method
@@ -23,9 +24,11 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.axes import Axes
 
 import numpy as np
-from helper import load_experiments, experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, document_index
+from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, document_index
 from mypackage.storage import load_pickles
 import math
+
+from rich.rule import Rule
 
 #set_start_method('spawn', force=True)
 console = Console()
@@ -109,7 +112,8 @@ if __name__ == "__main__":
     parser.add_argument("-d", action="store", default=None)
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
         "pubmed",
-        "arxiv"
+        "arxiv",
+        "both"
     ])
     parser.add_argument("-x", nargs="?", action="store", type=str, default=None, help="Experiment name. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("p", action="store", type=str, help="The type of plot to make", choices=[
@@ -121,47 +125,55 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    args.i += "-index"
+    #---------------------------------------------------------------------------------------
 
-    #---------------------------------------------------------------------------
-    console.print(f"Making plot: '{args.p}'")
-
-    if not args.d:
-        if args.i == "pubmed-index":
-            docs_to_retrieve = PUBMED_DOCS
-        elif args.i == "arxiv-index":
-            docs_to_retrieve = ARXIV_DOCS
+    if args.i == "both":
+        indexes = ["pubmed-index", "arxiv-index"]
+        if args.d is not None:
+            raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN BOTH, IT INVITES FRACTURE.")
     else:
-        docs_to_retrieve = [int(x) for x in args.d.split(",")]
+        indexes = [args.i + "-index"]
 
-    console.print("Session info:")
-    console.print({'index_name': args.i, 'docs': docs_to_retrieve})
-    print()
+    for index in indexes:
+        console.print(f"\nRunning for index '{index}'")
+        console.print(Rule())
 
-    imgpath = os.path.join(args.i, "images", args.p)
-    
-    if args.clear and os.path.exists(imgpath):
-        shutil.rmtree(imgpath)
-    
-    os.makedirs(imgpath, exist_ok=True)
-    #---------------------------------------------------------------------------
-    sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
+        console.print(f"Making plot: '{args.p}'")
 
-    if args.p == 'full':
-        if args.x is None:
-            args.x = "default"
+        if not args.d:
+            if index == "pubmed-index":
+                docs_to_retrieve = PUBMED_DOCS
+            elif index == "arxiv-index":
+                docs_to_retrieve = ARXIV_DOCS
+        else:
+            docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
-        for experiment_name in args.x.split(","):
-            console.print(f"Plotting experiment '{experiment_name}'")
-            pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)
-            
-            full(pkl, imgpath, experiment_name, sess)
-            print()
+        console.print("Session info:")
+        console.print({'index_name': index, 'docs': docs_to_retrieve})
+        print()
 
-    elif args.p == 'compare':
-        if args.x is None:
-            args.x = "all"
-             
-        compare(args.x.split(","), imgpath, docs_to_retrieve, sess, metric=args.metric)
-
+        imgpath = os.path.join(index, "images", args.p)
         
+        if args.clear and os.path.exists(imgpath):
+            shutil.rmtree(imgpath)
+        
+        os.makedirs(imgpath, exist_ok=True)
+        #---------------------------------------------------------------------------
+        sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
+
+        if args.p == 'full':
+            if args.x is None:
+                args.x = "default"
+
+            for experiment_name in args.x.split(","):
+                console.print(f"Plotting experiment '{experiment_name}'")
+                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)
+                
+                full(pkl, imgpath, experiment_name, sess)
+                print()
+
+        elif args.p == 'compare':
+            if args.x is None:
+                args.x = "all"
+                
+            compare(args.x.split(","), imgpath, docs_to_retrieve, sess, metric=args.metric)

@@ -43,7 +43,8 @@ class Session():
             use: str = "client"
         ):
         '''
-        Represents an Elasticsearch session for querying and retrieving documents from a specific index.
+        Represents a method for retrieving documents from a specific index.
+        Retrieval method is typically an Elasticsearch client, but it can also be a cache directory.
         Groups information about the client, the index and the authentication methods
 
         Arguments

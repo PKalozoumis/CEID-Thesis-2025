@@ -310,7 +310,7 @@ if __name__ == "__main__":
         print(merged[0].sentences)
         panel_print(merged[0].text)
         
-        chain_metrics(merged)
+        #chain_metrics(merged)
 
         '''
         labels, medoids = sentence_clustering(embeddings)

@@ -1,4 +1,9 @@
+import os
+import sys
+sys.path.append("../..")
+
 from collections import namedtuple
+from mypackage.helper import DEVICE_EXCEPTION
 import pickle
 import os
 import json
@@ -34,7 +39,7 @@ def load_experiments(experiment_names: str|list[str]|None = None, must_exist: bo
             return default_experiment | temp[experiment_names] | {'name': experiment_names}
         else:
             if must_exist:
-                raise Exception("THIS NEXT EXPERIMENT SEEMS... VACANT")
+                raise DEVICE_EXCEPTION("THIS NEXT EXPERIMENT SEEMS... VACANT")
             else:
                 print(f"Could not find experiment '{experiment_names}'. Using default params")
                 return default_experiment | {'name': "default"}
@@ -45,14 +50,17 @@ def load_experiments(experiment_names: str|list[str]|None = None, must_exist: bo
 
 #=============================================================================================================
 
-def all_experiments():
+def all_experiments(*,names_only=False):
     with open("experiments.json", "r") as f:
         experiments = json.load(f)
 
-    default_experiment = experiments['default'] | {'name': 'default'}
+    if names_only:
+        yield from experiments
+    else:
+        default_experiment = experiments['default'] | {'name': 'default'}
 
-    for xp_name in experiments:
-        yield default_experiment | experiments[xp_name] | {'name': xp_name}
+        for xp_name in experiments:
+            yield default_experiment | experiments[xp_name] | {'name': xp_name}
 
 #=============================================================================================================
 
@@ -65,3 +73,6 @@ def experiment_wrapper(experiment_names: str | list[str], must_exist: bool = Fal
             return xp
         else:
             return [xp]
+        
+#=============================================================================================================
+

@@ -70,12 +70,12 @@ def clustering_metrics(chains: list[SentenceChain], labels: list[int], *, render
     }
 
     console = Console()
-    table = create_table(['Metric', 'Score'], {temp['name']:temp['value'] for temp in metrics.values()}, title="Clustering Metrics")
     
-    if render:
-        console.print(table)
-
-    if return_renderable:
-        return metrics, table 
-    
+    if render or return_renderable:
+        table = create_table(['Metric', 'Score'], {temp['name']:temp['value'] for temp in metrics.values()}, title="Clustering Metrics")
+        if render:
+            console.print(table)
+        if return_renderable:
+            return metrics, table 
+        
     return metrics

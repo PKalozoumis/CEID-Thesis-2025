@@ -143,16 +143,16 @@ def chain_metrics(chains: list[SentenceChain], *, render=False, return_renderabl
         'avg_sim_eq4': {'name': "Average Within-Chain Similarity (len = 4)", 'value': avg_within_chain_similarity(chains, min_size=4, max_size=4)},
         'avg_dist': {'name': "Average Neighbor Chain Distance", 'value': avg_neighbor_chain_distance(chains)},
         'avg_len': {'name': "Average Chain Length", 'value': avg_chain_length(chains)},
-        'min_sim': {'name': "Global Minimum Within-Chain Similarity", 'value': np.min(np.array([min_within_chain_similarity(c) for c in chains]))}
+        'min_sim': {'name': "Global Minimum Within-Chain Similarity", 'value': np.min(np.array([min_within_chain_similarity(c) for c in chains]))},
+        'sum_test': {'name': "Sum (testing)", 'value': np.sum(np.sum([chain for chain in chains]))}
     }
 
     console = Console()
-    table = create_table(['Metric', 'Score'], {temp['name']:temp['value'] for temp in metrics.values()}, title="Chaining Metrics")
-
-    if render:
-        console.print(table)
-
-    if return_renderable:
-        return metrics, table 
+    if render or return_renderable:
+        table = create_table(['Metric', 'Score'], {temp['name']:temp['value'] for temp in metrics.values()}, title="Chaining Metrics")
+        if render:
+            console.print(table)
+        if return_renderable:
+            return metrics, table 
     
     return metrics

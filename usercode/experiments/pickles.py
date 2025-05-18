@@ -12,6 +12,7 @@ from sentence_transformers import SentenceTransformer
 from mypackage.elastic import ElasticDocument, Session
 from mypackage.sentence import doc_to_sentences, chaining
 from mypackage.clustering import chain_clustering
+from mypackage.helper import DEVICE_EXCEPTION
 import pickle
 from collections import namedtuple
 from multiprocessing import Process
@@ -23,7 +24,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.axes import Axes
 
 from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS
-
+from rich.rule import Rule
 from mypackage.storage import save_clusters
 
 console = Console()
@@ -61,7 +62,7 @@ def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_n
         doc.session.client = None #Prepare for pickling
         pickle.dump(ProcessedDocument(doc, merged, labels, clusters), f)
     '''
-    save_clusters(clusters, path)
+    save_clusters(clusters, path, params=params)
 
 #=============================================================================================================
 
@@ -70,48 +71,57 @@ if __name__ == "__main__":
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
         "pubmed",
-        "arxiv"
+        "arxiv",
+        "both"
     ])
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     args = parser.parse_args()
 
-    args.i += "-index"
-
-    #-------------------------------------------------------------------------------------------
-
-    if not args.d:
-        if args.i == "pubmed-index":
-            docs_to_retrieve = PUBMED_DOCS
-        elif args.i == "arxiv-index":
-            docs_to_retrieve = ARXIV_DOCS
+    if args.i == "both":
+        indexes = ["pubmed-index", "arxiv-index"]
+        if args.d is not None:
+            raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN BOTH, IT INVITES FRACTURE.")
     else:
-        docs_to_retrieve = [int(x) for x in args.d.split(",")]
+        indexes = [args.i + "-index"]
 
     #-------------------------------------------------------------------------------------------
+    for index in indexes:
+        console.print(f"\nRunning for index '{index}'")
+        console.print(Rule())
 
-    console.print("Session info:")
-    console.print({'index_name': args.i, 'docs': docs_to_retrieve})
-    print()
+        if not args.d:
+            if index == "pubmed-index":
+                docs_to_retrieve = PUBMED_DOCS
+            elif index == "arxiv-index":
+                docs_to_retrieve = ARXIV_DOCS
+        else:
+            docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
-    #Iterate over the requested experiments
-    #For each experiment, we execute it on the requested documents and store the pickle files
-    for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.x.split(','), strict_iterable=True):
-        console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}'")
-        console.print(THIS_NEXT_EXPERIMENT)
+        #-------------------------------------------------------------------------------------------
 
-        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
-        sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
-        docs = list(map(partial(ElasticDocument, sess, text_path="article"), docs_to_retrieve))
+        console.print("Session info:")
+        console.print({'index_name': index, 'docs': docs_to_retrieve})
+        print()
 
-        #We need to process these documents in parallel
-        #We need to create the chains, as well as cluster them
-        os.makedirs(os.path.join(sess.index_name, "pickles", THIS_NEXT_EXPERIMENT['name']), exist_ok=True)
-        procs = []
-        
-        for i, doc in enumerate(docs):
-            p = Process(target=work, args=(doc,model,THIS_NEXT_EXPERIMENT, args.i))
-            p.start()
-            procs.append(p)
+        #Iterate over the requested experiments
+        #For each experiment, we execute it on the requested documents and store the pickle files
+        for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.x.split(','), strict_iterable=True):
+            console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}' in '{index}'")
+            console.print(THIS_NEXT_EXPERIMENT)
 
-        for p in procs:
-            p.join()
+            model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
+            sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
+            docs = list(map(partial(ElasticDocument, sess, text_path="article"), docs_to_retrieve))
+
+            #We need to process these documents in parallel
+            #We need to create the chains, as well as cluster them
+            os.makedirs(os.path.join(sess.index_name, "pickles", THIS_NEXT_EXPERIMENT['name']), exist_ok=True)
+            procs = []
+            
+            for i, doc in enumerate(docs):
+                p = Process(target=work, args=(doc,model,THIS_NEXT_EXPERIMENT, index))
+                p.start()
+                procs.append(p)
+
+            for p in procs:
+                p.join()

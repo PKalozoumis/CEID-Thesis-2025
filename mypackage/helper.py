@@ -6,8 +6,14 @@ from itertools import islice
 from functools import wraps
 import json
 import numpy as np
+import copy
 
 console = Console()
+
+#=============================================================================================================
+
+class DEVICE_EXCEPTION(Exception):
+    pass
 
 #===================================================================================
 
@@ -92,6 +98,8 @@ class NpEncoder(json.JSONEncoder):
 #===================================================================================
 
 def round_data(data: list, to_string = False):
+    data = copy.deepcopy(data)
+
     for i in range(len(data)):
         if isinstance(data[i], (float, np.double, np.float32, np.float64)):
             data[i] = f"{np.round(data[i], decimals=3):.3f}" if to_string else np.round(data[i], decimals=3)
@@ -102,14 +110,19 @@ def round_data(data: list, to_string = False):
 
 #===================================================================================
 
-def create_table(column_names: list[str], data: dict, *, title:str|None =None, round=True) -> Table:
+def create_table(column_names: list[str], data: dict, *, title:str|None = None, round=True) -> Table:
     table = Table(title=title, title_justify="left", header_style="")
+    data = copy.deepcopy(data)
+    
+    for key in data:
+        if not isinstance(data[key], list):
+            data[key] = [data[key]]
 
-    if round:
-        for key in data:
-            if not isinstance(data[key], list):
-                data[key] = [data[key]]
+        if round:
             data[key] = round_data(data[key], to_string=True)
+        else:
+            for i in range(len(data[key])):
+                data[key][i] = f"{data[key][i]}"
 
     for i, name in enumerate(column_names):
         if i == 0:
@@ -169,7 +182,7 @@ def write_to_excel_tab(worksheet, title: str, row_data: dict[str, list], column_
         worksheet.write(temp_row_offset+1+rownum+1, temp_col_offset, rowname, name_fmt)
         worksheet.write_row(temp_row_offset+1+rownum+1, temp_col_offset+1, round_data(rowlist), global_fmt)
 
-    worksheet.set_column(temp_col_offset,temp_col_offset,max_rowname) #or 0.9-0.95
+    worksheet.set_column(temp_col_offset,temp_col_offset,max_rowname)
 
     if row_offset is None:
         return temp_col_offset + len(column_names) + 2
