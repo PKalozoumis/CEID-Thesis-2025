@@ -1,5 +1,5 @@
 from sklearn.cluster._hdbscan.hdbscan import HDBSCAN
-from mypackage.sentence import SentenceChain, doc_to_sentences, iterative_merge
+from mypackage.sentence import doc_to_sentences, iterative_merge
 from mypackage.clustering import chain_clustering
 from mypackage.elastic.elastic import Session, elasticsearch_client, ScrollingCorpus, ElasticDocument, Document
 import numpy as np

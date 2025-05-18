@@ -8,7 +8,10 @@
         "n_components": 25,
         "min_dista": 0.1,
         "remove_duplicates": true,
-        "normalize": false
+        "normalize": false,
+        "min_cluster_size": 3,
+        "min_samples": 5,
+        "n_neighbors": 15
     },
     "buggy": {
         "title": "Old (broken) version",
@@ -37,5 +40,19 @@
     "norm":{
         "title": "Normalize representatives",
         "normalize": true
+    },
+    "test":{
+        "title": "Temporary testing",
+        "chaining_method": "iterative",
+        "threshold": 0.6,
+        "round_limit": null,
+        "pooling_method": "average",
+        "n_components": 25,
+        "min_dista": 0.1,
+        "remove_duplicates": true,
+        "normalize": false,
+        "min_cluster_size": 3,
+        "min_samples": 5,
+        "n_neighbors": 15
     }
 }

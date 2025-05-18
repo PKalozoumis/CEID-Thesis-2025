@@ -8,7 +8,6 @@ from functools import partial
 from sentence_transformers import SentenceTransformer
 
 from mypackage.elastic import ElasticDocument, Session
-from mypackage.sentence import doc_to_sentences, iterative_merge, buggy_merge
 from mypackage.clustering import visualize_clustering
 from mypackage.clustering.metrics import clustering_metrics, VALID_METRICS
 from mypackage.storage import load_pickles
@@ -107,7 +106,7 @@ def compare(experiment_names: str|list[str], imgpath, docs: list[int], sess: Ses
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-docs", action="store", default=None)
+    parser.add_argument("-d", action="store", default=None)
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
         "pubmed",
         "arxiv"
@@ -118,6 +117,7 @@ if __name__ == "__main__":
         "compare"
     ], default="full")
     parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=VALID_METRICS)
+    parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
 
     args = parser.parse_args()
 
@@ -126,13 +126,13 @@ if __name__ == "__main__":
     #---------------------------------------------------------------------------
     console.print(f"Making plot: '{args.p}'")
 
-    if not args.docs:
+    if not args.d:
         if args.i == "pubmed-index":
             docs_to_retrieve = PUBMED_DOCS
         elif args.i == "arxiv-index":
             docs_to_retrieve = ARXIV_DOCS
     else:
-        docs_to_retrieve = [int(x) for x in args.docs.split(",")]
+        docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
     console.print("Session info:")
     console.print({'index_name': args.i, 'docs': docs_to_retrieve})
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     imgpath = os.path.join(args.i, "images", args.p)
     
-    if os.path.exists(imgpath):
+    if args.clear and os.path.exists(imgpath):
         shutil.rmtree(imgpath)
     
     os.makedirs(imgpath, exist_ok=True)

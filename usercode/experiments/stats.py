@@ -65,7 +65,7 @@ def stats(chains):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-docs", action="store", type=str, default=None, help="Comma-separated list of docs")
+    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
         "pubmed",
@@ -81,13 +81,13 @@ if __name__ == "__main__":
 
     #-------------------------------------------------------------------------------------------
 
-    if not args.docs:
+    if not args.d:
         if args.i == "pubmed-index":
             docs_to_retrieve = PUBMED_DOCS
         elif args.i == "arxiv-index":
             docs_to_retrieve = ARXIV_DOCS
     else:
-        docs_to_retrieve = [int(x) for x in args.docs.split(",")]
+        docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
     #-------------------------------------------------------------------------------------------
     os.makedirs(os.path.join(args.i, "stats"), exist_ok=True)

@@ -59,13 +59,14 @@ def clustering_metrics(chains: list[SentenceChain], labels: list[int], *, render
 
     find_duplicate_chains(chains)
     '''
+
     distas = cosine_distances(np.array([chain.vector for chain in chains])).astype(np.float64)
 
     metrics = {
         'silhouette': {'name': "Silhouette Score", 'value': chain_clustering_silhouette_score(chains, labels)},
         'flat_silhouette': {'name': "Flat Silhouette Score", 'value': chain_clustering_flat_silhouette_score(chains, labels)},
         #'validity': {'name': "Validity", 'value': validity_index(distas, np.array(labels), metric="precomputed", d=chains[0].vector.shape[0])},
-        #'dbcv': {'name': "DBCV", 'value': dbcv(chains, labels, metric="cosine")}
+        'dbcv': {'name': "DBCV", 'value': dbcv(chains, labels)}
     }
 
     console = Console()

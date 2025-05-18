@@ -10,7 +10,7 @@ from functools import partial
 from sentence_transformers import SentenceTransformer
 
 from mypackage.elastic import ElasticDocument, Session
-from mypackage.sentence import doc_to_sentences, iterative_merge, buggy_merge, chaining
+from mypackage.sentence import doc_to_sentences, chaining
 from mypackage.clustering import chain_clustering
 import pickle
 from collections import namedtuple
@@ -46,7 +46,14 @@ def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_n
     console.print(f"Document {doc.id:02}: Created {len(merged)} chains")
 
     console.print(f"Document {doc.id:02}: Clustering chains...")
-    labels, clusters = chain_clustering(merged, n_components=params['n_components'], min_dista=params['min_dista'])
+    labels, clusters = chain_clustering(
+        merged,
+        n_components=params['n_components'],
+        min_dista=params['min_dista'],
+        min_cluster_size=params['min_cluster_size'],
+        min_samples=params['min_samples'],
+        n_neighbors=params['n_neighbors']
+    )
     
     path = os.path.join(index_name, "pickles", params['name'])
     '''
@@ -60,25 +67,25 @@ def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_n
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-docs", action="store", type=str, default=None, help="Comma-separated list of docs")
+    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
         "pubmed",
         "arxiv"
     ])
-    parser.add_argument("name", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
+    parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     args = parser.parse_args()
 
     args.i += "-index"
 
     #-------------------------------------------------------------------------------------------
 
-    if not args.docs:
+    if not args.d:
         if args.i == "pubmed-index":
             docs_to_retrieve = PUBMED_DOCS
         elif args.i == "arxiv-index":
             docs_to_retrieve = ARXIV_DOCS
     else:
-        docs_to_retrieve = [int(x) for x in args.docs.split(",")]
+        docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
     #-------------------------------------------------------------------------------------------
 
@@ -88,7 +95,7 @@ if __name__ == "__main__":
 
     #Iterate over the requested experiments
     #For each experiment, we execute it on the requested documents and store the pickle files
-    for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.name.split(','), strict_iterable=True):
+    for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.x.split(','), strict_iterable=True):
         console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}'")
         console.print(THIS_NEXT_EXPERIMENT)
 

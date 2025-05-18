@@ -41,7 +41,7 @@ def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) ->
 
 #===================================================================================================
 
-def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_dista: float = 0.1) -> tuple[list[int], dict[int, ChainCluster]]:
+def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_dista: float = 0.1, min_cluster_size: int = 3, min_samples: int = 5, n_neighbors: int = 15) -> tuple[list[int], dict[int, ChainCluster]]:
     '''
     Clusters a list of sentence chains for a single document.
     The chains inside each returned cluster are ordered based on their offset inside the document
@@ -73,7 +73,7 @@ def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_di
 
         if n_components is not None:
             #Reduce dimensionality before clustering
-            clustering_reducer = UMAP(n_components=n_components, metric="cosine", random_state=42, min_dist=min_dista)
+            clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", random_state=42, min_dist=min_dista)
             reduced_matrix = clustering_reducer.fit_transform(matrix)
         else:
             reduced_matrix = matrix
@@ -81,7 +81,7 @@ def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_di
         #Cluster
         #model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="cosine")
         reduced_matrix = cosine_distances(reduced_matrix).astype(np.float64)
-        model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="precomputed")
+        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="precomputed")
 
         clustering = model.fit(reduced_matrix)
 
@@ -119,7 +119,7 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 
 #===================================================================================================
 
-def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False, min_dista: float = 0.1):
+def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False, min_dista: float = 0.1, n_neighbors: int = 15):
     '''
     Creates a scatter plot of the clustered chains
 
@@ -175,7 +175,7 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
-            visualization_reducer = UMAP(n_components=2, metric="cosine", random_state=42, min_dist=min_dista)
+            visualization_reducer = UMAP(n_neighbors=n_neighbors, n_components=2, metric="cosine", random_state=42, min_dist=min_dista)
         
         reduced = visualization_reducer.fit_transform(matrix)
 
