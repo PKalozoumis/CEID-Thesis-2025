@@ -92,7 +92,13 @@ class SentenceChain(SentenceLike):
 
     EXEMPLAR_BASED_METHODS = []
 
-    def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average"):
+    def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average", *, normalize: bool = True):
+        '''
+        Arguments
+        ---
+        normalize: bool
+            Normalize the representative after pooling. Defaults to ```True```
+        '''
         self.pooling_method = pooling_method
 
         #Convert single sentence into a list with only one sentence (or chain)
@@ -100,7 +106,7 @@ class SentenceChain(SentenceLike):
         if isinstance(sentences, SentenceLike):
             sentences = [sentences]
             
-        self._vector = SentenceChain.pooling(sentences, pooling_method)
+        self._vector = SentenceChain.pooling(sentences, pooling_method, normalize=normalize)
 
         #Extract sentences from 'sentences' argument
         if isinstance(sentences[0], Sentence):
@@ -111,18 +117,26 @@ class SentenceChain(SentenceLike):
             self.sentences = list(chain.from_iterable(sentences))
 
     @staticmethod
-    def pooling_average(sentences: list[Sentence]) -> ndarray:
-        return np.average(np.row_stack([s.vector for s in sentences]), axis=0)
+    def pooling_average(sentences: list[Sentence], *, normalize: bool = True) -> ndarray:
+        vec = np.average(np.row_stack([s.vector for s in sentences]), axis=0)
+        return vec / np.linalg.norm(vec) if normalize else vec
     
     @staticmethod
-    def pooling_max(sentences: list[Sentence]) -> ndarray:
-        return np.max(np.row_stack([s.vector for s in sentences]), axis=0)
+    def pooling_max(sentences: list[Sentence], *, normalize: bool = True) -> ndarray:
+        vec = np.max(np.row_stack([s.vector for s in sentences]), axis=0)
+        return vec / np.linalg.norm(vec) if normalize else vec
 
     @staticmethod
-    def pooling(sentences: list[Sentence], pooling_method: str) -> ndarray:
+    def pooling(sentences: list[Sentence], pooling_method: str, *, normalize: bool = True) -> ndarray:
+        '''
+        Arguments
+        ---
+        normalize: bool
+            Normalize the representative after pooling. Defaults to ```True```
+        '''
         match pooling_method:
-            case "average": return SentenceChain.pooling_average(sentences)
-            case "max": return SentenceChain.pooling_max(sentences)
+            case "average": return SentenceChain.pooling_average(sentences, normalize=normalize)
+            case "max": return SentenceChain.pooling_max(sentences, normalize=normalize)
     
     def sentence_matrix(self) -> ndarray:
         '''

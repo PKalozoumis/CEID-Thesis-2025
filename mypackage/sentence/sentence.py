@@ -1,3 +1,4 @@
+
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances
@@ -14,6 +15,7 @@ from rich.markdown import Markdown
 from .metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
 from .classes import Sentence, SentenceChain, SentenceLike, SimilarityPair
 from functools import partial, wraps
+import warnings
 
 console = Console()
 
@@ -92,7 +94,14 @@ def print_pairs(sentences):
 
 #============================================================================================
 
-def buggy_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: int | None = 1, pooling_method="average"):
+def buggy_merge(
+        sentences: list[SentenceLike],
+        *,
+        threshold: float,
+        round_limit: int | None = 1,
+        pooling_method="average",
+        normalize: bool =True
+    ):
     '''
     Clusters a list of sentence chains for a single document.
     The chains inside each returned cluster are ordered based on their offset inside the document
@@ -133,7 +142,7 @@ def buggy_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: 
         else: #Create new chain for this sentence
             chains.append([pair.s2])
 
-    result = [SentenceChain(c, pooling_method) for c in chains]
+    result = [SentenceChain(c, pooling_method, normalize=normalize) for c in chains]
     
     if round_limit is None:
         return buggy_merge(result, threshold=threshold, round_limit=None, pooling_method=pooling_method)
@@ -144,7 +153,14 @@ def buggy_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: 
     
 #====================================================================================================================
 
-def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_limit: int | None = 1, pooling_method: str = "average") -> list[SentenceLike]:
+def iterative_merge(
+        sentences: list[SentenceLike],
+        *,
+        threshold: float,
+        round_limit: int | None = 1,
+        pooling_method: str = "average",
+        normalize: bool = True
+    ) -> list[SentenceLike]:
     '''
     Clusters a list of sentence chains for a single document.
     The chains inside each returned cluster are ordered based on their offset inside the document
@@ -169,6 +185,9 @@ def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_lim
     pooling_method: str
         The method we use to generate the new chain embedding from the partial ```SentenceLike``` objects' embeddings.
         By default it's ```average```
+
+    normalize: bool
+        Normalize the representative after pooling. Defaults to ```True```
 
     Returns
     --------------------------------------------------------
@@ -206,7 +225,7 @@ def iterative_merge(sentences: list[SentenceLike],*, threshold: float, round_lim
             else: #Create new chain for this sentence
                 chains.append([pair.s2])
 
-    result = [SentenceChain(c, pooling_method) for c in chains]
+    result = [SentenceChain(c, pooling_method, normalize=normalize) for c in chains]
     
     if round_limit is None:
         return iterative_merge(result, threshold=threshold, round_limit=None, pooling_method=pooling_method)
@@ -233,6 +252,12 @@ def sentence_clustering(embeddings):
     - Labels
     - Medoids
     '''
+    warnings.warn(
+        "sentence_clustering() is deprecated and will be removed in a future version.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
     dista = cosine_distances(embeddings)
 
     inertia = []

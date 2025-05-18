@@ -7,7 +7,8 @@
         "pooling_method": "average",
         "n_components": 25,
         "min_dista": 0.1,
-        "remove_duplicates": false
+        "remove_duplicates": true,
+        "normalize": false
     },
     "buggy": {
         "title": "Old (broken) version",
@@ -29,8 +30,12 @@
         "title": "Threshold 0.7",
         "threshold": 0.7
     },
-    "dedup": {
-        "title": "No duplicates",
-        "remove_duplicates": true
+    "dup": {
+        "title": "Keep duplicates",
+        "remove_duplicates": false
+    },
+    "norm":{
+        "title": "Normalize representatives",
+        "normalize": true
     }
 }

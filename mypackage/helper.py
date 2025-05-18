@@ -91,6 +91,17 @@ class NpEncoder(json.JSONEncoder):
 
 #===================================================================================
 
+def round_data(data: list, to_string = False):
+    for i in range(len(data)):
+        if isinstance(data[i], (float, np.double, np.float32, np.float64)):
+            data[i] = f"{np.round(data[i], decimals=3):.3f}" if to_string else np.round(data[i], decimals=3)
+        else:
+            data[i] = f"{data[i]}" if to_string else data[i]
+        
+    return data
+
+#===================================================================================
+
 def create_table(column_names: list[str], data: dict, *, title:str|None =None, round=True) -> Table:
     table = Table(title=title, title_justify="left", header_style="")
 
@@ -98,12 +109,7 @@ def create_table(column_names: list[str], data: dict, *, title:str|None =None, r
         for key in data:
             if not isinstance(data[key], list):
                 data[key] = [data[key]]
-
-            for i in range(len(data[key])):
-                if isinstance(data[key][i], (float, np.double, np.float32, np.float64)):
-                    data[key][i] = f"{np.round(data[key][i], decimals=3):.3f}"
-                else:
-                    data[key][i] = f"{data[key][i]}"
+            data[key] = round_data(data[key], to_string=True)
 
     for i, name in enumerate(column_names):
         if i == 0:
@@ -115,3 +121,58 @@ def create_table(column_names: list[str], data: dict, *, title:str|None =None, r
         table.add_row(name, *value_list)
 
     return table
+
+#===================================================================================
+
+def write_to_excel_tab(worksheet, title: str, row_data: dict[str, list], column_names, *, row_offset: int|None = None, column_offset: int|None = None, name_fmt, title_fmt, global_fmt, first_width: float = 0) -> int | tuple[int, float]:
+    '''
+    Returns
+    ---
+    new_offset: int
+        The new position where the next table should be written
+
+    first_width: float
+        Maximum width of the first column. Only if row_offset is not None, meaning that we draw tables vertically
+    '''
+    if row_offset is None and column_offset is None:
+        raise ValueError("Set either row_offset or column_offset")
+    
+    if row_offset is None:
+        temp_row_offset = 0
+    elif column_offset is not None:
+        raise ValueError("row_offset and column_offset cannot both be set")
+    else:
+        temp_row_offset = row_offset
+
+    if column_offset is None:
+        temp_col_offset = 0
+    elif row_offset is not None:
+        raise ValueError("row_offset and column_offset cannot both be set")
+    else:
+        temp_col_offset = column_offset
+
+    #Title
+    worksheet.merge_range(temp_row_offset, temp_col_offset, temp_row_offset, temp_col_offset + len(column_names), title, title_fmt)
+
+    #Corner element
+    worksheet.write(temp_row_offset+1, temp_col_offset, "", name_fmt)
+
+    #Column names and widths
+    for colnum, colname in enumerate(column_names):
+        worksheet.write(temp_row_offset+1, temp_col_offset+colnum+1, colname, name_fmt)
+        worksheet.set_column(temp_col_offset+colnum+1, temp_col_offset+colnum+1, max(8.43, len(colname)))
+
+    #Row names and data
+    max_rowname = max(0, first_width)
+    for rownum, (rowname, rowlist) in enumerate(row_data.items()):
+        max_rowname = max(max_rowname, len(rowname))
+        worksheet.write(temp_row_offset+1+rownum+1, temp_col_offset, rowname, name_fmt)
+        worksheet.write_row(temp_row_offset+1+rownum+1, temp_col_offset+1, round_data(rowlist), global_fmt)
+
+    worksheet.set_column(temp_col_offset,temp_col_offset,max_rowname) #or 0.9-0.95
+
+    if row_offset is None:
+        return temp_col_offset + len(column_names) + 2
+    else:
+        return temp_row_offset + 1 + len(row_data) + 2, max_rowname
+

@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath("../.."))
 
 from collections import namedtuple
 from mypackage.elastic import Session, ElasticDocument
-from mypackage.helper import NpEncoder, create_table
+from mypackage.helper import NpEncoder, create_table, write_to_excel_tab
 from mypackage.sentence.metrics import chain_metrics
 from mypackage.clustering.metrics import clustering_metrics
 
@@ -35,6 +35,8 @@ from rich.padding import Padding
 from rich.columns import Columns
 
 from collections import defaultdict
+
+import xlsxwriter
 
 console = Console()
 
@@ -92,6 +94,10 @@ if __name__ == "__main__":
     sess = Session(args.i, base_path="../..", cache_dir="../cache", use="cache")
 
     if args.mode == "doc":
+        workbook = xlsxwriter.Workbook("documents.xlsx")
+        name_fmt = workbook.add_format({'bg_color': '#eeeeee', 'bold': True, 'border': 1})
+        border_fmt = workbook.add_format({'border': 1})
+        title_fmt = workbook.add_format({'border': 1, 'bg_color': '#eeeeee', 'bold': True, 'align': 'center', 'valign': 'vcenter'})
 
         #We iterate over all the experiments
         #For each experiment, we want to see how all documents behave
@@ -126,11 +132,22 @@ if __name__ == "__main__":
                 for k,v in ({'id':p.doc.id, 'index': i} | stats(p.chains)).items():
                     stat_rows[k].append(v)
 
-            '''
-            #Write to file
-            with open(os.path.join(args.i, "stats", f"{experiment['name']}.json"), "w") as f:
-                json.dump(out, f, cls=NpEncoder, indent="\t")
-            '''
+            #Write to excel file
+            #-----------------------------------------------------------------------
+            #Creates new tab
+            worksheet = workbook.add_worksheet(experiment['name'])
+
+            #Populate the tab with data
+            table_offset = 0
+            first_col_width = 0
+            write_in_rows = True
+
+            for title, dataset in [("Chain Metrics", chain_rows), ("Clustering Metrics", cluster_rows), ("Stats", stat_rows)]:
+                if write_in_rows:
+                    table_offset, first_col_width = write_to_excel_tab(worksheet, title, dataset, column_names, row_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt, first_width=first_col_width)
+                else:
+                    table_offset = write_to_excel_tab(worksheet, title, dataset, column_names, column_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt)
+            
             #Create tables
             #-----------------------------------------------------------------------
             rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
@@ -139,6 +156,7 @@ if __name__ == "__main__":
 
             console.print(Padding(Panel(Group(*rich_group_items), title=f"THIS NEXT EXPERIMENT: {experiment['name']}", border_style="green", highlight=True), (0,0,10,0)))
 
+        workbook.close()
 
     #==========================================================================================================================
 
@@ -150,6 +168,11 @@ if __name__ == "__main__":
         
         if len(experiments) > 12:
             raise Exception("IT SPILLS BEYOND THE BRINK OF THE DEVICE")
+        
+        workbook = xlsxwriter.Workbook("experiments.xlsx")
+        name_fmt = workbook.add_format({'bg_color': '#eeeeee', 'bold': True, 'border': 1})
+        border_fmt = workbook.add_format({'border': 1})
+        title_fmt = workbook.add_format({'border': 1, 'bg_color': '#eeeeee', 'bold': True, 'align': 'center', 'valign': 'vcenter'})
         
         #We iterate over all the documents
         #For each doc, we want to run and compare the selected experiments
@@ -181,6 +204,22 @@ if __name__ == "__main__":
                 for k,v in ({'id':doc, 'index': i} | stats(pkl.chains)).items():
                     stat_rows[k].append(v)
 
+            #Write to excel file
+            #-----------------------------------------------------------------------
+            #Creates new tab
+            worksheet = workbook.add_worksheet(f"{document_index(args.i, doc, i):02}. Doc {doc:04}")
+
+            #Populate the tab with data
+            table_offset = 0
+            first_col_width = 0
+            write_in_rows = False
+
+            for title, dataset in [("Chain Metrics", chain_rows), ("Clustering Metrics", cluster_rows), ("Stats", stat_rows)]:
+                if write_in_rows:
+                    table_offset, first_col_width = write_to_excel_tab(worksheet, title, dataset, column_names, row_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt, first_width=first_col_width)
+                else:
+                    table_offset = write_to_excel_tab(worksheet, title, dataset, column_names, column_offset=table_offset, name_fmt=name_fmt, title_fmt=title_fmt, global_fmt=border_fmt)
+            
             #Create tables
             #-----------------------------------------------------------------------
             rich_group_items.append(Padding(create_table(['Metric', *column_names], chain_rows, title="Chain Metrics"), (0,0,1,0)))
@@ -189,4 +228,4 @@ if __name__ == "__main__":
 
             console.print(Padding(Panel(Group(*rich_group_items), title=f"{document_index(args.i, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
 
-
+        workbook.close()

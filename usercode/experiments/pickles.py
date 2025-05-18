@@ -33,9 +33,18 @@ console = Console()
 def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_name: str):
     console.print(f"Document {doc.id:02}: Creating sentences...")
     sentences = doc_to_sentences(doc, model, remove_duplicates=params['remove_duplicates'])
+    
+    #Chaining parameters
     console.print(f"Document {doc.id:02}: Creating chains...")
-    merged = chaining(params['chaining_method'])(sentences, threshold=params['threshold'], round_limit=params['round_limit'], pooling_method=params['pooling_method'])
+    merged = chaining(params['chaining_method'])(
+        sentences,
+        threshold=params['threshold'],
+        round_limit=params['round_limit'],
+        pooling_method=params['pooling_method'],
+        normalize=params['normalize']
+    )
     console.print(f"Document {doc.id:02}: Created {len(merged)} chains")
+
     console.print(f"Document {doc.id:02}: Clustering chains...")
     labels, clusters = chain_clustering(merged, n_components=params['n_components'], min_dista=params['min_dista'])
     
@@ -77,6 +86,8 @@ if __name__ == "__main__":
     console.print({'index_name': args.i, 'docs': docs_to_retrieve})
     print()
 
+    #Iterate over the requested experiments
+    #For each experiment, we execute it on the requested documents and store the pickle files
     for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.name.split(','), strict_iterable=True):
         console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}'")
         console.print(THIS_NEXT_EXPERIMENT)
@@ -87,11 +98,9 @@ if __name__ == "__main__":
 
         #We need to process these documents in parallel
         #We need to create the chains, as well as cluster them
-
         os.makedirs(os.path.join(sess.index_name, "pickles", THIS_NEXT_EXPERIMENT['name']), exist_ok=True)
-
         procs = []
-
+        
         for i, doc in enumerate(docs):
             p = Process(target=work, args=(doc,model,THIS_NEXT_EXPERIMENT, args.i))
             p.start()
