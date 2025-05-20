@@ -65,6 +65,22 @@ def all_experiments(*,names_only=False):
 #=============================================================================================================
 
 def experiment_wrapper(experiment_names: str | list[str], must_exist: bool = False, strict_iterable: bool = True):
+
+    if must_exist:
+        with open("experiments.json", "r") as f:
+            existing_names = json.load(f)
+
+        if isinstance(experiment_names, list):
+            tmp = experiment_names
+        else:
+            tmp = [experiment_names]
+
+        for name in tmp:
+            if name not in existing_names:
+                raise DEVICE_EXCEPTION(f"YOU CALLED FOR '{name}', BUT NOBODY CAME")
+                    
+    #----------------------------------------------------------------------------
+    
     if experiment_names == "all" or experiment_names == ["all"]:
         return list(all_experiments())
     else:
@@ -76,3 +92,14 @@ def experiment_wrapper(experiment_names: str | list[str], must_exist: bool = Fal
         
 #=============================================================================================================
 
+def experiment_names_from_dir(dir, requested_experiments: str) -> list[str]:
+    existing_names = os.listdir(dir)
+
+    if requested_experiments == "all":
+        requested_experiments = ",".join(existing_names)
+    else:
+        for name in requested_experiments.split(','):
+            if name not in existing_names:
+                raise DEVICE_EXCEPTION(f"YOU CALLED FOR '{name}', BUT NOBODY CAME")
+            
+    return [name for name in requested_experiments.split(",") if name in existing_names]

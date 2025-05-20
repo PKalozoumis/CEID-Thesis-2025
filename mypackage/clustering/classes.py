@@ -12,7 +12,7 @@ class ChainCluster:
 
     #---------------------------------------------------------------------------
 
-    def __init__(self, chains: list[SentenceChain], cluster_label: int):
+    def __init__(self, chains: list[SentenceChain], cluster_label: int, pooling_method: str = "average", *, normalize: bool = True):
 
         self.label = cluster_label
         self.chains = chains

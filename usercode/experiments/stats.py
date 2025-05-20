@@ -17,7 +17,7 @@ from mypackage.clustering.metrics import clustering_metrics
 
 import numpy as np
 
-from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, document_index
+from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, document_index, experiment_names_from_dir
 from mypackage.storage import load_pickles, ProcessedDocument
 
 import pickle
@@ -114,22 +114,25 @@ if __name__ == "__main__":
             #We iterate over all the experiments
             #For each experiment, we want to see how all documents behave
             #Only then do we move on the next experiment
-            for experiment in experiment_wrapper(args.x.split(','), must_exist=True, strict_iterable=True):
+            for experiment in experiment_names_from_dir(os.path.join(sess.index_name, "pickles"), args.x):
                 chain_rows = defaultdict(list)
                 cluster_rows = defaultdict(list)
                 stat_rows = defaultdict(list)
                 column_names = [] #The experiment names
 
                 rich_group_items = []
-                rich_group_items.append(Pretty(experiment))
 
-                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment['name']), docs_to_retrieve)
+                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment), docs_to_retrieve)
                 out = []
-
-                rich_group_items.append(Padding(Rule(style="green"), (1,0)))
 
                 #Iterate over the documents
                 for i, p in enumerate(pkl):
+
+                    if i == 0:
+                        rich_group_items.append(Pretty(p.params))
+                        rich_group_items.append(Padding(Rule(style="green"), (1,0)))
+
+                    p: ProcessedDocument
 
                     #Add new column (for new experiment) to the table data
                     #-----------------------------------------------------------------------
@@ -147,7 +150,7 @@ if __name__ == "__main__":
                 #Write to excel file
                 #-----------------------------------------------------------------------
                 #Creates new tab
-                worksheet = workbook.add_worksheet(experiment['name'])
+                worksheet = workbook.add_worksheet(experiment)
 
                 #Populate the tab with data
                 table_offset = 0
@@ -166,14 +169,14 @@ if __name__ == "__main__":
                 rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
                 rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
 
-                console.print(Padding(Panel(Group(*rich_group_items), title=f"Experiment: {experiment['name']}\tIndex: {index}", border_style="green", highlight=True), (0,0,10,0)))
+                console.print(Padding(Panel(Group(*rich_group_items), title=f"Experiment: {experiment}\tIndex: {index}", border_style="green", highlight=True), (0,0,10,0)))
 
             workbook.close()
 
         #==========================================================================================================================
 
         elif args.mode == "exp":
-            experiments = experiment_wrapper(args.x.split(','))
+            experiments = experiment_names_from_dir(os.path.join(sess.index_name, "pickles"), args.x)
 
             #if len(experiments) < 2:
                 #raise Exception("I SEE, YOU INTEND FOR NO CORRELATION")
@@ -197,15 +200,15 @@ if __name__ == "__main__":
                 column_names = [] #The experiment names
 
                 #Iterate over the experiments
-                for xp_num, xp in enumerate(experiments):
+                for xp_num, xp_name in enumerate(experiments):
                     rich_group_items = []
 
                     #Open only one experiment
-                    pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", xp['name']), doc)
+                    pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", xp_name), doc)
 
                     #Add new column (for new experiment) to the table data
                     #-----------------------------------------------------------------------
-                    column_names.append(xp['name'])
+                    column_names.append(xp_name)
 
                     for temp in chain_metrics(pkl.chains).values():
                         chain_rows[temp['name']].append(temp['value'])

@@ -41,7 +41,18 @@ def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) ->
 
 #===================================================================================================
 
-def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_dista: float = 0.1, min_cluster_size: int = 3, min_samples: int = 5, n_neighbors: int = 15) -> tuple[list[int], dict[int, ChainCluster]]:
+def chain_clustering(
+        chains: list[SentenceChain],
+        *
+        ,
+        n_components: int = 25,
+        min_dista: float = 0.1,
+        min_cluster_size: int = 3,
+        min_samples: int = 5,
+        n_neighbors: int = 15,
+        pooling_method: str = "average",
+        normalize: bool = True
+    ) -> tuple[list[int], dict[int, ChainCluster]]:
     '''
     Clusters a list of sentence chains for a single document.
     The chains inside each returned cluster are ordered based on their offset inside the document
@@ -73,15 +84,29 @@ def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_di
 
         if n_components is not None:
             #Reduce dimensionality before clustering
-            clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", random_state=42, min_dist=min_dista)
+            clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", output_metric="cosine", random_state=42, min_dist=min_dista)
             reduced_matrix = clustering_reducer.fit_transform(matrix)
         else:
             reduced_matrix = matrix
 
         #Cluster
-        #model = HDBSCAN(min_cluster_size=3, min_samples=5,metric="cosine")
+
+        #1)
+        #model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean")
+        
+        #2) 4)
         reduced_matrix = cosine_distances(reduced_matrix).astype(np.float64)
         model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="precomputed")
+
+        #3)
+        '''
+        print(np.linalg.norm(reduced_matrix, axis=1, keepdims=True))
+        norms = np.linalg.norm(reduced_matrix, axis=1, keepdims=True)
+        reduced_matrix = reduced_matrix/norms
+        print(np.linalg.norm(reduced_matrix, axis=1, keepdims=True))
+        reduced_matrix = cosine_distances(reduced_matrix).astype(np.float64)
+        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="precomputed")
+        '''
 
         clustering = model.fit(reduced_matrix)
 
@@ -90,7 +115,7 @@ def chain_clustering(chains: list[SentenceChain], n_components: int = 25, min_di
 
     #Create cluster objects
     for label, cluster in clusters.items():
-        clustered_chains[label] = ChainCluster(cluster, label)
+        clustered_chains[label] = ChainCluster(cluster, label, pooling_method, normalize=normalize)
 
     return list(clustering.labels_), clustered_chains
 
@@ -119,7 +144,7 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 
 #===================================================================================================
 
-def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False, min_dista: float = 0.1, n_neighbors: int = 15):
+def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False, min_dista: float = 0.1, n_neighbors: int = 15, shape: str = "o", no_outliers: bool = False):
     '''
     Creates a scatter plot of the clustered chains
 
@@ -144,6 +169,12 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
     return_legend: bool
         If set to ```True```, then the legend elements are returned from the function instead of
         drawn on the axis object. Defaults to ```False```
+
+    shape: str
+        Shape for scatter plot dots
+
+    no_outliers: bool
+        Remove outliers from the visualization
     '''
 
     #Parameters checks
@@ -159,6 +190,11 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         fig, ax = plt.subplots()
     else:
         fig = None
+
+    #Filter out outliers
+    if no_outliers:
+        chains = [chain for chain, label in zip(chains, clustering_labels) if label >= 0]
+        clustering_labels = [label for label in clustering_labels if label >= 0]
 
     #Creating the colors
     #-----------------------------------------------------------------------
@@ -182,12 +218,14 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
         #Legend creation
         #-----------------------------------------------------------------------
         n_clusters = len(list(set(clustering_labels)))
-        legend_elements = [Patch(facecolor=(0,0,0), label="Outliers")]
-        legend_elements += [Patch(facecolor=cmap[(2*i + int(i > 9))%20], label=f'Cluster {i:02}') for i in range(n_clusters-1)]
+        legend_elements = []
+        if not no_outliers:
+            legend_elements += [Patch(facecolor=(0,0,0), label="Outliers")]
+        legend_elements += [Patch(facecolor=cmap[(2*i + int(i > 9))%20], label=f'Cluster {i:02}') for i in range(n_clusters - (0 if no_outliers else 1))]
 
         #Legend creation
         #-----------------------------------------------------------------------
-        ax.scatter(reduced[:, 0], reduced[:, 1], c=colors)
+        ax.scatter(reduced[:, 0], reduced[:, 1], c=colors, marker=shape)
         if not return_legend:
             ax.legend(handles=legend_elements)
         ax.set_xticks([])

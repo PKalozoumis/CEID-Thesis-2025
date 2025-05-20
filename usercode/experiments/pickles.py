@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
 from matplotlib.axes import Axes
 
-from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS
+from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, all_experiments
 from rich.rule import Rule
 from mypackage.storage import save_clusters
 
@@ -75,6 +75,8 @@ if __name__ == "__main__":
         "both"
     ])
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
+    parser.add_argument("--temp", action="store_true", default=False, help="Recompile the default experiment into a new temporary experiment named by -x") #useful when wanting to test temp changes in code, instead of just parameters
+    parser.add_argument("-c", action="store", type=str, default=None, help="An optional comment appended the created pickle files")
     args = parser.parse_args()
 
     if args.i == "both":
@@ -83,6 +85,17 @@ if __name__ == "__main__":
             raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN BOTH, IT INVITES FRACTURE.")
     else:
         indexes = [args.i + "-index"]
+
+    if args.temp:
+        if args.x == "default":
+            raise DEVICE_EXCEPTION("PLEASE GIVE IT A NAME")
+        elif args.x in set(all_experiments(names_only=True)):
+            raise DEVICE_EXCEPTION("DOES IT NOT SEEK AN IDENTITY OF ITS OWN?")
+        elif len(args.x.split(",")) > 1:
+            raise DEVICE_EXCEPTION("SPLIT IN NAME, AND IN PURPOSE")
+        
+        temp_name = args.x
+        args.x = "default"
 
     #-------------------------------------------------------------------------------------------
     for index in indexes:
@@ -105,7 +118,15 @@ if __name__ == "__main__":
 
         #Iterate over the requested experiments
         #For each experiment, we execute it on the requested documents and store the pickle files
-        for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.x.split(','), strict_iterable=True):
+        for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.x.split(','), strict_iterable=True, must_exist=True):
+            if args.temp:
+                THIS_NEXT_EXPERIMENT['name'] = temp_name
+                THIS_NEXT_EXPERIMENT['title'] = temp_name
+            THIS_NEXT_EXPERIMENT['temp'] = args.temp
+
+            if args.c:
+                THIS_NEXT_EXPERIMENT['comment'] = args.c
+            
             console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}' in '{index}'")
             console.print(THIS_NEXT_EXPERIMENT)
 
@@ -115,7 +136,11 @@ if __name__ == "__main__":
 
             #We need to process these documents in parallel
             #We need to create the chains, as well as cluster them
-            os.makedirs(os.path.join(sess.index_name, "pickles", THIS_NEXT_EXPERIMENT['name']), exist_ok=True)
+            dir_path = os.path.join(sess.index_name, "pickles", THIS_NEXT_EXPERIMENT['name'])
+            os.makedirs(dir_path, exist_ok=True)
+            if args.temp: #Mark experiment as temporary
+                open(os.path.join(dir_path, ".temp"), "w").close()
+
             procs = []
             
             for i, doc in enumerate(docs):
