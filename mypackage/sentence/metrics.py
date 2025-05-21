@@ -60,7 +60,6 @@ def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1
     else:
         return -1
 
-
 #================================================================================================
 
 def inter_chain_distance(chain_a: SentenceChain, chain_b: SentenceChain):
@@ -124,12 +123,6 @@ def avg_chain_length(chains: list[SentenceChain]):
 #================================================================================================
 
 def chain_metrics(chains: list[SentenceChain], *, render=False, return_renderable=False) -> dict | tuple[dict, Table]:
-    
-    console = Console()
-    table = Table()
-
-    table.add_column("Metric")
-    table.add_column("Score")
 
     metrics = {
         'avg_sim': {'name': "Average Within-Chain Similarity", 'value': avg_within_chain_similarity(chains)},
@@ -147,10 +140,10 @@ def chain_metrics(chains: list[SentenceChain], *, render=False, return_renderabl
         'avg_centroid_sim_6': {'name': "Average Similarity to Centroid (len >= 6)", 'value': avg_chain_centroid_similarity(chains, min_size=6)}
     }
 
-    console = Console()
     if render or return_renderable:
         table = create_table(['Metric', 'Score'], {temp['name']:temp['value'] for temp in metrics.values()}, title="Chaining Metrics")
         if render:
+            console = Console()
             console.print(table)
         if return_renderable:
             return metrics, table 

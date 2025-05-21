@@ -1,18 +1,30 @@
-from .clustering import ChainCluster
+from .clustering import ChainCluster, ChainClustering
 from .elastic import Session, Document, ElasticDocument
 from .sentence import Sentence, SentenceChain, SentenceLike, split_to_sentences
 import pickle
 import os
 import sys
 from dataclasses import dataclass, field
+from typing import overload, Union
+from sentence_transformers import SentenceTransformer
 
 @dataclass
 class ProcessedDocument():
     doc: Document
-    chains: list[SentenceChain]
-    labels: list[int]
-    clusters: dict[int, ChainCluster]
+    clustering: ChainClustering
     params: dict = field(default=None)
+
+    @property
+    def chains(self) -> list[SentenceChain]:
+        return self.clustering.chains
+    
+    @property
+    def labels(self) -> list[int]:
+        return self.clustering.labels
+    
+    @property
+    def clusters(self) -> dict[int, ChainCluster]:
+        return self.clustering.clusters
 
 #Things relating to the document itself will be retrieved either from elasticsearch or from the cache
 #   Document has already been retrieved. Also, we do not care about its type. Could be Document or ElasticDocument
@@ -23,7 +35,7 @@ class ProcessedDocument():
 #...as well as the chains that have formed (with their representative, and all other information)
 #Same thing with the chain clusters: we need to store everything
 
-def save_clusters(clusters: dict, path: str, *, params: dict = None):
+def save_clusters(clustering: ChainClustering, path: str, *, params: dict = None):
     '''
     Saves clusters of one specific document to a pickle file
 
@@ -36,7 +48,7 @@ def save_clusters(clusters: dict, path: str, *, params: dict = None):
     params: dict, optional
         The parameters used for all operations (e.g. chaining threshold, pooling methods, UMAP parameters, etc)
     '''
-    out = [c.data() for c in clusters.values()]
+    out = clustering.data()
 
     with open(os.path.join(path, f"{out[0]['id']}.pkl"), "wb") as f:
         pickle.dump({'params': params, 'data': out}, f)
@@ -75,9 +87,15 @@ def restore_clusters(doc: Document, path: str) -> ProcessedDocument:
     chains = list([tup[0] for tup in offset_and_label])
     labels = list([tup[1] for tup in offset_and_label])
 
-    return ProcessedDocument(doc, chains, labels, clusters, params)
+    return ProcessedDocument(doc, ChainClustering(chains, labels, clusters), params)
 
 #=====================================================================================================
+
+@overload
+def load_pickles(sess: Session, path: str, docs: int) -> ProcessedDocument: ...
+
+@overload
+def load_pickles(sess: Session, path: str, docs: list[int]) -> list[ProcessedDocument]: ...
 
 def load_pickles(sess: Session, path: str, docs: int|list[int]) -> ProcessedDocument|list[ProcessedDocument]:
     out = []
@@ -94,3 +112,5 @@ def load_pickles(sess: Session, path: str, docs: int|list[int]) -> ProcessedDocu
         return out[0]
     else:
         return out
+    
+#=====================================================================================================

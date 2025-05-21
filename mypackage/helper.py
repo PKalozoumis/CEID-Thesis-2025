@@ -147,6 +147,7 @@ def write_to_excel_tab(worksheet, title: str, row_data: dict[str, list], column_
     first_width: float
         Maximum width of the first column. Only if row_offset is not None, meaning that we draw tables vertically
     '''
+
     if row_offset is None and column_offset is None:
         raise ValueError("Set either row_offset or column_offset")
     
@@ -180,7 +181,7 @@ def write_to_excel_tab(worksheet, title: str, row_data: dict[str, list], column_
     for rownum, (rowname, rowlist) in enumerate(row_data.items()):
         max_rowname = max(max_rowname, len(rowname))
         worksheet.write(temp_row_offset+1+rownum+1, temp_col_offset, rowname, name_fmt)
-        worksheet.write_row(temp_row_offset+1+rownum+1, temp_col_offset+1, round_data(rowlist), global_fmt)
+        worksheet.write_row(temp_row_offset+1+rownum+1, temp_col_offset+1, round_data(rowlist, to_string=True), global_fmt)
 
     worksheet.set_column(temp_col_offset,temp_col_offset,max_rowname)
 

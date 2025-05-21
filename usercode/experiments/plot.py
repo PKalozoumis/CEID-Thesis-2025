@@ -103,7 +103,7 @@ def compare(experiment_names: str, imgpath, docs: list[int], sess: Session, *, m
             visualize_clustering(pkl.chains, pkl.labels, ax=ax, return_legend=True, min_dista=pkl.params['min_dista'], no_outliers=no_outliers)
 
             #Load experiment to get its title
-            score = f" ({clustering_metrics(pkl.chains, pkl.labels, print=False)[metric]['value']:.3f})" if metric is not None else ""
+            score = f" ({clustering_metrics(pkl.clustering, print=False)[metric]['value']:.3f})" if metric is not None else ""
             ax.set_title(pkl.params['title'] + score)
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
@@ -158,6 +158,36 @@ def interdoc2(pkl_list: list[ProcessedDocument], imgpath, sess: Session, no_outl
     fig.savefig(os.path.join(imgpath, f"interdoc2_{sess.index_name.replace('-index', '')}_{experiment_name}{'_no_outliers' if no_outliers else ''}.png"))
     plt.close(fig)
 
+#=============================================================================================================
+
+def centroids(pkl_list: list[ProcessedDocument], imgpath, sess: Session, extra_vector = None):
+    fig, ax = plt.subplots(figsize=(8.4, 4.8))
+    fig.subplots_adjust(right=0.7)
+    fig.suptitle(f"Cluster centroids visualized on the same space ({sess.index_name})")
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    legend_elements = []
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
+        cmap = plt.cm.get_cmap("tab20").colors
+
+    centroids = []
+    labels = []
+    for i, pkl in enumerate(pkl_list):
+        for cluster in pkl.clustering:
+            if cluster.label > -1:
+                centroids.append(cluster) #The vector will be extracted inside the visualization function
+                labels.append(i)
+        legend_elements.append(Patch(facecolor=cmap[(2*i + int(i > 9))%20], label=f'Document {pkl.doc.id:04}'))
+
+    visualize_clustering(centroids, labels, ax=ax, return_legend=True, extra_vector=extra_vector)
+
+    ax.legend(handles=legend_elements, bbox_to_anchor=(1, 1))
+    fig.savefig(os.path.join(imgpath, f"centroids_{sess.index_name.replace('-index', '')}_{experiment_name}.png"))
+    plt.close(fig)
+
 
 #=============================================================================================================
 
@@ -174,7 +204,9 @@ if __name__ == "__main__":
         "full",
         "compare",
         "interdoc",
-        "interdoc2"
+        "interdoc2",
+        "centroids",
+        "query"
     ], default="full")
     parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=VALID_METRICS)
     parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
@@ -241,16 +273,23 @@ if __name__ == "__main__":
             compare(args.x, imgpath, docs_to_retrieve, sess, metric=args.metric, no_outliers=args.no_outliers)
 
         #---------------------------------------------------------------------------
-        elif args.p in ['interdoc', 'interdoc2']:
+        elif args.p in ['interdoc', 'interdoc2', 'centroids', 'query']:
             #For a specific experiment, draw all cluster from all document onto one plot
 
             if args.x is None:
                 args.x = "default"
 
             for experiment_name in args.x.split(","):
+                console.print(f"Plotting experiment '{experiment_name}'")
                 pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)
                 
-                if args.p == "interdoc":
-                    interdoc(pkl, imgpath, sess, args.no_outliers)
-                else:
-                    interdoc2(pkl, imgpath, sess, args.no_outliers)
+                match args.p:
+                    case "interdoc": interdoc(pkl, imgpath, sess, args.no_outliers)
+                    case "interdoc2": interdoc2(pkl, imgpath, sess, args.no_outliers)
+                    case "centroids": centroids(pkl, imgpath, sess)
+                    case "query":
+                        query_text = "What are the primary behaviours and lifestyle factors that contribute to childhood obesity"
+                        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
+                        query_vector = model.encode(query_text)
+
+                        centroids(pkl, imgpath, sess, extra_vector=query_vector)

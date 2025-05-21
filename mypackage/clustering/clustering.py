@@ -1,9 +1,8 @@
 #from sklearn.cluster._hdbscan.hdbscan import HDBSCAN
 from hdbscan import HDBSCAN
 from ..sentence import SentenceChain
-from .classes import ChainCluster
+from .classes import ChainCluster, ChainClustering
 import numpy as np
-import seaborn as sns
 from matplotlib import pyplot as plt
 from umap import UMAP
 from numpy import ndarray
@@ -11,7 +10,6 @@ import warnings
 from matplotlib.patches import Patch
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-
 from sklearn.metrics.pairwise import cosine_distances
 
 #===================================================================================================
@@ -52,7 +50,7 @@ def chain_clustering(
         n_neighbors: int = 15,
         pooling_method: str = "average",
         normalize: bool = True
-    ) -> tuple[list[int], dict[int, ChainCluster]]:
+    ) -> ChainClustering:
     '''
     Clusters a list of sentence chains for a single document.
     The chains inside each returned cluster are ordered based on their offset inside the document
@@ -84,30 +82,13 @@ def chain_clustering(
 
         if n_components is not None:
             #Reduce dimensionality before clustering
-            clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", output_metric="cosine", random_state=42, min_dist=min_dista)
+            clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", output_metric="euclidean", random_state=42, min_dist=min_dista)
             reduced_matrix = clustering_reducer.fit_transform(matrix)
         else:
             reduced_matrix = matrix
 
         #Cluster
-
-        #1)
-        #model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean")
-        
-        #2) 4)
-        reduced_matrix = cosine_distances(reduced_matrix).astype(np.float64)
-        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="precomputed")
-
-        #3)
-        '''
-        print(np.linalg.norm(reduced_matrix, axis=1, keepdims=True))
-        norms = np.linalg.norm(reduced_matrix, axis=1, keepdims=True)
-        reduced_matrix = reduced_matrix/norms
-        print(np.linalg.norm(reduced_matrix, axis=1, keepdims=True))
-        reduced_matrix = cosine_distances(reduced_matrix).astype(np.float64)
-        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="precomputed")
-        '''
-
+        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean")
         clustering = model.fit(reduced_matrix)
 
     clusters = group_chains_by_label(chains, clustering.labels_)
@@ -117,7 +98,7 @@ def chain_clustering(
     for label, cluster in clusters.items():
         clustered_chains[label] = ChainCluster(cluster, label, pooling_method, normalize=normalize)
 
-    return list(clustering.labels_), clustered_chains
+    return ChainClustering(chains, list(clustering.labels_), clustered_chains)
 
 #===================================================================================================
 
@@ -144,7 +125,20 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 
 #===================================================================================================
 
-def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[int],*,save_to: str | None = None, show: bool = False, ax: Axes = None, return_legend: bool = False, min_dista: float = 0.1, n_neighbors: int = 15, shape: str = "o", no_outliers: bool = False):
+def visualize_clustering(
+        chains: list[SentenceChain],
+        clustering_labels: list[int],
+        *,
+        save_to: str | None = None,
+        show: bool = False,
+        ax: Axes = None,
+        return_legend: bool = False,
+        min_dista: float = 0.1,
+        n_neighbors: int = 15,
+        shape: str = "o",
+        no_outliers: bool = False,
+        extra_vector = None
+        ):
     '''
     Creates a scatter plot of the clustered chains
 
@@ -207,7 +201,12 @@ def visualize_clustering(chains: list[SentenceChain], clustering_labels: list[in
 
         #Dimensionality reduction
         #-----------------------------------------------------------------------
-        matrix = np.array([chain.vector for chain in chains])
+        vectors = [chain.vector for chain in chains]
+        if extra_vector is not None:
+            vectors.append(extra_vector)
+            colors.append((0, 0, 0))
+            
+        matrix = np.array(vectors)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)

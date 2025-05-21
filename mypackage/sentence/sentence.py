@@ -1,21 +1,13 @@
 
 from sentence_transformers import SentenceTransformer
-import numpy as np
-from sklearn.metrics.pairwise import cosine_distances
-from kmedoids import KMedoids
-from kneed import KneeLocator
-from matplotlib import pyplot as plt
-from ..elastic import elasticsearch_client, ScrollingCorpus, Session, Document
+from ..elastic import Document
 from itertools import pairwise, starmap
-from ..helper import panel_print, lock_kwargs
+from ..helper import lock_kwargs
 from .helper import split_to_sentences
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
-from .metrics import avg_neighbor_chain_distance, avg_within_chain_similarity, chain_metrics
 from .classes import Sentence, SentenceChain, SentenceLike, SimilarityPair
-from functools import partial, wraps
-import warnings
 
 console = Console()
 
@@ -248,74 +240,3 @@ def chaining(method: str):
         case 'buggy': return buggy_merge
         case 'none': return lock_kwargs(iterative_merge, round_limit=0)
         case _: return None
-
-#============================================================================================
-
-def sentence_clustering(embeddings):
-    '''
-    Returns:
-    - Labels
-    - Medoids
-    '''
-    warnings.warn(
-        "sentence_clustering() is deprecated and will be removed in a future version.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-
-    dista = cosine_distances(embeddings)
-
-    inertia = []
-    K_range = list(range(1, len(embeddings)))
-
-    #Find optimal cluster count
-    for k in K_range:
-        clustering = KMedoids(n_clusters=k, metric="precomputed")
-        clustering_model = clustering.fit(dista)
-        inertia.append(clustering_model.inertia_)
-        print(clustering_model.inertia_)
-
-    knee_locator = KneeLocator(K_range, inertia, curve="convex", direction="decreasing")
-    optimal_k = knee_locator.elbow
-    optimal_k = 3
-    print(optimal_k)
-
-    fig, ax = plt.subplots()
-    ax.plot(K_range, inertia, "ro--")
-    #plt.show()
-
-    #Cluster optimal
-    clustering = KMedoids(n_clusters=int(optimal_k), metric="precomputed")
-    clustering_model = clustering.fit(dista)
-    medoids = clustering_model.medoid_indices_
-    print(f"Clustering: {clustering_model.labels_}")
-    print(f"Medoids: {medoids}")
-
-    return clustering_model.labels_, medoids
-
-    #sorted_sentences = sorted(sentences, key=lambda x: query_sim[sentences.index(x)], reverse=True)
-    #print(sorted_sentences)
-
-#============================================================================================
-
-if __name__ == "__main__":
-    session = Session(elasticsearch_client("../credentials.json", "../http_ca.crt"), "arxiv-index")
-    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-    corpus = ScrollingCorpus(session, batch_size=10, doc_field="article")
-
-    for doc in corpus:
-        sentences = doc_to_sentences(doc, model)
-        merged = iterative_merge(sentences, threshold=0.6, round_limit=None, pooling_method="average")
-        print(len(merged[0]))
-        print(merged[0].sentences)
-        panel_print(merged[0].text)
-        
-        #chain_metrics(merged)
-
-        '''
-        labels, medoids = sentence_clustering(embeddings)
-        sorted_data = sorted(zip(labels, sentences), key=lambda x: x[0])
-        clusters = {k: [v for _, v in g] for k, g in groupby(sorted_data, key=lambda x: x[0])}
-        print(clusters)'
-        '''
-        break

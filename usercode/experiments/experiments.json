@@ -11,7 +11,9 @@
         "normalize": true,
         "min_cluster_size": 3,
         "min_samples": 5,
-        "n_neighbors": 15
+        "n_neighbors": 15,
+        "cluster_pooling_method": "average",
+        "cluster_normalize":true
     },
     "buggy": {
         "title": "Old (broken) version",
@@ -41,7 +43,8 @@
         "title": "No normalization of representatives",
         "normalize": false
     },
-    "test":{
-        "title": "Temporary testing"
+    "cluster_no_norm":{
+        "title": "No normalization of cluster representatives",
+        "cluster_normalize": false
     }
 }

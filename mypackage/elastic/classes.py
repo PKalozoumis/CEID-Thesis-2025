@@ -8,6 +8,8 @@ from .elastic import elasticsearch_client
 from elastic_transport import ObjectApiResponse
 import warnings
 from rich.console import Console
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
 console = Console()
 
@@ -23,7 +25,8 @@ class Score(NamedTuple):
 
 class Session():
 
-    #Actually even better: replace cache_dir and use with 'source'
+    #This should also include information about where to retrieved the processed documents from
+    #Could be pickle files (directory) or database (credentials)
     
     client: Elasticsearch
     index_name: str
@@ -289,6 +292,7 @@ class Query():
     match_field: str 
     source: list[str]
     text_path: str
+    vector: np.ndarray
 
     #------------------------------------------------------------------------------------------
 
@@ -320,6 +324,7 @@ class Query():
         self.source = source
         self.text_path = text_path
         self.cache_dir = cache_dir
+        self.vector = None
 
     #------------------------------------------------------------------------------------------
 
@@ -371,6 +376,22 @@ class Query():
             doc_list.append(elastic_doc)
 
         return doc_list
+    
+    def encode(self, sentence_transformer: SentenceTransformer):
+        self.vector = sentence_transformer.encode(self.text)
+
+    def load_vector(self, sentence_transformer: SentenceTransformer, path: str = "query.npy"):
+        if self.vector is not None:
+            return
+
+        if not os.path.exists(path):
+            #print("Encoding query...")
+            self.encode(sentence_transformer)
+            np.save(path, self.vector)
+        else:
+            #print("Loading query from disk...")
+            self.vector = np.load(path)
+
 
 #==============================================================================================
 

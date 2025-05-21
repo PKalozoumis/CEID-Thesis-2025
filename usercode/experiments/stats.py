@@ -14,6 +14,8 @@ from mypackage.elastic import Session, ElasticDocument
 from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION
 from mypackage.sentence.metrics import chain_metrics
 from mypackage.clustering.metrics import clustering_metrics
+from mypackage.sentence import SentenceChain
+from mypackage.clustering import ChainCluster
 
 import numpy as np
 
@@ -42,7 +44,7 @@ console = Console()
 
 #=================================================================================================================
 
-def stats(chains, clusters):
+def stats(chains: list[SentenceChain], clusters: dict[int, ChainCluster]):
     chain_lengths = [len(c) for c in chains]
 
     data = {}
@@ -59,7 +61,7 @@ def stats(chains, clusters):
     data['min_sentence_length'] = np.min(sentence_lengths)
     data['max_sentence_length'] = np.max(sentence_lengths)
 
-    data['num_clusters'] = len(clusters) - 1 #Removing outlier cluster
+    data['num_clusters'] = len(clusters) - (1 if -1 in clusters else 0)
 
     return data
 
@@ -141,7 +143,7 @@ if __name__ == "__main__":
                     for temp in chain_metrics(p.chains).values():
                         chain_rows[temp['name']].append(temp['value'])
 
-                    for temp in clustering_metrics(p.chains, p.labels).values():
+                    for temp in clustering_metrics(p.clustering).values():
                         cluster_rows[temp['name']].append(temp['value'])
 
                     for k,v in ({'id':p.doc.id, 'index': i} | stats(p.chains, p.clusters)).items():
@@ -213,7 +215,7 @@ if __name__ == "__main__":
                     for temp in chain_metrics(pkl.chains).values():
                         chain_rows[temp['name']].append(temp['value'])
 
-                    for temp in clustering_metrics(pkl.chains, pkl.labels).values():
+                    for temp in clustering_metrics(pkl.clustering).values():
                         cluster_rows[temp['name']].append(temp['value'])
 
                     for k,v in ({'id':doc, 'index': i} | stats(pkl.chains, pkl.clusters)).items():

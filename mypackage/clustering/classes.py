@@ -9,6 +9,9 @@ class ChainCluster:
     chains: list[SentenceChain]
     _similarity_sorted_indices: list[int]
     centroid: np.ndarray
+    pooling_method: str
+
+    EXEMPLAR_BASED_METHODS = []
 
     #---------------------------------------------------------------------------
 
@@ -16,18 +19,13 @@ class ChainCluster:
 
         self.label = cluster_label
         self.chains = chains
+        self.pooling_method = pooling_method
+        self._similarity_sorted_indices = None
 
         if cluster_label >= 0:
-            #Calculate centroid
-            chain_matrix = np.array([chain.vector for chain in chains])
-            self.centroid = np.average(chain_matrix, axis=0)
-
-            #Calculate most similar chains
-            sims = np.sum(cosine_similarity(chain_matrix), axis=1)
-            self._similarity_sorted_indices = sorted(range(len(chains)), key=lambda i: sims[i], reverse=True)
+            self.centroid = ChainCluster.pooling(chains, pooling_method, normalize=normalize)
         else:
             self.centroid = None
-            self._similarity_sorted_indices = None
 
     #---------------------------------------------------------------------------
 
@@ -59,6 +57,52 @@ class ChainCluster:
                 return self.kth_most_similar_chain(k)
             else:
                 return None
+            
+    #---------------------------------------------------------------------------
+            
+    @staticmethod
+    def pooling_average(chains: list[SentenceChain], *, normalize: bool = True) -> np.ndarray:
+        vec = np.average(np.row_stack([c.vector for c in chains]), axis=0)
+        return vec / np.linalg.norm(vec) if normalize else vec
+    
+    @staticmethod
+    def pooling_max(chains: list[SentenceChain], *, normalize: bool = True) -> np.ndarray:
+        vec = np.max(np.row_stack([c.vector for c in chains]), axis=0)
+        return vec / np.linalg.norm(vec) if normalize else vec
+
+    @staticmethod
+    def pooling(chains: list[SentenceChain], pooling_method: str, *, normalize: bool = True) -> np.ndarray:
+        '''
+        Arguments
+        ---
+        normalize: bool
+            Normalize the representative after pooling. Defaults to ```True```
+        '''
+
+        #But, there was nothing to pool
+        if len(chains) == 1:
+            return chains[0].vector
+
+        match pooling_method:
+            case "average": return ChainCluster.pooling_average(chains, normalize=normalize)
+            case "max": return ChainCluster.pooling_max(chains, normalize=normalize)
+
+    #---------------------------------------------------------------------------
+
+    def chain_matrix(self) -> np.ndarray:
+        '''
+        Converts the cluster into a matrix, where each row is a chain. Order is maintained
+        '''
+        return np.array([x.vector for x in self.chains])
+    
+    #---------------------------------------------------------------------------
+
+    @property
+    def vector(self):
+        '''
+        Get the representative vector of this cluster
+        '''
+        return self.centroid
         
     #---------------------------------------------------------------------------
         
@@ -76,6 +120,11 @@ class ChainCluster:
         return "\n\n".join([c.text for c in self.chains])
 
     #---------------------------------------------------------------------------
+
+    def __len__(self) -> int:
+        return len(self.chains)
+    
+    #---------------------------------------------------------------------------
     
     @property
     def doc(self) -> Document:
@@ -88,6 +137,8 @@ class ChainCluster:
             'id': self.doc.id,
             'label': self.label,
             'centroid': self.centroid,
+            'pooling_method': self.pooling_method,
+            'similarity_sorted_indices': self._similarity_sorted_indices,
             'chains': [
                 c.data() for c in self.chains
             ]
@@ -101,6 +152,22 @@ class ChainCluster:
         obj.chains = [SentenceChain.from_data(chain_data, doc) for chain_data in data['chains']]
         obj.label = data['label']
         obj.centroid = data['centroid']
-        obj._similarity_sorted_indices = None #This will be calculated the first time it's asked
+        obj._similarity_sorted_indices = data.get('similarity_sorted_indices', None)
+        obj.pooling_method = data.get('pooling_method', "average")
 
         return obj
+    
+@dataclass
+class ChainClustering():
+    '''
+    Represents the clustering input data and results of one single document
+    '''
+    chains: list[SentenceChain]
+    labels: list[int]
+    clusters: dict[int, ChainCluster]
+
+    def data(self) -> int:
+        return [c.data() for c in self.clusters.values()]
+    
+    def __iter__(self):
+        return iter(self.clusters.values())
