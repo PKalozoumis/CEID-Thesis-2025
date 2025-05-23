@@ -1,5 +1,5 @@
 from rich.panel import Panel
-from rich.console import Console
+from rich.console import Console, Group
 from rich.table import Table
 import sys
 from itertools import islice
@@ -17,8 +17,17 @@ class DEVICE_EXCEPTION(Exception):
 
 #===================================================================================
 
-def panel_print(text: str, title: str = ""):
-    console.print(Panel(text, title=title, title_align="left", border_style="bold cyan"))
+def panel_print(text: str = "", title: str = "", return_panel=False):
+    if isinstance(text, list):
+        panel = Panel(Group(*text), title=title, title_align="left", border_style="bold cyan")
+        if return_panel:
+            return panel
+        console.print(panel)
+    else:
+        panel = Panel(text, title=title, title_align="left", border_style="bold cyan")
+        if return_panel:
+            return panel
+        console.print(panel)
 
 #===================================================================================
 
@@ -190,3 +199,20 @@ def write_to_excel_tab(worksheet, title: str, row_data: dict[str, list], column_
     else:
         return temp_row_offset + 1 + len(row_data) + 2, max_rowname
 
+#===================================================================================
+
+def binary_search_ranges(ranges: list[tuple], target: int):
+    low, high = 0, len(ranges) - 1
+
+    while low <= high:
+        mid = (low + high) // 2
+        start, end = ranges[mid]
+
+        if start <= target <= end:
+            return mid  # target inside this range
+        elif target < start:
+            high = mid - 1
+        else:  # target > end
+            low = mid + 1
+
+    return -1  # not found in any range

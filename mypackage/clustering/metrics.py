@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 from hdbscan.validity import validity_index
 from dbcv import dbcv
+from itertools import chain
 
 #================================================================================================
 
@@ -146,3 +147,47 @@ def clustering_metrics(clustering: ChainClustering, *, render=False, return_rend
             return metrics, table 
         
     return metrics
+
+#=================================================================================================================
+
+def stats(clustering: ChainClustering):
+    chain_lengths = [len(c) for c in clustering.chains]
+
+    data = {}
+
+    data['num_chains'] = len(clustering.chains)
+    data['avg_chain_length'] = np.average(chain_lengths)
+    data['min_chain_length'] = np.min(chain_lengths)
+    data['max_chain_length'] = np.max(chain_lengths)
+
+    sentence_lengths = [len(c) for c in chain.from_iterable(clustering.chains)]
+    data['num_sentences'] = len(sentence_lengths)
+    data['num_words'] = np.sum(sentence_lengths)
+    data['avg_sentence_length'] = np.average(sentence_lengths)
+    data['min_sentence_length'] = np.min(sentence_lengths)
+    data['max_sentence_length'] = np.max(sentence_lengths)
+
+    data['num_clusters'] = len(clustering.clusters) - (1 if -1 in clustering.clusters else 0)
+
+    return data
+
+#=================================================================================================================
+
+def cluster_stats(cluster: ChainCluster):
+    chain_lengths = [len(c) for c in cluster.chains]
+
+    data = {}
+
+    data['num_chains'] = len(cluster.chains)
+    data['avg_chain_length'] = np.average(chain_lengths)
+    data['min_chain_length'] = np.min(chain_lengths)
+    data['max_chain_length'] = np.max(chain_lengths)
+
+    sentence_lengths = [len(c) for c in chain.from_iterable(cluster.chains)]
+    data['num_sentences'] = len(sentence_lengths)
+    data['num_words'] = np.sum(sentence_lengths)
+    data['avg_sentence_length'] = np.average(sentence_lengths)
+    data['min_sentence_length'] = np.min(sentence_lengths)
+    data['max_sentence_length'] = np.max(sentence_lengths)
+
+    return data

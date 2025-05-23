@@ -1,6 +1,6 @@
 from .clustering import ChainCluster, ChainClustering
 from .elastic import Session, Document, ElasticDocument
-from .sentence import Sentence, SentenceChain, SentenceLike, split_to_sentences
+from .sentence import Sentence, SentenceChain, SentenceLike, doc_to_sentences
 import pickle
 import os
 import sys
@@ -12,6 +12,7 @@ from sentence_transformers import SentenceTransformer
 class ProcessedDocument():
     doc: Document
     clustering: ChainClustering
+    sentences: list[Sentence]
     params: dict = field(default=None)
 
     @property
@@ -25,6 +26,7 @@ class ProcessedDocument():
     @property
     def clusters(self) -> dict[int, ChainCluster]:
         return self.clustering.clusters
+    
 
 #Things relating to the document itself will be retrieved either from elasticsearch or from the cache
 #   Document has already been retrieved. Also, we do not care about its type. Could be Document or ElasticDocument
@@ -74,6 +76,7 @@ def restore_clusters(doc: Document, path: str) -> ProcessedDocument:
 
     #From our cluster objects, we want to get back the labels for all the chains
     offset_and_label = []
+    offset_and_label: list[tuple[SentenceChain, int]]
 
     out = []
 
@@ -87,30 +90,37 @@ def restore_clusters(doc: Document, path: str) -> ProcessedDocument:
     chains = list([tup[0] for tup in offset_and_label])
     labels = list([tup[1] for tup in offset_and_label])
 
-    return ProcessedDocument(doc, ChainClustering(chains, labels, clusters), params)
+    sentences = [sentence for chain in chains for sentence in chain]
+
+    return ProcessedDocument(doc, ChainClustering(chains, labels, clusters), sentences, params)
 
 #=====================================================================================================
 
 @overload
-def load_pickles(sess: Session, path: str, docs: int) -> ProcessedDocument: ...
+def load_pickles(sess: Session, path: str, docs: int|ElasticDocument) -> ProcessedDocument: ...
 
 @overload
-def load_pickles(sess: Session, path: str, docs: list[int]) -> list[ProcessedDocument]: ...
+def load_pickles(sess: Session, path: str, docs: list[int]|list[ElasticDocument]) -> list[ProcessedDocument]: ...
 
-def load_pickles(sess: Session, path: str, docs: int|list[int]) -> ProcessedDocument|list[ProcessedDocument]:
+def load_pickles(sess: Session, path: str, docs: int|list[int]|ElasticDocument|list[ElasticDocument]) -> ProcessedDocument|list[ProcessedDocument]:
     out = []
 
-    if type(docs) is int:
-        temp = [docs]
-    else:
+    if isinstance(docs, list):
         temp = docs
-
-    for id in temp:
-        out.append(restore_clusters(ElasticDocument(sess, id, text_path="article"), path))
-
-    if type(docs) is int:
-        return out[0]
     else:
+        temp = [docs]
+
+    for item in temp:
+        if isinstance(item, ElasticDocument):
+            #We passed an existing document, so we use it
+            out.append(restore_clusters(item, path))
+        elif type(item) is int:
+            #We only passed a document id, so we have to retrieve it first
+            out.append(restore_clusters(ElasticDocument(sess, id, text_path="article"), path))
+
+    if isinstance(docs, list):
         return out
+    else:
+        return out[0]
     
 #=====================================================================================================

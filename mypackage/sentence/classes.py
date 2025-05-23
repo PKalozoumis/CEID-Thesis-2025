@@ -7,6 +7,10 @@ from functools import cached_property
 import json
 from itertools import chain
 from .helper import split_to_sentences
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..clustering.classes import ChainCluster
 
 #============================================================================================
 
@@ -61,6 +65,7 @@ class Sentence(SentenceLike):
     _vector: ndarray
     doc: Document
     offset: int = field(default=-1)
+    parent_chain: "SentenceChain" = field(default=None)
 
     def __str__(self):
         return self.text
@@ -89,6 +94,7 @@ class SentenceChain(SentenceLike):
     _vector: ndarray
     sentences: list[Sentence]
     pooling_method: str
+    parent_cluster: "ChainCluster" = field(default=None)
 
     EXEMPLAR_BASED_METHODS = []
 
@@ -166,7 +172,7 @@ class SentenceChain(SentenceLike):
         return self.sentences[key]
     
     def __str__(self):
-        return json.dumps([s.text for s in self.sentences])
+        return f"SentenceChain(start_offset={self.offset}, size={self.__len__()}, end_offset={self.offset + self.__len__() - 1})"
     
     @property
     def vector(self):
@@ -189,6 +195,10 @@ class SentenceChain(SentenceLike):
     def offset(self) -> int:
         return self.sentences[0].offset
     
+    @property
+    def offset_range(self) -> range:
+        return range(self.offset, self.offset + self.__len__())
+
     def data(self) -> dict:
         return {
             'vector': self.vector,
@@ -198,13 +208,14 @@ class SentenceChain(SentenceLike):
         }
     
     @classmethod
-    def from_data(cls, data: dict, doc: Document) -> 'SentenceChain':
+    def from_data(cls, data: dict, doc: Document, *, parent: "ChainCluster" = None) -> 'SentenceChain':
         obj = cls.__new__(cls)
         obj._vector = data['vector']
         obj.pooling_method = data['pooling_method']
+        obj.parent_cluster = parent
 
         offset = data['offset']
         text = split_to_sentences(doc.text)
-        obj.sentences = [Sentence(text[offset + i], vec, doc, offset + i) for i, vec in enumerate(data['sentences'])]
+        obj.sentences = [Sentence(text[offset + i], vec, doc, offset + i, parent_chain=obj) for i, vec in enumerate(data['sentences'])]
 
         return obj

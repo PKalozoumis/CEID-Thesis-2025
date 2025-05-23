@@ -13,9 +13,9 @@ from collections import namedtuple
 from mypackage.elastic import Session, ElasticDocument
 from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION
 from mypackage.sentence.metrics import chain_metrics
-from mypackage.clustering.metrics import clustering_metrics
+from mypackage.clustering.metrics import clustering_metrics, stats
 from mypackage.sentence import SentenceChain
-from mypackage.clustering import ChainCluster
+from mypackage.clustering import ChainClustering
 
 import numpy as np
 
@@ -41,29 +41,6 @@ from collections import defaultdict
 import xlsxwriter
 
 console = Console()
-
-#=================================================================================================================
-
-def stats(chains: list[SentenceChain], clusters: dict[int, ChainCluster]):
-    chain_lengths = [len(c) for c in chains]
-
-    data = {}
-
-    data['num_chains'] = len(chains)
-    data['avg_chain_length'] = np.average(chain_lengths)
-    data['min_chain_length'] = np.min(chain_lengths)
-    data['max_chain_length'] = np.max(chain_lengths)
-
-    sentence_lengths = [len(c) for c in chain.from_iterable(chains)]
-    data['num_sentences'] = len(sentence_lengths)
-    data['num_words'] = np.sum(sentence_lengths)
-    data['avg_sentence_length'] = np.average(sentence_lengths)
-    data['min_sentence_length'] = np.min(sentence_lengths)
-    data['max_sentence_length'] = np.max(sentence_lengths)
-
-    data['num_clusters'] = len(clusters) - (1 if -1 in clusters else 0)
-
-    return data
 
 #=================================================================================================================
 
@@ -146,7 +123,7 @@ if __name__ == "__main__":
                     for temp in clustering_metrics(p.clustering).values():
                         cluster_rows[temp['name']].append(temp['value'])
 
-                    for k,v in ({'id':p.doc.id, 'index': i} | stats(p.chains, p.clusters)).items():
+                    for k,v in ({'id':p.doc.id, 'index': i} | stats(p.clustering)).items():
                         stat_rows[k].append(v)
 
                 #Write to excel file
@@ -218,7 +195,7 @@ if __name__ == "__main__":
                     for temp in clustering_metrics(pkl.clustering).values():
                         cluster_rows[temp['name']].append(temp['value'])
 
-                    for k,v in ({'id':doc, 'index': i} | stats(pkl.chains, pkl.clusters)).items():
+                    for k,v in ({'id':doc, 'index': i} | stats(pkl.clustering)).items():
                         stat_rows[k].append(v)
 
                 #Write to excel file

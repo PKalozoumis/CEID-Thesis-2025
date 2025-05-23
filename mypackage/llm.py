@@ -95,3 +95,33 @@ You must strictly adhere to these guidelines:
     result = model.respond(chat, response_format=schema)
 
     return json.loads(result.content)
+
+#================================================================================================
+
+def summarize(query: str, text: str):
+
+    system_prompt = f'''You are an expert summarizer. Given the following query and text, provide a clear and concise
+summary answering the query based only on the text.
+
+Query:
+-----
+{query}
+
+Text:
+-----
+{text}
+'''
+    
+    schema = {
+        "type": "object",
+        "properties": {
+            "summary": { "type": "string" },
+        },
+        "required": ["summary"],
+    }
+    
+    chat = lms.Chat(system_prompt)
+    
+    chat.add_user_message(text)
+    for fragment in model.respond_stream(chat, response_format=schema):
+        yield fragment.content

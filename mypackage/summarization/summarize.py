@@ -2,11 +2,18 @@
 from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, TextIteratorStreamer, TextStreamer
 import sys
 import os
-from ..elastic.elastic import Session, ElasticDocument
+from ..elastic import Session, ElasticDocument
 from threading import Thread
 from rich.live import Live
 from rich.console import Console
 from rich.panel import Panel
+from sentence_transformers import CrossEncoder
+from transformers import AutoTokenizer
+
+def evaluate_summary_relevance(model: CrossEncoder, summary: str, query: str):
+    tokenizer = AutoTokenizer.from_pretrained('cross-encoder/ms-marco-MiniLM-L12-v2')
+    tokens = tokenizer(summary)
+    print(tokens)
 
 if __name__ == "__main__":
     model_path = "google/bigbird-pegasus-large-arxiv"

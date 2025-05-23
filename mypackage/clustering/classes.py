@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from ..sentence import SentenceChain
-from ..elastic import Document
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from functools import cached_property
+from ..sentence import SentenceChain
+from ..elastic import Document
 
 class ChainCluster:
     label: int
@@ -105,6 +106,12 @@ class ChainCluster:
         return self.centroid
         
     #---------------------------------------------------------------------------
+
+    @cached_property
+    def text(self) -> str:
+        return "\n\n".join([c.text for c in self.chains])
+    
+    #---------------------------------------------------------------------------
         
     def __getitem__(self, i: int) -> SentenceChain:
         return self.chains[i]
@@ -113,11 +120,6 @@ class ChainCluster:
         
     def __iter__(self):
         return iter(self.chains)
-    
-    #---------------------------------------------------------------------------
-
-    def text(self):
-        return "\n\n".join([c.text for c in self.chains])
 
     #---------------------------------------------------------------------------
 
@@ -127,9 +129,13 @@ class ChainCluster:
     #---------------------------------------------------------------------------
     
     @property
-    def doc(self) -> Document:
+    def doc(self) -> "Document":
         return self.chains[0].doc
     
+    @property
+    def id(self) -> str:
+        return f"{self.doc.id:04}_{self.label:02}"
+
     #---------------------------------------------------------------------------
 
     def data(self) -> dict:
@@ -147,15 +153,17 @@ class ChainCluster:
     #---------------------------------------------------------------------------
 
     @classmethod
-    def from_data(cls, data: dict, doc: Document) -> 'ChainCluster':
+    def from_data(cls, data: dict, doc: "Document") -> 'ChainCluster':
         obj = cls.__new__(cls)
-        obj.chains = [SentenceChain.from_data(chain_data, doc) for chain_data in data['chains']]
+        obj.chains = [SentenceChain.from_data(chain_data, doc, parent=obj) for chain_data in data['chains']]
         obj.label = data['label']
         obj.centroid = data['centroid']
         obj._similarity_sorted_indices = data.get('similarity_sorted_indices', None)
         obj.pooling_method = data.get('pooling_method', "average")
 
         return obj
+    
+#====================================================================================================
     
 @dataclass
 class ChainClustering():
