@@ -191,16 +191,25 @@ def iterative_merge(
     #So 0 essentially disables chaining
     #This will create a separate chain for each sentence
     if round_limit == 0:
-        #This will use default kw params, but it's ok, since it's only one sentence
         #Nothing is affected. No pooling happens
-        return list(map(SentenceChain, sentences)) 
+        return [SentenceChain(s, index=i) for i, s in enumerate(sentences)] 
     
     #We check the sentences in pairs to see if their similarity is above the threshold
     pairs = [SimilarityPair.from_sentences(s1, s2) for s1, s2 in pairwise(sentences)]
 
     #No more merging can happen, since all pairs are below the threshold
+    #-------------------------------------------------------------------------------------
     if not any(filter(lambda x: x.sim >= threshold, pairs)):
+        #Very rare. Failure on the first round
+        if isinstance(sentences[0], Sentence):
+            print("If you're reading this, there might be a problem")
+            return [SentenceChain(s, index=i) for i, s in enumerate(sentences)] 
+        
+        for i,s in enumerate(sentences):
+            s.index = i
         return sentences
+    
+    #-------------------------------------------------------------------------------------
 
     chains: list[list[SentenceLike]] = []
     appended_first_full_pair = False
@@ -222,6 +231,8 @@ def iterative_merge(
             else: #Create new chain for this sentence
                 chains.append([pair.s2])
 
+    #-------------------------------------------------------------------------------------
+
     result = [SentenceChain(c, pooling_method, normalize=normalize) for c in chains]
     
     if round_limit is None:
@@ -229,6 +240,8 @@ def iterative_merge(
     elif round_limit > 1:
         return iterative_merge(result, threshold=threshold, round_limit=round_limit-1, pooling_method=pooling_method, normalize=normalize)
     else: #round_limit == 1
+        for i,s in enumerate(result):
+            s.index = i
         return result
 
 #============================================================================================

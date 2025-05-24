@@ -90,6 +90,11 @@ def restore_clusters(doc: Document, path: str) -> ProcessedDocument:
     chains = list([tup[0] for tup in offset_and_label])
     labels = list([tup[1] for tup in offset_and_label])
 
+    #Assign index to each chain
+    #(temporary, because currently the index is not stored in the pickles)
+    for i, chain in enumerate(chains):
+        chain.index = i
+
     sentences = [sentence for chain in chains for sentence in chain]
 
     return ProcessedDocument(doc, ChainClustering(chains, labels, clusters), sentences, params)
@@ -116,7 +121,7 @@ def load_pickles(sess: Session, path: str, docs: int|list[int]|ElasticDocument|l
             out.append(restore_clusters(item, path))
         elif type(item) is int:
             #We only passed a document id, so we have to retrieve it first
-            out.append(restore_clusters(ElasticDocument(sess, id, text_path="article"), path))
+            out.append(restore_clusters(ElasticDocument(sess, item, text_path="article"), path))
 
     if isinstance(docs, list):
         return out

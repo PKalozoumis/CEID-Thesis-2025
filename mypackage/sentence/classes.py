@@ -7,7 +7,7 @@ from functools import cached_property
 import json
 from itertools import chain
 from .helper import split_to_sentences
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from ..clustering.classes import ChainCluster
@@ -85,6 +85,32 @@ class Sentence(SentenceLike):
     def __array__(self, dtype=None):
         return self._vector
     
+    #----------------------------------------------------------------------------------------------
+
+    def next(self, n: int = 1, *, force_list: bool = False) -> Union['Sentence', list['Sentence']]:
+        #print(f"{'-'*60}\nnext_sentence(n={n})")
+        if n < 1:
+            if force_list:
+                return [self]
+            return self
+        #The parent chain is responsible for returning the most sentences it can
+        #It will return the max number of sentences that it owns, and it will delegate responsibility
+        #to the next chain for the remaining sentences
+        return self.parent_chain.get_next_sentences(self.offset, n, force_list=force_list)
+    
+    #----------------------------------------------------------------------------------------------
+    
+    def prev(self, n: int = 1, *, force_list: bool = False) -> Union['Sentence', list['Sentence']]:
+        print(f"{'-'*60}\nprev_sentence(n={n})")
+        if n < 1:
+            if force_list:
+                return [self]
+            return self
+        #The parent chain is responsible for returning the most sentences it can
+        #It will return the max number of sentences that it owns, and it will delegate responsibility
+        #to the previous chain for the remaining sentences
+        return self.parent_chain.get_prev_sentences(self.offset, n, force_list=force_list)
+    
 #============================================================================================
     
 class SentenceChain(SentenceLike):
@@ -94,7 +120,8 @@ class SentenceChain(SentenceLike):
     _vector: ndarray
     sentences: list[Sentence]
     pooling_method: str
-    parent_cluster: "ChainCluster" = field(default=None)
+    parent_cluster: "ChainCluster"
+    index: int #The chain index in the global list of chains
 
     EXEMPLAR_BASED_METHODS = []
 
@@ -107,6 +134,8 @@ class SentenceChain(SentenceLike):
         '''
         #REMEMBER: Never mix Sentence and SentenceChain in the same iterable
 
+        self.index = None
+        self.parent_cluster = None
         self.pooling_method = pooling_method
 
         #Convert single sentence into a list with only one sentence (or chain)
@@ -168,9 +197,139 @@ class SentenceChain(SentenceLike):
     def __array__(self, dtype=None):
         return self._vector
     
-    def __getitem__(self, key:int):
+    def __getitem__(self, key:int) -> Sentence:
         return self.sentences[key]
     
+    def get_global(self, global_key: int) -> Sentence:
+        if global_key not in self.offset_range:
+            raise ValueError(f"The global sentence index {global_key} is not in the chain's range {self.offset_range}")
+
+        return self.sentences[global_key - self.offset]
+    
+    #--------------------------------------------------------------------------------------------------------------------------
+    
+    def get_next_sentences(self, offset: int, n: int = 1, *, force_list: bool = False) -> Sentence | list[Sentence]:
+        '''
+        Arguments
+        ---
+        offset: int
+            The offset of the sentence that is requesting the next sentences.
+            In other words, this is NOT the offset of the first retrieved sentence, but the one before
+        n: int
+            The number of next sentences to retrieve. Defaults to ```1```
+
+        force_list: bool
+            Force the result to be returned as a list, even for a single sentence. Defauls to ```False```
+
+        Returns
+        ---
+        sentences: Sentence | list[Sentence]
+            A list with the next ```n``` sentences. If ```n==1```, then only one ```Sentence``` is returned,
+            unless ```force_list==True```
+        '''
+        #print(f"get_next_sentences(requester_offset={offset}, n={n}) len={self.__len__()}")
+
+        if offset + 1 < self.offset:
+            raise ValueError(f"Chain with offset {self.offset} cannot provide sentences starting from offset {offset}")
+
+        last_owned_offset = self.offset + self.__len__() - 1
+        max_owned_offset_from_requested = min(offset + n, last_owned_offset)
+        remaining_sentences = max(0, offset + n - last_owned_offset)
+
+        #print(f"last_owned_offset = {last_owned_offset}")
+        #print(f"max_owned_offset_from_requested = {max_owned_offset_from_requested}")
+        #print(f"remaining_sentences = {remaining_sentences}")
+
+        #Sentences from the next chain
+        extra_sentences = []
+
+        if remaining_sentences > 0:
+            #Το 'πα εγώ στον σκύλο μου κι' ο σκύλος στην ουρά του
+            extra_sentences = self.next().get_next_sentences(last_owned_offset, remaining_sentences, force_list=True)
+
+        #print(f"start={offset + 1 - self.offset}")
+        #print(f"end={max_owned_offset_from_requested - self.offset + 1}")
+
+        result = self.sentences[(offset + 1 - self.offset) : (max_owned_offset_from_requested - self.offset + 1)] + extra_sentences
+
+        if force_list:
+            return result
+        
+        return result if n > 1 else result[0]
+    
+    #--------------------------------------------------------------------------------------------------------------------------
+    
+    def get_prev_sentences(self, offset: int, n: int = 1, *, force_list: bool = False) -> Sentence | list[Sentence]:
+        '''
+        Arguments
+        ---
+        offset: int
+            The offset of the sentence that is requesting the previous sentences.
+            In other words, this is NOT the offset of the last retrieved sentence, but the one after
+        n: int
+            The number of next sentences to retrieve. Defaults to ```1```
+
+        force_list: bool
+            Force the result to be returned as a list, even for a single sentence. Defauls to ```False```
+
+        Returns
+        ---
+        sentences: Sentence | list[Sentence]
+            A list with the previous ```n``` sentences. If ```n==1```, then only one ```Sentence``` is returned,
+            unless ```force_list==True```
+        '''
+        print(f"get_prev_sentences(requester_offset={offset}, n={n}) len={self.__len__()}")
+
+        if offset + 1 < self.offset:
+            raise ValueError(f"Chain with offset {self.offset} cannot provide sentences starting from offset {offset}")
+
+        first_owned_offset = self.offset
+        min_owned_offset_from_requested = max(offset - n, first_owned_offset)
+        remaining_sentences = max(0, first_owned_offset - offset + n)
+
+        print(f"first_owned_offset = {first_owned_offset}")
+        print(f"min_owned_offset_from_requested = {min_owned_offset_from_requested}")
+        print(f"remaining_sentences = {remaining_sentences}")
+
+        #Sentences from the next chain
+        extra_sentences = []
+
+        if remaining_sentences > 0:
+            #Το 'πα εγώ στον σκύλο μου κι' ο σκύλος στην ουρά του
+            extra_sentences = self.prev().get_prev_sentences(first_owned_offset, remaining_sentences, force_list=True)
+
+        print(f"start={min_owned_offset_from_requested - self.offset}")
+        print(f"end={offset - self.offset}")
+
+        result = extra_sentences + self.sentences[(min_owned_offset_from_requested - self.offset) : (offset - self.offset)]
+
+        if force_list:
+            return result
+        
+        return result if n > 1 else result[0]
+    
+    #--------------------------------------------------------------------------------------------------------------------------
+
+    def next(self) -> 'SentenceChain':
+        '''
+        Returns the next chain of the document, regardless of the cluster it belongs to.
+        A clustering context must exist for this to work.
+        '''
+        #print(f"next_chain(self.index={self.index})")
+        return self.parent_cluster.clustering_context.chains[self.index + 1]
+    
+    #--------------------------------------------------------------------------------------------------------------------------
+    
+    def prev(self) -> 'SentenceChain':
+        '''
+        Returns the previous chain of the document, regardless of the cluster it belongs to.
+        A clustering context must exist for this to work.
+        '''
+        #print(f"previous_chain(self.index={self.index})")
+        return self.parent_cluster.clustering_context.chains[self.index - 1]
+    
+    #--------------------------------------------------------------------------------------------------------------------------
+
     def __str__(self):
         return f"SentenceChain(start_offset={self.offset}, size={self.__len__()}, end_offset={self.offset + self.__len__() - 1})"
     
@@ -204,6 +363,7 @@ class SentenceChain(SentenceLike):
             'vector': self.vector,
             'offset': self.offset,
             'pooling_method': self.pooling_method,
+            'index': self.index,
             'sentences': [s.vector for s in self.sentences]
         }
     
@@ -213,6 +373,7 @@ class SentenceChain(SentenceLike):
         obj._vector = data['vector']
         obj.pooling_method = data['pooling_method']
         obj.parent_cluster = parent
+        obj.index = data.get('index', None)
 
         offset = data['offset']
         text = split_to_sentences(doc.text)

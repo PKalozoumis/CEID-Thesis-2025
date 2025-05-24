@@ -11,6 +11,7 @@ class ChainCluster:
     _similarity_sorted_indices: list[int]
     centroid: np.ndarray
     pooling_method: str
+    clustering_context: 'ChainClustering'
 
     EXEMPLAR_BASED_METHODS = []
 
@@ -22,6 +23,7 @@ class ChainCluster:
         self.chains = chains
         self.pooling_method = pooling_method
         self._similarity_sorted_indices = None
+        self.clustering_context = None
 
         if cluster_label >= 0:
             self.centroid = ChainCluster.pooling(chains, pooling_method, normalize=normalize)
@@ -173,6 +175,10 @@ class ChainClustering():
     chains: list[SentenceChain]
     labels: list[int]
     clusters: dict[int, ChainCluster]
+
+    def __post_init__(self):
+        for cluster in self.clusters.values():
+            cluster.clustering_context = self
 
     def data(self) -> int:
         return [c.data() for c in self.clusters.values()]

@@ -42,7 +42,7 @@ class SelectedCluster():
 
     cluster: ChainCluster
     query: Query
-    score: float #Similarity to query
+    sim: float #Similarity to query
     scored_chains: list[ScoredChain] = field(default=None)
 
     #---------------------------------------------------------------------------
@@ -74,6 +74,16 @@ class SelectedCluster():
         #Sort chains
         self.scored_chains = [self.ScoredChain(chain, score) for score, chain in sorted(zip(scores, self.cluster), reverse=True)]
         return self
+    
+    #---------------------------------------------------------------------------
+    
+    @property
+    def cross_score(self, model: CrossEncoder) -> 'SelectedCluster':
+        if self.chain_scores is None:
+            self.evaluate_chains(model)
+
+        return sum([c.score for c in self.scored_chains])
+        
     
     #---------------------------------------------------------------------------
     
@@ -112,6 +122,54 @@ def load_summary(cluster: SelectedCluster):
 
 #===============================================================================================================
 
+def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, method: str = "thres") -> list[SelectedCluster]:
+    #Load the clusters corresponding to the retrieved documents
+    pkl_list = load_pickles(sess, "../experiments/pubmed-index/pickles/default", docs = docs)
+
+    #Extract all the clusters from all the retrieved documents, into one container
+    #Keep track which document each cluster came from
+    #Ignore outlier clusters
+    clusters = []
+    doc_labels = []
+
+    for doc_number, pkl in enumerate(pkl_list):
+        for cluster in pkl.clustering:
+            if cluster.label > -1:
+                clusters.append(cluster)
+                doc_labels.append(doc_number)
+
+    #visualize_clustering(clusters, doc_labels, show=True)
+
+    #Find the similarity to each cluster centroid
+    #Select best clusters
+    #----------------------------------------------------------------------------------------------------------
+    sim = cosine_similarity([cluster.vector for cluster in clusters], query.vector.reshape((1,-1)))
+    sorted_clusters = [list(x) for x in sorted(zip(map(methodcaller("__getitem__", 0), sim), clusters, doc_labels), reverse=True)]
+
+    selected_clusters = []
+    selected_clusters: list[SelectedCluster]
+
+    if method == "topk":
+        #Mark top k clusters
+        k = 7
+        for i in range(k):
+            sorted_clusters[i][2] = 11
+            #print(sorted_clusters[i][0])
+            console.print((sorted_clusters[i][1].doc.id, sorted_clusters[i][0]))
+            selected_clusters.append(SelectedCluster(sorted_clusters[i][1], query, sorted_clusters[i][0]))
+    elif method == "thres":
+        thres = 0.5
+        for cluster in sorted_clusters:
+            if cluster[0] > thres:
+                cluster[2] = 11
+                selected_clusters.append(SelectedCluster(cluster[1], query, cluster[0]))
+            else:
+                break
+
+    return selected_clusters
+
+#===============================================================================================================
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -134,7 +192,7 @@ if __name__ == "__main__":
     query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article", cache_dir="cache")
     #res = query.execute(sess)
 
-    console.print(f"Query: {query.text}")
+    console.print(f"\n[green]Query:[/green] {query.text}\n")
 
     returned_docs = [
         ElasticDocument(sess, id=1923, text_path="article"),
@@ -149,9 +207,6 @@ if __name__ == "__main__":
         ElasticDocument(sess, id=6415, text_path="article")
     ]
 
-    #Load the clusters corresponding to the retrieved documents
-    pkl_list = load_pickles(sess, "../experiments/pubmed-index/pickles/default", docs = returned_docs)
-
     #-----------------------------------------------------------------------------------------------------------------
 
     #Encode the query
@@ -159,62 +214,27 @@ if __name__ == "__main__":
         model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
     else:
         model = None
-
     query.load_vector(model)
-        
-    clusters = []
-    doc_labels = []
 
-    for doc_number, pkl in enumerate(pkl_list):
-        for cluster in pkl.clustering:
-            if cluster.label > -1:
-                clusters.append(cluster)
-                doc_labels.append(doc_number)
+    #Retrieve clusters from docs
+    selected_clusters = cluster_retrieval(sess, returned_docs, query)
 
-    #visualize_clustering(clusters, doc_labels, show=True)
-
-    #Find the similarity to each cluster centroid
-    #Select best clusters
-    #==========================================================================================================================
-    sim = cosine_similarity([cluster.vector for cluster in clusters], query.vector.reshape((1,-1)))
-    sorted_clusters = [list(x) for x in sorted(zip(map(methodcaller("__getitem__", 0), sim), clusters, doc_labels), reverse=True)]
-
-    selected_clusters = []
-    selected_clusters: list[SelectedCluster]
-
-    if args.s == "topk":
-        #Mark top k clusters
-        k = 7
-        for i in range(k):
-            sorted_clusters[i][2] = 11
-            #print(sorted_clusters[i][0])
-            console.print((sorted_clusters[i][1].doc.id, sorted_clusters[i][0]))
-            selected_clusters.append(SelectedCluster(sorted_clusters[i][1], query, sorted_clusters[i][0]))
-    else:
-        thres = 0.5
-        for cluster in sorted_clusters:
-            if cluster[0] > thres:
-                cluster[2] = 11
-                console.print((cluster[1].doc.id, cluster[0]))
-                selected_clusters.append(SelectedCluster(cluster[1], query, cluster[0]))
-            else:
-                break
-
-    #Visualize
-    #===============================================================================================================
-    plt.close('all')
-    #visualize_clustering([t[1] for t in sorted_clusters], [t[2] for t in sorted_clusters], show=True, return_legend=True, extra_vector=query.vector)
+    panel_print([f"Cluster [green]{cluster.id}[/green] with score [cyan]{np.round(cluster.sim, decimals=3):.3f}[/cyan]" for cluster in selected_clusters], title="Retrieved clusters")
 
     if args.print:
         selected_clusters[args.c].print()
 
+    sys.exit()
+
     #Let's evaluate chains
     #===============================================================================================================
     cross_model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2')
-    cross_encoder_threshold = 3
 
     for cluster in selected_clusters:
         cluster.evaluate_chains(cross_model)
+
+    console.print([sc.score for sc in selected_clusters[args.c].scored_chains])
+    console.print(selected_clusters[args.c].scored_chains[0].text)
 
     #What are the cluster sizes:
     '''
