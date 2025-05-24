@@ -13,7 +13,7 @@ from transformers import AutoTokenizer
 def evaluate_summary_relevance(model: CrossEncoder, summary: str, query: str):
     tokenizer = AutoTokenizer.from_pretrained('cross-encoder/ms-marco-MiniLM-L12-v2')
     tokens = tokenizer(summary)
-    print(tokens)
+    #print(tokens)
 
 if __name__ == "__main__":
     model_path = "google/bigbird-pegasus-large-arxiv"

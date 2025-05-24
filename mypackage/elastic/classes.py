@@ -212,7 +212,7 @@ class ElasticDocument(Document):
     session: Session
     filter_path: str
 
-    def __init__(self, session: Session, doc_id: int, *, filter_path: str = "_source", text_path: str | None = None):
+    def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
         '''
         A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
 
@@ -230,7 +230,7 @@ class ElasticDocument(Document):
         text_path: str, optional
             Name of the field (after filter_path is applied, if specified) where the document's body is located
         '''
-        super().__init__(None, doc_id, text_path)
+        super().__init__(None, id, text_path)
 
         self.session = session
         self.filter_path = filter_path

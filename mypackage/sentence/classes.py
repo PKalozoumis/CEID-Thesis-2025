@@ -250,12 +250,12 @@ class SentenceChain(SentenceLike):
         #print(f"start={offset + 1 - self.offset}")
         #print(f"end={max_owned_offset_from_requested - self.offset + 1}")
 
-        result = self.sentences[(offset + 1 - self.offset) : (max_owned_offset_from_requested - self.offset + 1)] + extra_sentences
+        res = self.sentences[(offset + 1 - self.offset) : (max_owned_offset_from_requested - self.offset + 1)] + extra_sentences
 
         if force_list:
-            return result
+            return res
         
-        return result if n > 1 else result[0]
+        return res if n > 1 else res[0]
     
     #--------------------------------------------------------------------------------------------------------------------------
     
@@ -301,37 +301,41 @@ class SentenceChain(SentenceLike):
         print(f"start={min_owned_offset_from_requested - self.offset}")
         print(f"end={offset - self.offset}")
 
-        result = extra_sentences + self.sentences[(min_owned_offset_from_requested - self.offset) : (offset - self.offset)]
+        res = extra_sentences + self.sentences[(min_owned_offset_from_requested - self.offset) : (offset - self.offset)]
 
         if force_list:
-            return result
+            return res
         
-        return result if n > 1 else result[0]
+        return res if n > 1 else res[0]
     
     #--------------------------------------------------------------------------------------------------------------------------
 
-    def next(self) -> 'SentenceChain':
+    def next(self, n: int = 1, *, force_list: bool = False) -> Union['SentenceChain', list['SentenceChain']]:
         '''
         Returns the next chain of the document, regardless of the cluster it belongs to.
         A clustering context must exist for this to work.
         '''
-        #print(f"next_chain(self.index={self.index})")
-        return self.parent_cluster.clustering_context.chains[self.index + 1]
+        res = self.parent_cluster.clustering_context.chains[(self.index + 1) : (self.index + 1 + n)]
+        if force_list:
+            return res
+        return res if n > 1 else res[0] 
     
     #--------------------------------------------------------------------------------------------------------------------------
     
-    def prev(self) -> 'SentenceChain':
+    def prev(self, n: int = 1, *, force_list: bool = False) -> Union['SentenceChain', list['SentenceChain']]:
         '''
         Returns the previous chain of the document, regardless of the cluster it belongs to.
         A clustering context must exist for this to work.
         '''
-        #print(f"previous_chain(self.index={self.index})")
-        return self.parent_cluster.clustering_context.chains[self.index - 1]
+        res = self.parent_cluster.clustering_context.chains[self.index - n : self.index]
+        if force_list:
+            return res
+        return res if n > 1 else res[0] 
     
     #--------------------------------------------------------------------------------------------------------------------------
 
     def __str__(self):
-        return f"SentenceChain(start_offset={self.offset}, size={self.__len__()}, end_offset={self.offset + self.__len__() - 1})"
+        return f"SentenceChain(index={self.index}, start_offset={self.offset}, size={self.__len__()}, end_offset={self.offset + self.__len__() - 1})"
     
     @property
     def vector(self):

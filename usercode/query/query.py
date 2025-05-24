@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath("../.."))
 from mypackage.elastic import Session, Query, ElasticDocument
 from mypackage.storage import load_pickles
 from rich.console import Console
-from mypackage.clustering import visualize_clustering, ChainCluster
+from mypackage.clustering import visualize_clustering, ChainCluster, ChainClustering
 from mypackage.clustering.metrics import cluster_stats
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -18,32 +18,149 @@ from rich.padding import Padding
 from rich.pretty import Pretty
 import numpy as np
 from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer
-from mypackage.sentence import SentenceChain
+from mypackage.sentence import SentenceChain, SentenceLike
 from rich.live import Live
 from rich.panel import Panel
 import argparse
 from mypackage.summarization import evaluate_summary_relevance
 import json
+import copy
+from itertools import chain
+import pickle
 
 from dataclasses import dataclass, field
 
 console = Console()
 
-@dataclass
-class SelectedCluster():
+#================================================================================================================
 
+class SummaryCandidate():
+    '''
+    Represents a list of one or more consecutive chains whose text may be used as input to the summarization model,
+    depending on their relevance to the query. The relevance score of the full span is calculated with a cross-encoder
+    '''
     @dataclass
-    class ScoredChain():
-        chain: SentenceChain
+    class State():
+        chains: list[SentenceChain]
         score: float
 
-        def __getattr__(self, name):
-            return getattr(self.chain, name)
+    chain: SentenceChain #The central chain around which we build the context
+    main_context: State #The representative state that we want to use
+    context_stages: list[tuple[State, str]] #Optional states to show how the addition of more context affects the score. Tuple of (state, action). Main not included
+    model: CrossEncoder #Model used for evaluation
+
+    def __init__(self, chain: SentenceChain, score: float, model: CrossEncoder = None):
+        self.chain = chain
+        self.main_context = self.State([chain], score)
+        self.context_stages = None
+        self.model = model
+
+    @property
+    def context_chains(self):
+        return self.main_context.chains
+    
+    @property
+    def score(self):
+        return self.main_context.score
+    
+    @score.setter
+    def score(self, value: float):
+        self.main_context.score = value
+
+    @property
+    def text(self):
+        return "".join([c.text for c in self.chains])
+    
+    @property
+    def index_range(self):
+        return range(self.chains[0].index, self.chains[-1].index + 1)
+    
+    def add_forward_context(self, n: int = 1):
+        self.context_stages.append((copy.copy(self.main_context), f"forward {n}"))
+        self.main_context.chains.extend(self.main_context.chains[-1].next(n, force_list=True))
+
+    def add_backward_context(self, n: int = 1):
+        self.context_stages.append((copy.copy(self.main_context), f"backward {n}"))
+        self.main_context.chains = self.main_context.chains[0].prev(n, force_list=True) + self.main_context.chains
+
+#================================================================================================================
+
+@dataclass
+class SelectedCluster():
+    '''
+    Represents a cluster that is semanticall close to a given query.
+    It contains a list of chains, along with their cross-encoder similarity scores
+    to the query. The overall cluster is further classified based on these partial score
+    '''
 
     cluster: ChainCluster
     query: Query
     sim: float #Similarity to query
-    scored_chains: list[ScoredChain] = field(default=None)
+    candidates: list[SummaryCandidate] = field(default=None) #Looks confusing, but it's essentially the chains of the cluster, sorted by score
+    model: CrossEncoder = field(default=None)
+
+    #Temporary. For debugging only. Please never use or i will kill myself (real)
+    #---------------------------------------------------------------------------
+    def store_scores(self, base_path:str) -> dict:
+        res = {}
+        for candidate in self.candidates:
+            res[candidate.chain.index] = candidate.score
+
+        with open(os.path.join(base_path, f"{self.id}.pkl"), "wb") as f:
+            pickle.dump(res, f)
+
+    def load_scores(self, base_path:str) -> dict:
+        with open(os.path.join(base_path, f"{self.id}.pkl"), "rb") as f:
+            data = pickle.load(f)
+
+        temp = [(data[chain.index], chain) for chain in self.cluster.chains]
+
+        self.candidates = [SummaryCandidate(chain, score, model) for score, chain in sorted(temp, reverse=True)]
+
+    #---------------------------------------------------------------------------
+    
+    def evaluate_chains(self) -> 'SelectedCluster':
+        '''
+        Calculates the cross-encoder similarity score between the query and each chain in the cluster.
+        After calling, scores are stored in ```self.chain_scores``` in the same order as the chains
+
+        Arguments
+        ---
+        model: CrossEncoder
+            The cross-encoder for the evaluation
+        '''
+        scores = self.model.predict([(self.query.text, c.text) for c in self.cluster.chains])
+        self.candidates = [SummaryCandidate(chain, score) for score, chain in sorted(zip(scores, self.cluster.chains), reverse=True)]
+
+        return self
+    
+    #---------------------------------------------------------------------------
+
+    def chains(self) -> list[SentenceChain]:
+        '''
+        List of the releavance-sorted chains in descending order
+        '''
+        return list(chain.from_iterable([c.chains for c in self.candidates]))
+    
+    #---------------------------------------------------------------------------
+    
+    def scores(self) -> list[float]:
+        '''
+        List of the chain scores in descending order
+        '''
+        return [c.score for c in self.candidates]
+    
+    #---------------------------------------------------------------------------
+    
+    @property
+    def cross_score(self) -> 'SelectedCluster':
+        '''
+        A relevance score for the entire cluster, by summing up the individual cross-encoder scores of the chains
+        '''
+        if self.candidates is None:
+            return None
+
+        return np.round(sum([score for score in self.scores()]), decimals=3)
 
     #---------------------------------------------------------------------------
 
@@ -56,49 +173,43 @@ class SelectedCluster():
 
         panel_print(group)
 
-    #---------------------------------------------------------------------------
-
-    def __getattr__(self, name):
-        return getattr(self.cluster, name)
-    
-    #---------------------------------------------------------------------------
-    
-    def evaluate_chains(self, model: CrossEncoder) -> 'SelectedCluster':
-        self.chain_scores = []
-
-        scores = model.predict([(self.query.text, c.text) for c in self.chains])
-        for i, score in enumerate(scores):
-            sc = np.round(score, decimals=3)
-            self.chain_scores.append(sc)
-        
-        #Sort chains
-        self.scored_chains = [self.ScoredChain(chain, score) for score, chain in sorted(zip(scores, self.cluster), reverse=True)]
-        return self
-    
-    #---------------------------------------------------------------------------
+    @property
+    def id(self) -> str:
+        return self.cluster.id
     
     @property
-    def cross_score(self, model: CrossEncoder) -> 'SelectedCluster':
-        if self.chain_scores is None:
-            self.evaluate_chains(model)
-
-        return sum([c.score for c in self.scored_chains])
-        
+    def text(self) -> str:
+        return self.cluster.text
     
-    #---------------------------------------------------------------------------
+    @property
+    def clustering_context(self) -> ChainClustering:
+        return self.cluster.clustering_context
     
     def __len__(self):
         return len(self.cluster)
-    
-    #---------------------------------------------------------------------------
-        
-    def __getitem__(self, i: int) -> SentenceChain:
-        return self.chains[i]
-    
-    #---------------------------------------------------------------------------
         
     def __iter__(self):
-        return iter(self.chains)
+        return iter(self.scored_chains)
+    
+#================================================================================================================
+
+@dataclass
+class SummarySegment():
+    '''
+    Represents a part/paragraph of the summary referring to one specific document.
+    Contains all the retrieved clusters that are relevant from the specific document, as well as general information
+    about the document itself that should be included in the summary (e.g. author and main topic)
+    '''
+    clusters: list[SelectedCluster]
+    doc: ElasticDocument
+    #Could either be the paper's existing summary, or an LLM-generated text of the first paragraph or summary
+    #...maybe it could even be pre-calculated?
+    extra_info: str = field(default=None) 
+    summary: str = field(default=None)
+    citations: list[int] = field(default=None)
+
+    def summarize(model):
+        pass
     
 #==============================================================================================================
 
@@ -144,7 +255,7 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
     #Select best clusters
     #----------------------------------------------------------------------------------------------------------
     sim = cosine_similarity([cluster.vector for cluster in clusters], query.vector.reshape((1,-1)))
-    sorted_clusters = [list(x) for x in sorted(zip(map(methodcaller("__getitem__", 0), sim), clusters, doc_labels), reverse=True)]
+    sorted_clusters = [[np.round(x[0], decimals=3), x[1], x[2]] for x in sorted(zip(map(methodcaller("__getitem__", 0), sim), clusters, doc_labels), reverse=True)]
 
     selected_clusters = []
     selected_clusters: list[SelectedCluster]
@@ -167,6 +278,62 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
                 break
 
     return selected_clusters
+
+#================================================================================================================
+
+def summarize(args, cluster: SelectedCluster):
+    if args.cache:
+        summary = load_summary(cluster)
+
+    if not args.cache or summary is None:
+
+        if args.m == "sus":
+            #Let's try summarization of the entire cluster
+            tokenizer = AutoTokenizer.from_pretrained("google/bigbird-pegasus-large-pubmed")
+            summ_model = BigBirdPegasusForConditionalGeneration.from_pretrained("google/bigbird-pegasus-large-pubmed")
+            inputs = tokenizer(cluster.text, return_tensors='pt', truncation=True, max_length=4096)
+
+            prediction = summ_model.generate(**inputs)
+            prediction = tokenizer.batch_decode(prediction)
+
+            panel_print(prediction)
+            summary = prediction
+
+        #----------------------------------------------------------------------------------------
+
+        elif args.m == "llm":
+            from mypackage.llm import summarize
+            
+            full_text = ""
+            removed_json = False
+
+            #Retrieve fragments of text from the llm and add them to the full text
+            #------------------------------------------------------------------------------
+            with Live(panel_print(return_panel=True), refresh_per_second=10) as live:
+                for fragment in summarize(query.text, cluster.text):
+
+                    full_text += fragment
+
+                    #Clean up the json
+                    #-------------------------------------------------
+                    if fragment.endswith("}"):
+                        full_text = full_text[:-2]
+
+                    if not removed_json and full_text.startswith("{\"summary\": \""):
+                        full_text = full_text[13:]
+                        removed_json = True
+
+                    #Once json is cleaned up, print
+                    #-------------------------------------------------
+                    else:
+                        live.update(panel_print(full_text, return_panel=True))
+
+            summary = full_text
+
+        store_summary(selected_clusters[args.c], summary, args)
+
+    #Evaluating the generated summary
+    evaluate_summary_relevance(cross_model, summary, query.text)
 
 #===============================================================================================================
 
@@ -218,86 +385,43 @@ if __name__ == "__main__":
 
     #Retrieve clusters from docs
     selected_clusters = cluster_retrieval(sess, returned_docs, query)
+    focused_cluster = selected_clusters[args.c]
+    focused_cluster: SelectedCluster
 
-    panel_print([f"Cluster [green]{cluster.id}[/green] with score [cyan]{np.round(cluster.sim, decimals=3):.3f}[/cyan]" for cluster in selected_clusters], title="Retrieved clusters")
+    panel_print([f"Cluster [green]{cluster.id}[/green] with score [cyan]{cluster.sim:.3f}[/cyan]" for cluster in selected_clusters], title="Retrieved clusters based on cosine similarity")
 
+    #Print cluster stats
+    if args.stats:
+        panel_print([Pretty(cluster_stats(cluster)) for cluster in selected_clusters], title="Cluster Stats")
+
+    #Print cluster chains
     if args.print:
-        selected_clusters[args.c].print()
-
-    sys.exit()
+        focused_cluster.print()
 
     #Let's evaluate chains
     #===============================================================================================================
     cross_model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2')
 
+    #Calculate the cross-encoder socres
+    #--------------------------------------------------------------------------
+    os.makedirs("cross_scores", exist_ok=True)
     for cluster in selected_clusters:
-        cluster.evaluate_chains(cross_model)
+        cluster.model = cross_model
+        if not os.path.exists(f"cross_scores/{cluster.id}.pkl"):
+            cluster.evaluate_chains()
+            cluster.store_scores("cross_scores")
+        else:
+            cluster.load_scores("cross_scores")
 
-    console.print([sc.score for sc in selected_clusters[args.c].scored_chains])
-    console.print(selected_clusters[args.c].scored_chains[0].text)
+    #Print cross-scores
+    #--------------------------------------------------------------------------
+    #Of all clusters
+    panel_print([f"Cluster {cluster.id} score: [cyan]{cluster.cross_score:.3f}[/cyan]" for cluster in selected_clusters], title="Cross-encoder scores of the selected clusters")
+    
+    #For each chain separately
+    panel_print(
+            [f"Chain [green]{candidate.chain.index:03}[/green] with score [cyan]{candidate.score:.3f}[/cyan]" for candidate in focused_cluster.candidates] + 
+            [Rule(), f"Cluster score: [cyan]{focused_cluster.cross_score:.3f}[/cyan]"],
+        title=f"For cluster {focused_cluster.id}")
 
-    #What are the cluster sizes:
-    '''
-    for i, cluster in enumerate(selected_clusters):
-        console.print(f"Cluster {i:02}")
-        console.print(Rule())
-        console.print(Pretty(cluster_stats(cluster.cluster)))
-        console.print()
-    '''
-
-    #What happens if I combine
-    '''
-    combined_text = selected_clusters[test_cluster][1][6].text + selected_clusters[test_cluster][1][7].text + selected_clusters[test_cluster][1][8].text
-    print(combined_text)
-    print(cross_model.predict((query.text, combined_text)))
-    '''
-
-    if args.cache:
-        summary = load_summary(selected_clusters[args.c])
-
-    if not args.cache or summary is None:
-
-        if args.m == "sus":
-            #Let's try summarization of the entire cluster
-            tokenizer = AutoTokenizer.from_pretrained("google/bigbird-pegasus-large-pubmed")
-            summ_model = BigBirdPegasusForConditionalGeneration.from_pretrained("google/bigbird-pegasus-large-pubmed")
-            #panel_print(selected_clusters[args.c].text)
-            inputs = tokenizer(selected_clusters[args.c].text, return_tensors='pt', truncation=True, max_length=4096)
-
-            #print(selected_clusters[test_cluster][1].text)
-
-            prediction = summ_model.generate(**inputs)
-            prediction = tokenizer.batch_decode(prediction)
-
-            panel_print(prediction)
-            summary = prediction
-
-        #----------------------------------------------------------------------------------------
-
-        elif args.m == "llm":
-            from mypackage.llm import summarize
-            
-            #What will the llm do?
-            #......what will I do
-            full_text = ""
-            removed_json = False
-            with Live(panel_print(return_panel=True), refresh_per_second=10) as live:
-                for fragment in summarize(query.text, selected_clusters[args.c].text):
-
-                    full_text += fragment
-
-                    if fragment.endswith("}"):
-                        full_text = full_text[:-2]
-
-                    if not removed_json and full_text.startswith("{\"summary\": \""):
-                        full_text = full_text[13:]
-                        removed_json = True
-                    else:
-                        live.update(panel_print(full_text, return_panel=True))
-
-            summary = full_text
-
-        store_summary(selected_clusters[args.c], summary, args)
-
-    #Evaluating the generated summary
-    evaluate_summary_relevance(cross_model, summary, query.text)
+    print(focused_cluster.clustering_context.chains[44].text)
