@@ -17,14 +17,14 @@ class DEVICE_EXCEPTION(Exception):
 
 #===================================================================================
 
-def panel_print(text: str = "", title: str = "", return_panel=False):
+def panel_print(text: str = "", title: str = "", *, return_panel=False, expand: bool = True):
     if isinstance(text, list):
-        panel = Panel(Group(*text), title=title, title_align="left", border_style="bold cyan")
+        panel = Panel(Group(*text), title=title, title_align="left", border_style="bold cyan", expand=expand)
         if return_panel:
             return panel
         console.print(panel)
     else:
-        panel = Panel(text, title=title, title_align="left", border_style="bold cyan")
+        panel = Panel(text, title=title, title_align="left", border_style="bold cyan", expand=expand)
         if return_panel:
             return panel
         console.print(panel)

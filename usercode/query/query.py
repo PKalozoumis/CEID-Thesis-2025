@@ -34,6 +34,22 @@ console = Console()
 
 #================================================================================================================
 
+@dataclass
+class RelevanceEvaluator():
+    '''
+    Contains the query, as well as the model used to evaluate relevance with it
+    '''
+    query: Query
+    model: CrossEncoder
+
+    def predict(self, sentences: list[SentenceLike], *, join=False) -> float | list[float]:
+        if join:
+            return self.model.predict([(self.query.text, "".join([s.text for s in sentences]))])[0]
+        else:
+            return self.model.predict([(self.query.text, c.text) for c in sentences])
+
+#================================================================================================================
+
 class SummaryCandidate():
     '''
     Represents a list of one or more consecutive chains whose text may be used as input to the summarization model,
@@ -43,45 +59,78 @@ class SummaryCandidate():
     class State():
         chains: list[SentenceChain]
         score: float
+        action: str = field(default=None)
+
+        @classmethod
+        def from_state(cls, state: 'SummaryCandidate.State', action: str = None) -> 'SummaryCandidate.State':
+            return cls(
+                chains = state.chains[:],
+                score = state.score,
+                action = action
+            )
+        
+        def __len__(self) -> int:
+            return len(self.chains)
 
     chain: SentenceChain #The central chain around which we build the context
-    main_context: State #The representative state that we want to use
-    context_stages: list[tuple[State, str]] #Optional states to show how the addition of more context affects the score. Tuple of (state, action). Main not included
-    model: CrossEncoder #Model used for evaluation
+    selected_state: int #The optimal state from the history
+    history: list[State] #States to show how the addition of more context affects the score
+    evaluator: RelevanceEvaluator
 
-    def __init__(self, chain: SentenceChain, score: float, model: CrossEncoder = None):
+    def __init__(self, chain: SentenceChain, score: float, evaluator: RelevanceEvaluator = None):
         self.chain = chain
-        self.main_context = self.State([chain], score)
-        self.context_stages = None
-        self.model = model
+        self.selected_state = 0
+        self.history = [self.State([chain], score)]
+        self.evaluator = evaluator
 
     @property
-    def context_chains(self):
-        return self.main_context.chains
+    def context(self) -> State:
+        return self.history[self.selected_state]
     
     @property
     def score(self):
-        return self.main_context.score
+        return self.context.score
     
     @score.setter
     def score(self, value: float):
-        self.main_context.score = value
+        self.context.score = value
 
     @property
     def text(self):
-        return "".join([c.text for c in self.chains])
+        return "".join([c.text for c in self.context.chains])
     
     @property
     def index_range(self):
-        return range(self.chains[0].index, self.chains[-1].index + 1)
+        return range(self.context.chains[0].index, self.context.chains[-1].index + 1)
     
+    def optimize(self):
+        '''
+        Uses the optimal context as the main context
+        '''
+        pass
+        #self.context = self.State.from_state(sorted(self.history, key=lambda st: st.score, reverse=True)[0])
+
     def add_forward_context(self, n: int = 1):
-        self.context_stages.append((copy.copy(self.main_context), f"forward {n}"))
-        self.main_context.chains.extend(self.main_context.chains[-1].next(n, force_list=True))
+        self.history.append(self.State.from_state(self.context, f"forward {n}"))
+        self.selected_state += 1
+        self.context.chains.extend(self.context.chains[-1].next(n, force_list=True))
+        if self.chain.index == 44: print(self.context.score)
+        self.context.score = self.evaluator.predict(self.context.chains, join=True) #Evaluate the new context
+        if self.chain.index == 44:print(self.context.score)
 
     def add_backward_context(self, n: int = 1):
-        self.context_stages.append((copy.copy(self.main_context), f"backward {n}"))
-        self.main_context.chains = self.main_context.chains[0].prev(n, force_list=True) + self.main_context.chains
+        self.history.append(self.State.from_state(self.context, f"backward {n}"))
+        self.selected_state += 1
+        self.context.chains = self.context.chains[0].prev(n, force_list=True) + self.context.chains
+        self.context.score = self.evaluator.predict(self.context.chains, join=True) #Evaluate the new context
+
+    def add_bidirectional_context(self, n: int = 1):
+        self.history.append(self.State.from_state(self.context, f"bidirectional {n}"))
+        self.selected_state += 1
+        self.context.chains.extend(self.context.chains[-1].next(n, force_list=True)) #Forward
+        self.context.chains = self.context.chains[0].prev(n, force_list=True) + self.context.chains #backward
+        self.context.score = self.evaluator.predict(self.context.chains, join=True) #Evaluate the new context
+
 
 #================================================================================================================
 
@@ -94,10 +143,9 @@ class SelectedCluster():
     '''
 
     cluster: ChainCluster
-    query: Query
     sim: float #Similarity to query
-    candidates: list[SummaryCandidate] = field(default=None) #Looks confusing, but it's essentially the chains of the cluster, sorted by score
-    model: CrossEncoder = field(default=None)
+    candidates: list[SummaryCandidate] = field(default=None, kw_only=True) #Looks confusing, but it's essentially the chains of the cluster, sorted by score
+    evaluator: RelevanceEvaluator = field(default=None, kw_only=True)
 
     #Temporary. For debugging only. Please never use or i will kill myself (real)
     #---------------------------------------------------------------------------
@@ -115,7 +163,7 @@ class SelectedCluster():
 
         temp = [(data[chain.index], chain) for chain in self.cluster.chains]
 
-        self.candidates = [SummaryCandidate(chain, score, model) for score, chain in sorted(temp, reverse=True)]
+        self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(temp, reverse=True)]
 
     #---------------------------------------------------------------------------
     
@@ -123,24 +171,27 @@ class SelectedCluster():
         '''
         Calculates the cross-encoder similarity score between the query and each chain in the cluster.
         After calling, scores are stored in ```self.chain_scores``` in the same order as the chains
-
-        Arguments
-        ---
-        model: CrossEncoder
-            The cross-encoder for the evaluation
         '''
-        scores = self.model.predict([(self.query.text, c.text) for c in self.cluster.chains])
-        self.candidates = [SummaryCandidate(chain, score) for score, chain in sorted(zip(scores, self.cluster.chains), reverse=True)]
+        scores = self.evaluator.predict(self.cluster.chains)
+        self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(zip(scores, self.cluster.chains), reverse=True)]
 
         return self
     
     #---------------------------------------------------------------------------
 
-    def chains(self) -> list[SentenceChain]:
+    def central_chains(self) -> list[SentenceChain]:
         '''
         List of the releavance-sorted chains in descending order
         '''
-        return list(chain.from_iterable([c.chains for c in self.candidates]))
+        return [c.chain for c in self.candidates]
+        
+    #---------------------------------------------------------------------------
+        
+    def context_chains(self) -> list[list[SentenceChain]]:
+        '''
+        List of the releavance-sorted context chains in descending order
+        '''
+        return [c.context_chains for c in self.candidates]
     
     #---------------------------------------------------------------------------
     
@@ -153,7 +204,7 @@ class SelectedCluster():
     #---------------------------------------------------------------------------
     
     @property
-    def cross_score(self) -> 'SelectedCluster':
+    def cross_score(self) -> float:
         '''
         A relevance score for the entire cluster, by summing up the individual cross-encoder scores of the chains
         '''
@@ -161,6 +212,17 @@ class SelectedCluster():
             return None
 
         return np.round(sum([score for score in self.scores()]), decimals=3)
+    
+    #---------------------------------------------------------------------------
+
+    def historic_cross_score(self, i: int) -> float:
+        '''
+        This quietly assumes that all contexts move at the same pace (all histories have same length)
+        '''
+        if self.candidates is None:
+            return None
+
+        return np.round(sum([c.history[i].score for c in self.candidates]), decimals=3)
 
     #---------------------------------------------------------------------------
 
@@ -189,7 +251,7 @@ class SelectedCluster():
         return len(self.cluster)
         
     def __iter__(self):
-        return iter(self.scored_chains)
+        return iter(self.candidates)
     
 #================================================================================================================
 
@@ -267,13 +329,13 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
             sorted_clusters[i][2] = 11
             #print(sorted_clusters[i][0])
             console.print((sorted_clusters[i][1].doc.id, sorted_clusters[i][0]))
-            selected_clusters.append(SelectedCluster(sorted_clusters[i][1], query, sorted_clusters[i][0]))
+            selected_clusters.append(SelectedCluster(sorted_clusters[i][1], sorted_clusters[i][0]))
     elif method == "thres":
         thres = 0.5
         for cluster in sorted_clusters:
             if cluster[0] > thres:
                 cluster[2] = 11
-                selected_clusters.append(SelectedCluster(cluster[1], query, cluster[0]))
+                selected_clusters.append(SelectedCluster(cluster[1], cluster[0]))
             else:
                 break
 
@@ -334,6 +396,47 @@ def summarize(args, cluster: SelectedCluster):
 
     #Evaluating the generated summary
     evaluate_summary_relevance(cross_model, summary, query.text)
+
+#===============================================================================================================
+
+def print_candidates(focused_cluster: SelectedCluster):
+
+    panel_lines = []
+
+    for i, c in enumerate(focused_cluster.candidates):
+        line_text = f"[green]{i:02}[/green]. "
+        line_text_list = []
+
+        for num, state in enumerate(c.history):
+            if num == 0:
+                temp = f"[green]{state.chains[0].index:03}[/green]"
+            else:   
+                temp = f"[green]{state.chains[0].index:03}[/green]".rjust(19).ljust(23) if len(state) == 1 else f"[green]{state.chains[0].index:03}-{state.chains[-1].index:03}[/green]"
+
+            history_text = f"Chain {temp}" if len(state) == 1 else f"Chains {temp}"
+            history_text += f" with score " + f"[cyan]{state.score:.3f}[/cyan]".rjust(20)
+            line_text_list.append(history_text)
+
+        line_text += " [red]->[/red] ".join(line_text_list)
+        panel_lines.append(line_text)
+
+    panel_lines.append(Rule())
+
+    #Overall cluster score
+    cluster_scores = [
+        f"[cyan]{focused_cluster.historic_cross_score(i):.3f}[/cyan]" for i in range(len(focused_cluster.candidates[0].history))
+    ]
+
+    panel_lines.append(f"Cluster score: " + " [red]->[/red] ".join(cluster_scores))
+
+    panel_print(panel_lines, title=f"For cluster {focused_cluster.id}", expand=False)
+    '''
+    panel_print(
+            [f"Chain [green]{candidate.chain.index:03}[/green] with score [cyan]{candidate.score:.3f}[/cyan]" for i, candidate in enumerate(focused_cluster.candidates)] + 
+            [Rule(), f"Cluster score: [cyan]{focused_cluster.cross_score:.3f}[/cyan]"],
+        title=f"For cluster {focused_cluster.id}"
+    )
+    '''
 
 #===============================================================================================================
 
@@ -400,13 +503,13 @@ if __name__ == "__main__":
 
     #Let's evaluate chains
     #===============================================================================================================
-    cross_model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2')
+    evaluator = RelevanceEvaluator(query, CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2'))
 
     #Calculate the cross-encoder socres
     #--------------------------------------------------------------------------
     os.makedirs("cross_scores", exist_ok=True)
     for cluster in selected_clusters:
-        cluster.model = cross_model
+        cluster.evaluator = evaluator
         if not os.path.exists(f"cross_scores/{cluster.id}.pkl"):
             cluster.evaluate_chains()
             cluster.store_scores("cross_scores")
@@ -419,9 +522,15 @@ if __name__ == "__main__":
     panel_print([f"Cluster {cluster.id} score: [cyan]{cluster.cross_score:.3f}[/cyan]" for cluster in selected_clusters], title="Cross-encoder scores of the selected clusters")
     
     #For each chain separately
-    panel_print(
-            [f"Chain [green]{candidate.chain.index:03}[/green] with score [cyan]{candidate.score:.3f}[/cyan]" for candidate in focused_cluster.candidates] + 
-            [Rule(), f"Cluster score: [cyan]{focused_cluster.cross_score:.3f}[/cyan]"],
-        title=f"For cluster {focused_cluster.id}")
-
+    print_candidates(focused_cluster)
     print(focused_cluster.clustering_context.chains[44].text)
+
+    #Context Expansion
+    #====================================================================================================
+
+    for candidate in focused_cluster.candidates:
+        candidate.add_bidirectional_context(1)
+
+    #For each chain separately
+    print_candidates(focused_cluster)
+    print(focused_cluster.candidates[0].text)

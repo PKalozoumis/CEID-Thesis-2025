@@ -25,7 +25,7 @@ class SentenceLike(ABC):
 
     @property
     @abstractmethod
-    def text(self):
+    def text(self) -> str:
         pass
 
     def similarity(self, other) -> float:
