@@ -3,21 +3,26 @@ import platform
 import netifaces
 import json
 
-#Initialize model
-#=================================================================================================
-#Check if I'm using WSL
-#If so, LMStudio is running the windows host, which is the gateway
-if 'microsoft' in platform.uname().release.lower():
-    gateway = netifaces.gateways()['default'][netifaces.AF_INET][0]
-    api_host = f"{gateway}:1234"
-else:
-    api_host = "localhost:1234"
+class LLMSession():
+    model_name: str
+    api_host: str
+    model: lms.LLM
 
+    def __init__(self, model_name: str = "llama-3.2-3b-instruct"):
+        self.model_name = model_name
 
-lms.get_default_client(api_host)
-model = lms.llm("llama-3.2-3b-instruct")
-#model = lms.llm("llama-3.2-1b-instruct")
+        #Check if I'm using WSL
+        #If so, LMStudio is running the windows host, which is the gateway
+        if 'microsoft' in platform.uname().release.lower():
+            gateway = netifaces.gateways()['default'][netifaces.AF_INET][0]
+            self.api_host = f"{gateway}:1234"
+        else:
+            self.api_host = "localhost:1234"
 
+        lms.get_default_client(self.api_host)
+        self.model = lms.llm(model_name)
+
+llm = LLMSession()
 
 #================================================================================================
 
@@ -54,7 +59,7 @@ You must strictly adhere to these guidelines:
     chat = lms.Chat(system_prompt)
     
     chat.add_user_message(text)
-    result = model.respond(chat, response_format=schema)
+    result = llm.model.respond(chat, response_format=schema)
 
     return json.loads(result.content)
 
@@ -92,7 +97,7 @@ You must strictly adhere to these guidelines:
     chat = lms.Chat(system_prompt)
     
     chat.add_user_message("\n---\n".join(summaries))
-    result = model.respond(chat, response_format=schema)
+    result = llm.model.respond(chat, response_format=schema)
 
     return json.loads(result.content)
 
@@ -123,5 +128,5 @@ Text:
     chat = lms.Chat(system_prompt)
     
     chat.add_user_message(text)
-    for fragment in model.respond_stream(chat, response_format=schema):
+    for fragment in llm.model.respond_stream(chat, response_format=schema):
         yield fragment.content

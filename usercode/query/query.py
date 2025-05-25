@@ -17,7 +17,7 @@ from rich.rule import Rule
 from rich.padding import Padding
 from rich.pretty import Pretty
 import numpy as np
-from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer
+from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, PegasusForConditionalGeneration
 from mypackage.sentence import SentenceChain, SentenceLike
 from rich.live import Live
 from rich.panel import Panel
@@ -55,6 +55,14 @@ class SummaryCandidate():
     Represents a list of one or more consecutive chains whose text may be used as input to the summarization model,
     depending on their relevance to the query. The relevance score of the full span is calculated with a cross-encoder
     '''
+    chain: SentenceChain #The central chain around which we build the context
+    selected_state: int #The optimal state from the history
+    history: list['State'] #States to show how the addition of more context affects the score
+    evaluator: RelevanceEvaluator
+    #Whether this candidate should be considered for further context expansions
+    #Candidate Filtering can disable this candidate if no improvement is seen
+    expandable: bool
+
     @dataclass
     class State():
         chains: list[SentenceChain]
@@ -71,17 +79,17 @@ class SummaryCandidate():
         
         def __len__(self) -> int:
             return len(self.chains)
-
-    chain: SentenceChain #The central chain around which we build the context
-    selected_state: int #The optimal state from the history
-    history: list[State] #States to show how the addition of more context affects the score
-    evaluator: RelevanceEvaluator
+        
+        @property
+        def id(self) -> str:
+            return f"{self.chains[0].index:03}-{self.chains[-1].index:03}"
 
     def __init__(self, chain: SentenceChain, score: float, evaluator: RelevanceEvaluator = None):
         self.chain = chain
-        self.selected_state = 0
+        self.selected_state = -1 #Latest
         self.history = [self.State([chain], score)]
         self.evaluator = evaluator
+        self.expandable = True
 
     @property
     def context(self) -> State:
@@ -103,33 +111,53 @@ class SummaryCandidate():
     def index_range(self):
         return range(self.context.chains[0].index, self.context.chains[-1].index + 1)
     
-    def optimize(self):
+    def optimize(self, *, stop_expansion: bool = False) -> int:
         '''
-        Uses the optimal context as the main context
+        Sets the selected state to the optimal state. Returns the new selected index
+
+        Arguments
+        ---
+        stop_expansion: bool
+            When set to ```True```, if the optimal state is different from the old state, the
+            candidate is marked as non-expandable
         '''
-        pass
-        #self.context = self.State.from_state(sorted(self.history, key=lambda st: st.score, reverse=True)[0])
+        new_state = max(range(len(self.history)), key=lambda i: self.history[i].score)
 
-    def add_forward_context(self, n: int = 1):
-        self.history.append(self.State.from_state(self.context, f"forward {n}"))
-        self.selected_state += 1
-        self.context.chains.extend(self.context.chains[-1].next(n, force_list=True))
-        if self.chain.index == 44: print(self.context.score)
-        self.context.score = self.evaluator.predict(self.context.chains, join=True) #Evaluate the new context
-        if self.chain.index == 44:print(self.context.score)
+        if stop_expansion and self.selected_state == new_state: #Optimal state did not change
+            self.expandable = False
 
-    def add_backward_context(self, n: int = 1):
-        self.history.append(self.State.from_state(self.context, f"backward {n}"))
-        self.selected_state += 1
-        self.context.chains = self.context.chains[0].prev(n, force_list=True) + self.context.chains
-        self.context.score = self.evaluator.predict(self.context.chains, join=True) #Evaluate the new context
+        self.selected_state = new_state
+        return new_state
 
-    def add_bidirectional_context(self, n: int = 1):
-        self.history.append(self.State.from_state(self.context, f"bidirectional {n}"))
-        self.selected_state += 1
-        self.context.chains.extend(self.context.chains[-1].next(n, force_list=True)) #Forward
-        self.context.chains = self.context.chains[0].prev(n, force_list=True) + self.context.chains #backward
-        self.context.score = self.evaluator.predict(self.context.chains, join=True) #Evaluate the new context
+    def add_right_context(self, n: int = 1, *, branch_from: int = -1):
+        if not self.expandable: return
+        self.history.append(self.State.from_state(self.history[branch_from], f"forward {n}"))
+        self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True))
+        self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
+
+    def add_left_context(self, n: int = 1, *, branch_from: int = -1):
+        if not self.expandable: return
+        self.history.append(self.State.from_state(self.history[branch_from], f"backward {n}"))
+        self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains
+        self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
+
+    def add_bidirectional_context(self, n: int = 1, *, branch_from: int = -1):
+        if not self.expandable: return
+        self.history.append(self.State.from_state(self.history[branch_from], f"bidirectional {n}"))
+        self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True)) #Forward
+        self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains #backward
+        self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
+
+    def clear_history(self, exceptions: list[int] = []):
+        '''
+        Clears the entire history, except for the currently selected state and the indices in ```exceptions``` 
+        '''
+        preserved = set(exceptions + [self.selected_state])
+        self.history = [state for i, state in enumerate(self.history) if i in preserved]
+
+        # Recalculate current_index since history may have shrunk
+        old_to_new = {i: new_i for new_i, i in enumerate(sorted(preserved))}
+        self.selected_state = old_to_new.get(self.selected_state, 0)
 
 
 #================================================================================================================
@@ -175,6 +203,33 @@ class SelectedCluster():
         scores = self.evaluator.predict(self.cluster.chains)
         self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(zip(scores, self.cluster.chains), reverse=True)]
 
+        return self
+    
+    #---------------------------------------------------------------------------
+    
+    def rerank_candidates(self) -> 'SelectedCluster':
+        self.candidates = sorted(self.candidates, key=lambda x: (x.score, 6666 - x.chain.index), reverse=True)
+        return self
+
+    #---------------------------------------------------------------------------
+    
+    def filter_candidates(self, *, improved: bool = False, positive: bool = False, deduplicate: bool = False) -> 'SelectedCluster':
+
+        if improved:
+            self.candidates = [c for c in self.candidates if c.context.action is not None]
+
+        if positive:
+            self.candidates = [c for c in self.candidates if c.context.score > 0]
+
+        if deduplicate:
+            seen = set()
+            res = []
+            for c in self.candidates:
+                if c.context.id not in seen:
+                    seen.add(c.context.id)
+                    res.append(c)
+            self.candidates = res
+        
         return self
     
     #---------------------------------------------------------------------------
@@ -255,6 +310,7 @@ class SelectedCluster():
     
 #================================================================================================================
 
+#TODO
 @dataclass
 class SummarySegment():
     '''
@@ -271,6 +327,22 @@ class SummarySegment():
     citations: list[int] = field(default=None)
 
     def summarize(model):
+        pass
+
+#================================================================================================================
+
+#TODO
+class Summarizer():
+    '''
+    Contains all the models necessary for summarization. Also contains a connection to the LLM.
+    Classifies the provided ```SummarySegments``` and summarizes them using the appropriate model.
+    The final output is the summary
+    '''
+    sus: PegasusForConditionalGeneration #𐐘
+    megasus: BigBirdPegasusForConditionalGeneration #ඞ
+
+
+    def __init__(self):
         pass
     
 #==============================================================================================================
@@ -399,7 +471,7 @@ def summarize(args, cluster: SelectedCluster):
 
 #===============================================================================================================
 
-def print_candidates(focused_cluster: SelectedCluster):
+def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = False):
 
     panel_lines = []
 
@@ -407,14 +479,24 @@ def print_candidates(focused_cluster: SelectedCluster):
         line_text = f"[green]{i:02}[/green]. "
         line_text_list = []
 
+        col = "green" if c.expandable else "red"
+
         for num, state in enumerate(c.history):
-            if num == 0:
-                temp = f"[green]{state.chains[0].index:03}[/green]"
+            #Yes I know this is goofy
+            big_chain_in_column = False
+            for c1 in focused_cluster.candidates:
+                if len(c1.history[num]) > 1:
+                    big_chain_in_column = True
+                    break
+
+            if not big_chain_in_column:
+                temp = f"[{col}]{state.chains[0].index:03}[/{col}]"
             else:   
-                temp = f"[green]{state.chains[0].index:03}[/green]".rjust(19).ljust(23) if len(state) == 1 else f"[green]{state.chains[0].index:03}-{state.chains[-1].index:03}[/green]"
+                temp = f"[{col}]{state.chains[0].index:03}[/{col}]".rjust(19).ljust(23 if c.expandable else 19) if len(state) == 1 else f"[{col}]{state.id}[/{col}]"
 
             history_text = f"Chain {temp}" if len(state) == 1 else f"Chains {temp}"
             history_text += f" with score " + f"[cyan]{state.score:.3f}[/cyan]".rjust(20)
+            history_text += f" ({state.action})".ljust(19) if print_action else ""
             line_text_list.append(history_text)
 
         line_text += " [red]->[/red] ".join(line_text_list)
@@ -437,6 +519,31 @@ def print_candidates(focused_cluster: SelectedCluster):
         title=f"For cluster {focused_cluster.id}"
     )
     '''
+
+#===============================================================================================================
+
+def context_expansion(cluster: SelectedCluster):
+
+    while True:
+        expanded = False
+        #Evaluate the different contexts
+        for candidate in cluster.candidates:
+            if not candidate.expandable:
+                continue
+            expanded = True
+
+            candidate.add_left_context(1)
+            candidate.add_right_context(1, branch_from=0)
+            candidate.add_bidirectional_context(1, branch_from=0)
+            candidate.selected_state
+            candidate.optimize(stop_expansion=True)
+            candidate.clear_history()
+
+        if not expanded:
+            break
+
+        cluster.rerank_candidates()
+        print_candidates(cluster, print_action=True)
 
 #===============================================================================================================
 
@@ -527,10 +634,4 @@ if __name__ == "__main__":
 
     #Context Expansion
     #====================================================================================================
-
-    for candidate in focused_cluster.candidates:
-        candidate.add_bidirectional_context(1)
-
-    #For each chain separately
-    print_candidates(focused_cluster)
-    print(focused_cluster.candidates[0].text)
+    context_expansion(focused_cluster)
