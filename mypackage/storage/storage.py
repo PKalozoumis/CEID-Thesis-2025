@@ -1,41 +1,14 @@
-from .clustering import ChainCluster, ChainClustering
-from .elastic import Session, Document, ElasticDocument
-from .sentence import Sentence, SentenceChain, SentenceLike, doc_to_sentences
+from ..clustering import ChainCluster, ChainClustering
+from ..elastic import Session, Document, ElasticDocument
+from ..sentence import SentenceChain
+from .classes import ProcessedDocument
+from ..cluster_selection import SelectedCluster
 import pickle
 import os
-import sys
-from dataclasses import dataclass, field
-from typing import overload, Union
-from sentence_transformers import SentenceTransformer
+from typing import overload
+import json
 
-@dataclass
-class ProcessedDocument():
-    doc: Document
-    clustering: ChainClustering
-    sentences: list[Sentence]
-    params: dict = field(default=None)
-
-    @property
-    def chains(self) -> list[SentenceChain]:
-        return self.clustering.chains
-    
-    @property
-    def labels(self) -> list[int]:
-        return self.clustering.labels
-    
-    @property
-    def clusters(self) -> dict[int, ChainCluster]:
-        return self.clustering.clusters
-    
-
-#Things relating to the document itself will be retrieved either from elasticsearch or from the cache
-#   Document has already been retrieved. Also, we do not care about its type. Could be Document or ElasticDocument
-#We should not store text, filter_path/text_path/etc or the sentences themselves
-#We do store the id, so that we can point back to the document
-#The sentences will be broken down upon retrieval
-#...but we do need to store their offsets and embeddings
-#...as well as the chains that have formed (with their representative, and all other information)
-#Same thing with the chain clusters: we need to store everything
+#==========================================================================================================
 
 def save_clusters(clustering: ChainClustering, path: str, *, params: dict = None):
     '''
@@ -128,4 +101,22 @@ def load_pickles(sess: Session, path: str, docs: int|list[int]|ElasticDocument|l
     else:
         return out[0]
     
-#=====================================================================================================
+#=============================================================================================================
+
+def store_summary(cluster: SelectedCluster, summary: str, args):
+    os.makedirs("generated_summaries", exist_ok=True)
+
+    with open(f"generated_summaries/cluster_{cluster.id}.json", "w") as f:
+        json.dump({
+            'generated_with': "llm" if args.m == "llm" else "transformer",
+            'summary': summary
+        }, f)
+
+#==============================================================================================================
+
+def load_summary(cluster: SelectedCluster):
+    if not os.path.exists(f"generated_summaries/cluster_{cluster.id}.json"):
+        return None
+
+    with open(f"generated_summaries/cluster_{cluster.id}.json", "r") as f:
+        return json.load(f)['summary']

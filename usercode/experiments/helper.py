@@ -2,9 +2,7 @@ import os
 import sys
 sys.path.append("../..")
 
-from collections import namedtuple
 from mypackage.helper import DEVICE_EXCEPTION
-import pickle
 import os
 import json
 

@@ -10,7 +10,7 @@ astunparse==1.6.3
 async-timeout==5.0.1
 attrs==25.1.0
 bertopic==0.17.0
-blis==1.3.0
+blis==0.7.11
 cachetools==5.5.2
 catalogue==2.0.10
 certifi==2025.1.31
@@ -25,11 +25,15 @@ cryptography==44.0.1
 cycler==0.12.1
 cymem==2.0.11
 datasets==3.3.1
+dbcv @ git+https://github.com/FelSiq/DBCV@13c3896ef78d12f1e3e1cbd394f2db9a09637ffd
 debugpy==1.8.12
 decorator==5.2.0
 dill==0.3.8
 elastic-transport==8.17.0
 elasticsearch==8.17.1
+en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.7.1/en_core_web_lg-3.7.1-py3-none-any.whl#sha256=ab70aeb6172cde82508f7739f35ebc9918a3d07debeed637403c8f794ba3d3dc
+en-core-web-md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.7.1/en_core_web_md-3.7.1-py3-none-any.whl#sha256=6a0f857a2b4d219c6fa17d455f82430b365bf53171a2d919b9376e5dc9be032e
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl#sha256=86cc141f63942d4b2c5fcee06630fd6f904788d2f0ab005cce45aadb8fb73889
 evaluate==0.4.3
 exceptiongroup==1.2.2
 executing==2.2.0
@@ -161,6 +165,7 @@ shellingham==1.5.4
 six==1.17.0
 smart-open==7.1.0
 sniffio==1.3.1
+spacy==3.7.5
 spacy-legacy==3.0.12
 spacy-loggers==1.0.5
 srsly==2.5.1
@@ -172,6 +177,7 @@ tensorflow==2.18.0
 tensorflow-io-gcs-filesystem==0.37.1
 termcolor==2.5.0
 tf_keras==2.18.0
+thinc==8.2.5
 threadpoolctl==3.5.0
 tokenizers==0.21.0
 torch==2.6.0
@@ -193,5 +199,6 @@ Werkzeug==3.1.3
 widgetsnbextension==4.0.13
 wrapt==1.17.2
 wsproto==1.2.0
+XlsxWriter==3.2.3
 xxhash==3.5.0
 yarl==1.18.3

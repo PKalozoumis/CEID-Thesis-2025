@@ -7,7 +7,7 @@ import json
 from rich.console import Console
 
 from mypackage.elastic import Session, Query, ElasticDocument
-from mypackage.llm import generate_query, multi_summary_query
+from mypackage.helper.llm import generate_query, multi_summary_query
 
 #======================================================================================================
 

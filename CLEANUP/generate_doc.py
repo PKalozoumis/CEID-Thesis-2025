@@ -1,4 +1,4 @@
-from mypackage.collection_helper import generate_examples
+from mypackage.helper.collection_helper import generate_examples
 import os
 import json
 

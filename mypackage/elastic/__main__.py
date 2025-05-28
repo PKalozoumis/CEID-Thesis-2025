@@ -4,7 +4,7 @@ import os
 from multiprocessing import Process, Pool
 from .elastic import elasticsearch_client
 from .index import empty_index, create_index
-from ..collection_helper import generate_examples, to_bulk_format
+from ..helper.collection_helper import generate_examples, to_bulk_format
 import argparse
 from gensim.utils import simple_preprocess
 from gensim.corpora import Dictionary
