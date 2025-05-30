@@ -1,5 +1,5 @@
 #from mypackage.query_generator import generate_query
-from mypackage.helper.llm import generate_query
+from mypackage.llm import generate_query
 from mypackage import ElasticDocument, Session
 import os
 from sentence_transformers import SentenceTransformer

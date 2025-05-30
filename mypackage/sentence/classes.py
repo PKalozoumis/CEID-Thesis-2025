@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
-from mypackage.elastic import Document, ElasticDocument
 from functools import cached_property
 import json
 from itertools import chain
@@ -10,6 +9,7 @@ from .helper import split_to_sentences
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
+    from ..elastic import Document, ElasticDocument
     from ..clustering.classes import ChainCluster
 
 #============================================================================================
@@ -63,7 +63,7 @@ class Sentence(SentenceLike):
 
     _text: str
     _vector: ndarray
-    doc: Document
+    doc: 'Document'
     offset: int = field(default=-1)
     parent_chain: "SentenceChain" = field(default=None)
 
@@ -351,7 +351,7 @@ class SentenceChain(SentenceLike):
         return " ".join([s.text for s in self.sentences])
     
     @property
-    def doc(self) -> Document:
+    def doc(self) -> 'Document':
         return self.sentences[0].doc
     
     @property
@@ -372,7 +372,7 @@ class SentenceChain(SentenceLike):
         }
     
     @classmethod
-    def from_data(cls, data: dict, doc: Document, *, parent: "ChainCluster" = None) -> 'SentenceChain':
+    def from_data(cls, data: dict, doc: 'Document', *, parent: "ChainCluster" = None) -> 'SentenceChain':
         obj = cls.__new__(cls)
         obj._vector = data['vector']
         obj.pooling_method = data['pooling_method']

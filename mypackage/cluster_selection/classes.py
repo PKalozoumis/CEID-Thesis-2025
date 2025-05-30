@@ -384,16 +384,19 @@ class SelectedCluster():
     def id(self) -> str:
         return self.cluster.id
     
+    def selected_candidates(self) -> list[SummaryCandidate]:
+        if self.cross_score > 0:
+            #We take all the candidates    
+            return self.candidates
+        else:
+            #We only keep candidates of positive score
+            return [c for c in self.candidates if c.score > 0]
+    
     @property
     def text(self) -> str:
         #Sort by start
-        temp = sorted(self.candidates, key=lambda x: x.index_range.start, reverse=False)
-        if self.cross_score > 0:
-            #We take all the candidates    
-            return "\n\n".join([c.text for c in temp])
-        else:
-            #We only keep candidates of positive score
-            return "\n\n".join([c.text for c in temp if c.score > 0])
+        temp = sorted(self.selected_candidates(), key=lambda x: x.index_range.start, reverse=False)
+        return "\n\n".join(temp)
     
     @property
     def clustering_context(self) -> ChainClustering:

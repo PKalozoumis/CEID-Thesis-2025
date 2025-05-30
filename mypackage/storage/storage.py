@@ -2,7 +2,6 @@ from ..clustering import ChainCluster, ChainClustering
 from ..elastic import Session, Document, ElasticDocument
 from ..sentence import SentenceChain
 from .classes import ProcessedDocument
-from ..cluster_selection import SelectedCluster
 import pickle
 import os
 from typing import overload
@@ -69,6 +68,7 @@ def restore_clusters(doc: Document, path: str) -> ProcessedDocument:
         chain.index = i
 
     sentences = [sentence for chain in chains for sentence in chain]
+    doc.sentences = sentences
 
     return ProcessedDocument(doc, ChainClustering(chains, labels, clusters), sentences, params)
 
@@ -100,23 +100,3 @@ def load_pickles(sess: Session, path: str, docs: int|list[int]|ElasticDocument|l
         return out
     else:
         return out[0]
-    
-#=============================================================================================================
-
-def store_summary(cluster: SelectedCluster, summary: str, args):
-    os.makedirs("generated_summaries", exist_ok=True)
-
-    with open(f"generated_summaries/cluster_{cluster.id}.json", "w") as f:
-        json.dump({
-            'generated_with': "llm" if args.m == "llm" else "transformer",
-            'summary': summary
-        }, f)
-
-#==============================================================================================================
-
-def load_summary(cluster: SelectedCluster):
-    if not os.path.exists(f"generated_summaries/cluster_{cluster.id}.json"):
-        return None
-
-    with open(f"generated_summaries/cluster_{cluster.id}.json", "r") as f:
-        return json.load(f)['summary']

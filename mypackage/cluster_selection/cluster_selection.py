@@ -121,11 +121,12 @@ def context_expansion(cluster: SelectedCluster):
             #otherwise the addition of context will change our state
             candidate.selected_state = len(candidate.history) - 1
 
+            '''
             candidate.add_left_context()
             candidate.add_right_context(branch_from=0)
             candidate.add_bidirectional_context(branch_from=0)
-
             '''
+            
             #Identify candidate's direction based on where it moved last
             if len(candidate.context.actions) == 0 or candidate.context.actions[-1].startswith("bidirectional"):
                 candidate.add_left_context()
@@ -135,7 +136,7 @@ def context_expansion(cluster: SelectedCluster):
                 candidate.add_left_context()
             elif candidate.context.actions[-1].startswith("right"):
                 candidate.add_right_context()
-            '''
+            
             
             candidate.optimize(stop_expansion=True)
             candidate.clear_history()

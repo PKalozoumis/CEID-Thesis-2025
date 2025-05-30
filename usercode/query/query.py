@@ -2,24 +2,28 @@ import os
 import sys
 sys.path.append(os.path.abspath("../.."))
 
-from mypackage.elastic import Session, ElasticDocument
+from mypackage.elastic import Session, ElasticDocument, Document
 from mypackage.clustering.metrics import cluster_stats
 from mypackage.helper import panel_print
 from mypackage.query import Query
 from mypackage.summarization import SummarySegment, Summarizer
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, print_candidates
+from mypackage.llm import LLMSession, merge_summaries
+from mypackage.sentence import doc_to_sentences
 
 from rich.console import Console
-from sentence_transformers import SentenceTransformer
-
-from matplotlib import pyplot as plt
-from sentence_transformers import CrossEncoder
-from rich.rule import Rule
-from rich.pretty import Pretty
 from rich.live import Live
+from rich.rule import Rule
+from sentence_transformers import SentenceTransformer
+from sentence_transformers import CrossEncoder
+from rich.pretty import Pretty
 import argparse
+from collections import defaultdict
 
-from dataclasses import dataclass, field
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+import time
 
 console = Console()
 
@@ -65,11 +69,8 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------------------------------
 
     #Encode the query
-    if not os.path.exists("query.npy"):
-        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
-    else:
-        model = None
-    query.load_vector(model)
+    sentence_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
+    query.load_vector(sentence_model)
 
     #Retrieve clusters from docs
     selected_clusters = cluster_retrieval(sess, returned_docs, query)
@@ -100,8 +101,14 @@ if __name__ == "__main__":
 
     #-----------------------------------------------------------------------------------------------------------------
 
+    t = time.time()
+
+    clusters_per_doc = defaultdict(list)
+
     for focused_cluster in selected_clusters:
         focused_cluster: SelectedCluster
+
+        clusters_per_doc[focused_cluster.cluster.doc].append(focused_cluster)
 
         #Print cluster chains
         if args.print:
@@ -115,11 +122,62 @@ if __name__ == "__main__":
         context_expansion(focused_cluster)
         focused_cluster.merge_candidates()
         print_candidates(focused_cluster)
-        panel_print(focused_cluster.text, title=f"Text (size = {len(focused_cluster.text.split())})")
+        #panel_print(focused_cluster.text, title=f"Text (size = {len(focused_cluster.text.split())})")
 
-        #Summarization
-        #-----------------------------------------------------------------------------------------------------------------
-        #Create summary segments out of the selected clusters
-        #For now we'll play with just one cluster
-        seg = SummarySegment([focused_cluster], focused_cluster.cluster.doc)
-        summarizer = Summarizer()
+    print(time.time() - t)
+
+    #Summarization
+    #-----------------------------------------------------------------------------------------------------------------    
+    segments: list[SummarySegment] = []
+
+    for doc, cluster_list in clusters_per_doc.items():
+        seg = SummarySegment(cluster_list, doc)
+        seg.load_summary()
+        segments.append(seg)
+
+        
+        panel_print([seg.text, Rule(), seg.summary.text], title=f"Summary of {seg.doc.id} ({seg.created_with})")
+
+    llm = LLMSession("meta-llama-3.1-8b-instruct")
+
+    #panel_print(segments[0].text, title=f"Text (size = {len(segments[0].text.split())})")
+    #summarizer = Summarizer(query)
+    #summarizer.summarize_segments(segments)
+
+    #Creating citations
+    #------------------------------------------------------------------------------
+    selected_segment = segments[0]
+
+    #Transform the summary into embeddings
+    doc_to_sentences(selected_segment.summary, sentence_model, sep=".")
+    console.print([s.text for s in selected_segment.summary.sentences])
+
+    #See the chains of the segment
+    flat_chains = selected_segment.flat_chains()
+    panel_print([f"{x.index:03}. {x.text}\n" for x in flat_chains], title="Chains")
+
+    #Calculate cosine similarity between each sentence of the summary and the text
+    #(may need to improve down the line)
+    sims = cosine_similarity(selected_segment.summary_matrix(), flat_chains)
+    max_sim = np.argmax(sims, axis=1)
+    console.print(max_sim)
+
+    selected_segment.citations = [None]*len(selected_segment.summary.sentences)
+    for summary_sentence_index, chain_pos in enumerate(max_sim):
+
+
+    #Add citations to the summary
+    
+
+    #Retrieve fragments of text from the llm and add them to the full text
+    #------------------------------------------------------------------------------
+
+    if False:
+        full_text = ""
+        with Live(panel_print(return_panel=True), refresh_per_second=10) as live:
+            for fragment in merge_summaries(llm, segments, query.text):
+                full_text += fragment
+                live.update(panel_print(full_text, return_panel=True))
+
+    
+    

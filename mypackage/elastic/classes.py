@@ -10,6 +10,7 @@ import warnings
 from rich.console import Console
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from ..sentence import Sentence
 
 console = Console()
 
@@ -133,12 +134,23 @@ class Document():
         id (int, optional): A numeric ID for the document. For Elasticsearch documents, corresponds to the ID in the index
         text_path (str, optional): Path to the document's main body where the text is located. Only applicable when document is of type ```dict```
     '''
-    doc: Any
+    _doc: Any
     id: int = field(default=None)
     text_path: str = field(default=None)
+    sentences: list[Sentence] = field(default=None)
+    schema: dict = field(kw_only=True, default=None) #Enforce a specific structure on the document
 
     def __post_init__(self):
-        self.id = int(self.id)
+        if type(self.id) is str and self.id.isdigit():
+            self.id = int(self.id)
+
+        self._check_schema()
+
+    @classmethod
+    def with_schema(cls, schema: type|dict, text_path: str = None) -> 'Document':
+        return cls(None, text_path=text_path, schema=schema)
+    
+    #--------------------------------------------------------------------------------
 
     @classmethod
     def from_json(cls, path: str, id: int = None, text_path: str = None) -> 'Document':
@@ -159,17 +171,58 @@ class Document():
             doc = json.load(f)
 
         return cls(doc, id, text_path)
+    
+    #--------------------------------------------------------------------------------
+    
+    def _check_schema(self, schema_to_check=None, doc_to_check=None):
+        if schema_to_check is None:
+            schema_to_check = self.schema
+        if doc_to_check is None:
+            doc_to_check = self._doc
+
+        if schema_to_check is None or doc_to_check is None:
+            return
+        
+        if isinstance(schema_to_check, type):
+            if not isinstance(doc_to_check, schema_to_check):
+                raise ValueError("Document does not match schema")
+        elif not isinstance(schema_to_check, dict):
+            raise ValueError("Invalid schema")
+        else:
+            for key, value in schema_to_check.items():
+                if isinstance(value, type) and not isinstance(doc_to_check[key], value):
+                    raise ValueError(f"Document (key={key}) does not match schema (type={value})")
+                elif isinstance(value, dict):
+                    if not isinstance(doc_to_check[key], dict):
+                        raise ValueError(f"Document (key={key}) does not match schema (type=dict)")
+                    else:
+                        self._check_schema(value, doc_to_check[key])
+                else:
+                    raise ValueError("Invalid schema")
 
     #--------------------------------------------------------------------------------
 
     def get(self) -> Any:
-        return self.doc
+        return self._doc
+    
+    #--------------------------------------------------------------------------------
+
+    @property
+    def doc(self) -> Any:
+        return self._doc
+    
+    #--------------------------------------------------------------------------------
+
+    @doc.setter
+    def doc(self, new_doc) -> Any:
+        self._check_schema()
+        self._doc = new_doc
     
     #--------------------------------------------------------------------------------
     
     @property
     def text(self) -> str:
-        temp = self.doc
+        temp = self._doc
 
         if type(temp) is dict:
             if self.text_path is None:
@@ -199,14 +252,15 @@ class Document():
         return self.id == other.id
     
     def __hash__(self):
-        return hash(id)
+        return hash(self.id)
+
 #================================================================================================================
 
 class ElasticDocument(Document):
     '''
     A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
     '''
-    doc: str|dict
+    _doc: str|dict
     id: int
     text_path: str|None
     session: Session
@@ -239,33 +293,37 @@ class ElasticDocument(Document):
 
     @overrides(Document)
     def get(self):
-        if self.doc is None:
+        if self._doc is None:
             #print(f"Fetching Document(ID={self.id})")
 
             #Try to load from cache first
-            self.doc = self.session.cache_load(self.id)
+            self._doc = self.session.cache_load(self.id)
 
             #If loading from cache failed
-            if self.doc is None:
+            if self._doc is None:
                 if self.session.client is None:
                     if self.session.use == "cache":
                         raise Exception("Session is in 'cache' mode, but the document was not found in cache. Consider setting mode to 'client' or 'both'")
-                self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
-                self.session.cache_store(self.doc, self.id)
+                self._doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
+                self.session.cache_store(self._doc, self.id)
 
             #If the filter path points to a single field, return the value inside that field
             if self.filter_path and len(self.filter_path.split(",")) == 1:
                 for key in self.filter_path.split("."):
-                    self.doc = self.doc[key]
+                    self._doc = self._doc[key]
 
                 #Here, we return the single value
                 #This is no longer a dictionary-like object
-                return self.doc
+                return self._doc
             else: #The document is dictionary-like. Specifically, it is an ObjectApiResponse
-                assert isinstance(self.doc, ObjectApiResponse)
-                self.doc = dict(self.doc)
+                assert isinstance(self._doc, ObjectApiResponse)
+                self._doc = dict(self._doc)
+
+            #Ensure that the schema is ok
+            #I will literally never use this
+            self._check_schema()
         else:
-            return self.doc
+            return self._doc
     
     #--------------------------------------------------------------------------------
     

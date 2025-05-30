@@ -1,14 +1,13 @@
 
 from ..elastic import Session, ElasticDocument
 from ..cluster_selection import SelectedCluster
-from ..storage import load_summary, store_summary
 from ..helper import panel_print
 
 from rich.live import Live
 from rich.console import Console
 from rich.panel import Panel
 
-from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, TextIteratorStreamer, TextStreamer
+from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, TextIteratorStreamer, TextStreamer, PegasusForConditionalGeneration
 from threading import Thread
 from sentence_transformers import CrossEncoder
 from transformers import AutoTokenizer
@@ -20,6 +19,9 @@ def evaluate_summary_relevance(model: CrossEncoder, summary: str, query: str):
     tokens = tokenizer(summary)
     #print(tokens)
 
+
+
+'''
 if __name__ == "__main__":
     model_path = "google/bigbird-pegasus-large-arxiv"
 
@@ -53,6 +55,7 @@ if __name__ == "__main__":
             partial_text += new_text
             panel.renderable = partial_text
             live.update(panel)
+'''
 
 
 #================================================================================================================
@@ -78,7 +81,7 @@ def summarize(args, cluster: SelectedCluster):
         #----------------------------------------------------------------------------------------
 
         elif args.m == "llm":
-            from mypackage.helper.llm import summarize
+            from mypackage.llm import llm_summarize
             
             full_text = ""
             removed_json = False
@@ -86,7 +89,7 @@ def summarize(args, cluster: SelectedCluster):
             #Retrieve fragments of text from the llm and add them to the full text
             #------------------------------------------------------------------------------
             with Live(panel_print(return_panel=True), refresh_per_second=10) as live:
-                for fragment in summarize(query.text, cluster.text):
+                for fragment in llm_summarize(query.text, cluster.text):
 
                     full_text += fragment
 

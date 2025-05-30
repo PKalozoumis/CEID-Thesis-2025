@@ -1,6 +1,5 @@
 
 from sentence_transformers import SentenceTransformer
-from ..elastic import Document
 from itertools import pairwise, starmap
 from ..helper import lock_kwargs
 from .helper import split_to_sentences
@@ -8,12 +7,17 @@ from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
 from .classes import Sentence, SentenceChain, SentenceLike, SimilarityPair
+import re
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..elastic import Document
 
 console = Console()
 
 #============================================================================================
 
-def doc_to_sentences(doc: Document, transformer: SentenceTransformer, remove_duplicates = False) -> list[Sentence]:
+def doc_to_sentences(doc: 'Document', transformer: SentenceTransformer, *, remove_duplicates: bool = False, remove_empty: bool =True, sep: str | None = None) -> list[Sentence]:
     '''
     Breaks down a document into sentences. For the entire set of sentences, the embeddings are calculated
 
@@ -31,7 +35,7 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer, remove_dup
     out: list[Sentence]
         A list of the document's sentences as ```Sentence``` objects
     '''
-    sentences = split_to_sentences(doc.text)
+    sentences = split_to_sentences(doc.text, sep=sep)
 
     if remove_duplicates:
         #Deduplicate sentences
@@ -54,12 +58,17 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer, remove_dup
     else:
         deduplicated = sentences
 
+    if remove_empty:
+        deduplicated = [txt for txt in deduplicated if not re.match(r"^\s*$", txt)]
+
     embeddings = transformer.encode(deduplicated)
 
     result = []
+    result: list[Sentence]
     for offset, (sentence, embedding) in enumerate(zip(deduplicated, embeddings)):
         result.append(Sentence(sentence, embedding, doc, offset))
 
+    doc.sentences = result
     return result
 
 #============================================================================================
