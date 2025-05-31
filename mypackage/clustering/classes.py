@@ -131,7 +131,7 @@ class ChainCluster:
     #---------------------------------------------------------------------------
     
     @property
-    def doc(self) -> "Document":
+    def doc(self) -> Document:
         return self.chains[0].doc
     
     @property
@@ -155,7 +155,7 @@ class ChainCluster:
     #---------------------------------------------------------------------------
 
     @classmethod
-    def from_data(cls, data: dict, doc: "Document") -> 'ChainCluster':
+    def from_data(cls, data: dict, doc: Document) -> 'ChainCluster':
         obj = cls.__new__(cls)
         obj.chains = [SentenceChain.from_data(chain_data, doc, parent=obj) for chain_data in data['chains']]
         obj.label = data['label']

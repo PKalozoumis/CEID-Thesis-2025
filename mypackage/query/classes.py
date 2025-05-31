@@ -96,7 +96,7 @@ class Query():
             else:
                 temp_doc = None
             
-            elastic_doc._doc = temp_doc
+            elastic_doc.doc = temp_doc
             doc_list.append(elastic_doc)
 
         return doc_list

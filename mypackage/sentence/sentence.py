@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 from sentence_transformers import SentenceTransformer
 from itertools import pairwise, starmap
 from ..helper import lock_kwargs
@@ -17,7 +19,7 @@ console = Console()
 
 #============================================================================================
 
-def doc_to_sentences(doc: 'Document', transformer: SentenceTransformer, *, remove_duplicates: bool = False, remove_empty: bool =True, sep: str | None = None) -> list[Sentence]:
+def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_duplicates: bool = False, remove_empty: bool =True, sep: str | None = None) -> list[Sentence]:
     '''
     Breaks down a document into sentences. For the entire set of sentences, the embeddings are calculated
 

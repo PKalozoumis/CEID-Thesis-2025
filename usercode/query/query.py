@@ -14,6 +14,7 @@ from mypackage.sentence import doc_to_sentences
 from rich.console import Console
 from rich.live import Live
 from rich.rule import Rule
+from rich.padding import Padding
 from sentence_transformers import SentenceTransformer
 from sentence_transformers import CrossEncoder
 from rich.pretty import Pretty
@@ -100,9 +101,6 @@ if __name__ == "__main__":
         selected_clusters = [selected_clusters[args.c]]
 
     #-----------------------------------------------------------------------------------------------------------------
-
-    t = time.time()
-
     clusters_per_doc = defaultdict(list)
 
     for focused_cluster in selected_clusters:
@@ -124,8 +122,6 @@ if __name__ == "__main__":
         print_candidates(focused_cluster)
         #panel_print(focused_cluster.text, title=f"Text (size = {len(focused_cluster.text.split())})")
 
-    print(time.time() - t)
-
     #Summarization
     #-----------------------------------------------------------------------------------------------------------------    
     segments: list[SummarySegment] = []
@@ -134,9 +130,7 @@ if __name__ == "__main__":
         seg = SummarySegment(cluster_list, doc)
         seg.load_summary()
         segments.append(seg)
-
-        
-        panel_print([seg.text, Rule(), seg.summary.text], title=f"Summary of {seg.doc.id} ({seg.created_with})")
+        #panel_print([seg.text, Rule(), seg.summary.text], title=f"Summary of {seg.doc.id} ({seg.created_with})")
 
     llm = LLMSession("meta-llama-3.1-8b-instruct")
 
@@ -146,28 +140,45 @@ if __name__ == "__main__":
 
     #Creating citations
     #------------------------------------------------------------------------------
-    selected_segment = segments[0]
+    if False:
+        my_segment = segments[0]
 
-    #Transform the summary into embeddings
-    doc_to_sentences(selected_segment.summary, sentence_model, sep=".")
-    console.print([s.text for s in selected_segment.summary.sentences])
+        panel_print(Pretty(my_segment.flat_candidates()))
 
-    #See the chains of the segment
-    flat_chains = selected_segment.flat_chains()
-    panel_print([f"{x.index:03}. {x.text}\n" for x in flat_chains], title="Chains")
+        #Transform the summary into embeddings
+        doc_to_sentences(my_segment.summary, sentence_model, sep=". ")
+        flat_chains = my_segment.flat_chains()
 
-    #Calculate cosine similarity between each sentence of the summary and the text
-    #(may need to improve down the line)
-    sims = cosine_similarity(selected_segment.summary_matrix(), flat_chains)
-    max_sim = np.argmax(sims, axis=1)
-    console.print(max_sim)
+        #Calculate cosine similarity between each sentence of the summary and the text
+        #(may need to improve down the line)
+        sims = cosine_similarity(my_segment.summary_matrix(), flat_chains)
+        max_sim = np.argmax(sims, axis=1)
+        console.print(max_sim)
 
-    selected_segment.citations = [None]*len(selected_segment.summary.sentences)
-    for summary_sentence_index, chain_pos in enumerate(max_sim):
+        #my_segment.clusters[0].clustering_context.chains[]
+
+        #Set citations list
+        my_segment.citations = [None]*len(my_segment.summary.sentences)
+        for summary_sentence_index, chain_pos in enumerate(max_sim):
+            my_segment.citations[summary_sentence_index] = flat_chains[chain_pos].index
+
+        #Add citations to the summary
+        text = ""
+        for c, s in zip(my_segment.citations, my_segment.summary.sentences):
+            text += s.text
+            if c is not None:
+                text += f"[cyan] [{c}][/cyan]"
+            text += ". "
+
+        citation_text = []
+        for candidate_chain in [x.index for x in flat_chains]:
+            if candidate_chain in my_segment.citations:
+                citation_text.append(f"[cyan][{candidate_chain}][/cyan]: "+ my_segment.clusters[0].clustering_context.chains[candidate_chain].text)
+            else:
+                citation_text.append(f"[red][{candidate_chain}][/red]: " + my_segment.clusters[0].clustering_context.chains[candidate_chain].text)
 
 
-    #Add citations to the summary
-    
+        panel_print([text, Padding(Rule()), "\n\n".join(citation_text)], title="Summary with citations")
 
     #Retrieve fragments of text from the llm and add them to the full text
     #------------------------------------------------------------------------------

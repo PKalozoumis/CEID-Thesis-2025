@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..sentence import SentenceChain
 from ..query import Query
 from ..clustering import ChainCluster, ChainClustering
@@ -52,7 +54,7 @@ class SummaryCandidate():
         actions: list[str] = field(default_factory=list)
 
         @classmethod
-        def from_state(cls, state: 'SummaryCandidate.State', action: str) -> 'SummaryCandidate.State':
+        def from_state(cls, state: SummaryCandidate.State, action: str) -> SummaryCandidate.State:
             return cls(
                 chains = state.chains[:],
                 score = state.score,
@@ -74,6 +76,9 @@ class SummaryCandidate():
         self.expandable = True
 
     def __str__(self) -> str:
+        return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
+    
+    def __repr__(self) -> str:
         return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
 
     @property
@@ -250,7 +255,7 @@ class SelectedCluster():
 
     #---------------------------------------------------------------------------
     
-    def evaluate_chains(self) -> 'SelectedCluster':
+    def evaluate_chains(self) -> SelectedCluster:
         '''
         Calculates the cross-encoder similarity score between the query and each chain in the cluster.
         After execution, each chain is transformed into a ```SummaryCandidate```, all of which are stored in the ```candidates``` list
@@ -262,7 +267,7 @@ class SelectedCluster():
     
     #---------------------------------------------------------------------------
     
-    def remove_duplicate_candidates(self) -> 'SelectedCluster':
+    def remove_duplicate_candidates(self) -> SelectedCluster:
         seen = set()
         keep = []
         for candidate in self.candidates:
@@ -276,7 +281,7 @@ class SelectedCluster():
     
     #---------------------------------------------------------------------------
 
-    def refresh_candidate_scores(self) -> 'SelectedCluster':
+    def rescore_candidates(self) -> SelectedCluster:
         '''
         After changing chains of some candidates, you want to recalculate their scores.
         During context expansion, this happens automatically, but if you manually modify a chain, you also have to rescore
@@ -287,18 +292,19 @@ class SelectedCluster():
 
     #---------------------------------------------------------------------------
     
-    def rerank_candidates(self) -> 'SelectedCluster':
+    def rerank_candidates(self) -> SelectedCluster:
         self.candidates = sorted(self.candidates, key=lambda x: (x.score, 6666 - x.chain.index), reverse=True)
         return self
 
     #---------------------------------------------------------------------------
     
-    def merge_candidates(self) -> 'SelectedCluster':
+    def merge_candidates(self) -> SelectedCluster:
         self.candidates = sorted(self.candidates, key=lambda x: x.index_range.start, reverse=False)
 
         prev = self.candidates[0]
         keep = []
         for candidate in self.candidates[1:]:
+            #We only merge candidates with same sign of relevance score
             if prev.score*candidate.score >= 0:
                 #There is overlap
                 if candidate.index_range.start in prev.index_range:
@@ -318,7 +324,7 @@ class SelectedCluster():
         keep.append(prev)
 
         self.candidates = keep
-        self.refresh_candidate_scores().rerank_candidates()
+        self.rescore_candidates().rerank_candidates()
 
         return self
     
@@ -385,6 +391,9 @@ class SelectedCluster():
         return self.cluster.id
     
     def selected_candidates(self) -> list[SummaryCandidate]:
+        '''
+        Returns the best candidates from this cluster that should be considered relevant to the query
+        '''
         if self.cross_score > 0:
             #We take all the candidates    
             return self.candidates

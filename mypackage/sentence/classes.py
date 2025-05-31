@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 import numpy as np
@@ -63,9 +65,9 @@ class Sentence(SentenceLike):
 
     _text: str
     _vector: ndarray
-    doc: 'Document'
+    doc: Document
     offset: int = field(default=-1)
-    parent_chain: "SentenceChain" = field(default=None)
+    parent_chain: SentenceChain = field(default=None)
 
     def __str__(self):
         return self.text
@@ -87,7 +89,7 @@ class Sentence(SentenceLike):
     
     #----------------------------------------------------------------------------------------------
 
-    def next(self, n: int = 1, *, force_list: bool = False) -> Union['Sentence', list['Sentence']]:
+    def next(self, n: int = 1, *, force_list: bool = False) -> Union[Sentence, list[Sentence]]:
         #print(f"{'-'*60}\nnext_sentence(n={n})")
         if n < 1:
             if force_list:
@@ -100,7 +102,7 @@ class Sentence(SentenceLike):
     
     #----------------------------------------------------------------------------------------------
     
-    def prev(self, n: int = 1, *, force_list: bool = False) -> Union['Sentence', list['Sentence']]:
+    def prev(self, n: int = 1, *, force_list: bool = False) -> Union[Sentence, list[Sentence]]:
         print(f"{'-'*60}\nprev_sentence(n={n})")
         if n < 1:
             if force_list:
@@ -310,7 +312,7 @@ class SentenceChain(SentenceLike):
     
     #--------------------------------------------------------------------------------------------------------------------------
 
-    def next(self, n: int = 1, *, force_list: bool = False) -> Union['SentenceChain', list['SentenceChain']]:
+    def next(self, n: int = 1, *, force_list: bool = False) -> Union[SentenceChain, list[SentenceChain]]:
         '''
         Returns the next chain of the document, regardless of the cluster it belongs to.
         A clustering context must exist for this to work.
@@ -322,7 +324,7 @@ class SentenceChain(SentenceLike):
     
     #--------------------------------------------------------------------------------------------------------------------------
     
-    def prev(self, n: int = 1, *, force_list: bool = False) -> Union['SentenceChain', list['SentenceChain']]:
+    def prev(self, n: int = 1, *, force_list: bool = False) -> Union[SentenceChain, list[SentenceChain]]:
         '''
         Returns the previous chain of the document, regardless of the cluster it belongs to.
         A clustering context must exist for this to work.
@@ -351,7 +353,7 @@ class SentenceChain(SentenceLike):
         return " ".join([s.text for s in self.sentences])
     
     @property
-    def doc(self) -> 'Document':
+    def doc(self) -> Document:
         return self.sentences[0].doc
     
     @property
@@ -372,7 +374,7 @@ class SentenceChain(SentenceLike):
         }
     
     @classmethod
-    def from_data(cls, data: dict, doc: 'Document', *, parent: "ChainCluster" = None) -> 'SentenceChain':
+    def from_data(cls, data: dict, doc: Document, *, parent: ChainCluster = None) -> SentenceChain:
         obj = cls.__new__(cls)
         obj._vector = data['vector']
         obj.pooling_method = data['pooling_method']

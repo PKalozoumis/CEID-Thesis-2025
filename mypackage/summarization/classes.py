@@ -27,8 +27,7 @@ class SummarySegment():
     #Could either be the paper's existing summary, or an LLM-generated text of the first paragraph or summary
     #...maybe it could even be pre-calculated?
     extra_info: str = field(default=None) 
-    #summary: Document = field(default=Document.with_schema({'summary': str, 'segment_obj': object}, "summary"))
-    summary: Document = field(default=Document.with_schema(str))
+    summary: Document = field(default=None)
     #One list element for each sentence in the summary.
     #Points to the citation, which is a position in flat_chains list.
     #None means no citation for this sentence
@@ -38,13 +37,69 @@ class SummarySegment():
     #---------------------------------------------------------------------------------------------------
 
     @property
+    #Unsure if this is useful
+    def cross_score(self) -> float:
+        '''
+        Just like the SelectedClusters, the summary segments also have a cross-score,
+        which is the sum of the clusters scores. This is only an approximation, as different clusters
+        of the same document can potentially have overlapping candidates (after context expansion),
+        which affect the score
+        '''
+        return np.sum(c.cross_score for c in self.clusters)
+
+    #---------------------------------------------------------------------------------------------------
+
+    def flat_candidates(self) -> list[SummaryCandidate]:
+        '''
+        Returns a list of all the best candidates from each selected clusters of the document, in order of appearance
+        '''
+        flat_candidates: list[SummaryCandidate] = []
+        for c in self.clusters:
+            flat_candidates += c.selected_candidates()
+        #Sort by start
+        return sorted(flat_candidates, key=lambda x: x.index_range.start, reverse=False)
+    
+    #---------------------------------------------------------------------------------------------------
+
+    def flat_chains(self) -> list[SentenceChain]:
+        '''
+        Turns the chains from the ordered candidates into one single matrix
+        We assume that merge_candidates has been called on the selected clusters, so that overlaps are resolved
+        '''
+        flat_candidates: list[SummaryCandidate] = []
+        for c in self.clusters:
+            flat_candidates += c.selected_candidates()
+        #Sort by start
+        temp = sorted(flat_candidates, key=lambda x: x.index_range.start, reverse=False)
+
+        #Handle duplicate chains (because same chain appears in positive and negative contexts)
+        flat_chains = []
+        prev = -1
+        for x in chain.from_iterable([c.context.chains for c in temp]):
+            if prev != x.index:
+                flat_chains.append(x)
+                prev = x.index
+            else:
+                print(x.index)
+
+        return flat_chains
+    
+    #---------------------------------------------------------------------------------------------------
+
+    @property
     def text(self):
+        '''
+        Get the text to be summarized, by combining all the chains from the selected clusters in order of apperance.
+        Reminder: the chains that are returned from each cluster depend on how relevant they are to the query
+        '''
         flat_candidates: list[SummaryCandidate] = []
         for c in self.clusters:
             flat_candidates += c.selected_candidates()
         
         #Sort by start
         temp = sorted(flat_candidates, key=lambda x: x.index_range.start, reverse=False)
+
+        #We need to handle the 
         return "\n\n".join([c.text for c in temp])
     
     #---------------------------------------------------------------------------------------------------
@@ -80,34 +135,10 @@ class SummarySegment():
         
         with open(f"generated_summaries/segment_{self.id}.json", "r") as f:
             data = json.load(f)
-            #self.summary.doc = {'summary': data['summary'], 'segment_obj': self}
-            self.summary.doc = data['summary']
+            self.summary = Document(data['summary'])
             self.created_with = data['created_with']
 
         return True
-    
-    #---------------------------------------------------------------------------------------------------
-
-    def flat_chains(self) -> list[SentenceChain]:
-        '''
-        Turns the chains from the ordered candidates into one single matrix
-        We assume that merge_candidates has been called on the selected clusters, so that overlaps are resolved
-        '''
-        flat_candidates: list[SummaryCandidate] = []
-        for c in self.clusters:
-            flat_candidates += c.selected_candidates()
-        #Sort by start
-        temp = sorted(flat_candidates, key=lambda x: x.index_range.start, reverse=False)
-
-        #Handle duplicate chains (because same chain appears in positive and negative contexts)
-        flat_chains = []
-        prev = -1
-        for x in chain.from_iterable([c.context.chains for c in temp]):
-            if prev != x.index:
-                flat_chains.append(x)
-                prev = x.index
-
-        return flat_chains
 
     #---------------------------------------------------------------------------------------------------
     

@@ -111,23 +111,34 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
 def context_expansion(cluster: SelectedCluster):
 
     while True:
+    #for _ in range(2):
         expanded = False #Stop if nobody expands, 
+
+        seen_chains = set()
+        #This tells us which candidate caused a certain chain to be forbidden
+        candidate_index_to_position: dict[int, int] = {}
+        marked_for_deletion: list[bool] = []
+
         #Evaluate the different contexts
-        for candidate in cluster.candidates:
+        #Candidates are in order of relevance
+        for pos, candidate in enumerate(cluster.candidates):
+        #----------------------------------------------------------------------------------------------------------
             if not candidate.expandable:
+                for c in candidate.context.chains:
+                    seen_chains.add(c.index)
+                    candidate_index_to_position[c.index] = pos
+                continue
+
+            #If I myself am forbidden, I just have to kill myself. It's that simple
+            if candidate.chain.index in seen_chains:
+                marked_for_deletion.append(True)
                 continue
 
             #Solidify the currently selected state if it's -1
             #otherwise the addition of context will change our state
-            candidate.selected_state = len(candidate.history) - 1
-
-            '''
-            candidate.add_left_context()
-            candidate.add_right_context(branch_from=0)
-            candidate.add_bidirectional_context(branch_from=0)
-            '''
+            if candidate.selected_state == -1:
+                candidate.selected_state = len(candidate.history) - 1
             
-            #Identify candidate's direction based on where it moved last
             if len(candidate.context.actions) == 0 or candidate.context.actions[-1].startswith("bidirectional"):
                 candidate.add_left_context()
                 candidate.add_right_context(branch_from=0)
@@ -137,11 +148,61 @@ def context_expansion(cluster: SelectedCluster):
             elif candidate.context.actions[-1].startswith("right"):
                 candidate.add_right_context()
             
-            
             candidate.optimize(stop_expansion=True)
+
+            #Check if the new state is forbidden
+            while True:
+                forbidden_chains = [c for c in candidate.context.chains if c.index in seen_chains]
+
+                if len(forbidden_chains) == 0:
+                    break
+                if len(forbidden_chains) == 1:
+                    #Because someone better than us restricted us, that some has actually already been scored
+                    #Let's see if that candidate that restricted us is still better
+                    other_candidate = cluster.candidates[candidate_index_to_position[forbidden_chains[0].index]]
+                    if candidate.score > other_candidate.score:
+                        cluster.candidates.pop(candidate_index_to_position[forbidden_chains[0].index])
+                        candidate_index_to_position[forbidden_chains[0].index] = pos
+                        break
+                    else:
+                        #If this extra chain was forbidden, then I need to delete this state from the history
+                        #I then need to find the immediately next best state, and check if that is forbidden too
+                        #(Non-terminating)
+                        candidate.history.pop(candidate.selected_state)
+                        candidate.optimize()
+
+                elif len(forbidden_chains) == 2:
+                    #This is a more serious case
+                    #We need to beat both of the candidates that restrict us
+                    #Only then is it beneficial for the current candidate to exist
+                    other1 = cluster.candidates[candidate_index_to_position[forbidden_chains[0].index]]
+                    other2 = cluster.candidates[candidate_index_to_position[forbidden_chains[1].index]]
+
+                    if candidate.score > other1.score and candidate.score > other2.score:
+                        cluster.candidates.pop(candidate_index_to_position[forbidden_chains[0].index])
+                        cluster.candidates.pop(candidate_index_to_position[forbidden_chains[1].index])
+                        candidate_index_to_position[forbidden_chains[0].index] = pos
+                        candidate_index_to_position[forbidden_chains[1].index] = pos
+                        break
+                    else:
+                        #The only state we can return to is the initial state
+                        #And we can no longer expand, since we are restricted from both sides
+                        candidate.selected_state = 0
+                        candidate.expandable = False
+                        break
+
             candidate.clear_history()
+            #Right now, forbidden_chains has all the chains that are forbidden in the current state
+            #I either forbade them already myself, or someone else forbade them
+            #The remaining chains, I have to forbid myself
+            for c in candidate.context.chains:
+                if c.index not in forbidden_chains:
+                    seen_chains.add(c.index)
+                    candidate_index_to_position[c.index] = pos
 
             expanded |= candidate.expandable
+
+        console.print(candidate_index_to_position)
 
         cluster.remove_duplicate_candidates().rerank_candidates()
         print_candidates(cluster, print_action=True)

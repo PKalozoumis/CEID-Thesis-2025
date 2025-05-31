@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import lmstudio as lms
 from lmstudio import LMStudioClientError
 import platform
@@ -5,7 +7,6 @@ import netifaces
 import json
 
 from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from .summarization.classes import SummarySegment
 
@@ -30,7 +31,7 @@ class LLMSession():
 
 #================================================================================================
 
-def merge_summaries(llm: LLMSession, segments: list['SummarySegment'], query: str):
+def merge_summaries(llm: LLMSession, segments: list[SummarySegment], query: str):
 
     system_prompt = f'''Rewrite the following document into a coherent, fluent document (with paragraph breaks as needed) that focused on answering the following query: \"{query}\".
 Only use content from the document. Do not paraphrase, interpret, or add new information, except to improve fluency. Keep original wording and phrasing. Ensure the result flows naturally and clearly.
