@@ -41,7 +41,7 @@ class SummaryCandidate():
     '''
     chain: SentenceChain #The central chain around which we build the context
     selected_state: int #The optimal state from the history
-    history: list['State'] #States to show how the addition of more context affects the score
+    history: list[State] #States to show how the addition of more context affects the score
     evaluator: RelevanceEvaluator
     #Whether this candidate should be considered for further context expansions
     #Candidate Filtering can disable this candidate if no improvement is seen
@@ -52,13 +52,15 @@ class SummaryCandidate():
         chains: list[SentenceChain]
         score: float
         actions: list[str] = field(default_factory=list)
+        timestamp: int = field(default=0)
 
         @classmethod
         def from_state(cls, state: SummaryCandidate.State, action: str) -> SummaryCandidate.State:
             return cls(
                 chains = state.chains[:],
                 score = state.score,
-                actions = state.actions + [action]
+                actions = state.actions + [action],
+                timestamp = state.timestamp
             )
         
         def __len__(self) -> int:
@@ -101,7 +103,7 @@ class SummaryCandidate():
     def index_range(self):
         return range(self.context.chains[0].index, self.context.chains[-1].index + 1)
     
-    def optimize(self, *, stop_expansion: bool = False) -> int:
+    def optimize(self, *, stop_expansion: bool = False, timestamp: int|None = None) -> int:
         '''
         Sets the selected state to the optimal state. Returns the new selected index
 
@@ -110,8 +112,18 @@ class SummaryCandidate():
         stop_expansion: bool
             When set to ```True```, if the optimal state is the same as the old state, the
             candidate is marked as non-expandable, meaning that no improvement occurs from expansion
+
+        timestamp: int, optional
+            Only optimize on the states that have specific timestamp
         '''
-        new_state = max(range(len(self.history)), key=lambda i: self.history[i].score)
+        if timestamp is not None:
+            temp = [i for i, s in enumerate(self.history) if s.timestamp == timestamp]
+            #if len(temp) == 0:
+                #temp = range(len(self.history))
+        else:
+            temp = range(len(self.history))
+
+        new_state = max(temp, key=lambda i: self.history[i].score)
         #print(f"I am chain {self.chain.index}, optimal_state={new_state}, current_state={self.selected_state}")
 
         if stop_expansion and self.selected_state == new_state: #Optimal state did not change
@@ -122,7 +134,7 @@ class SummaryCandidate():
     
     #-------------------------------------------------------------------------------------------------------------------
 
-    def add_right_context(self, n: int = 1, *, branch_from: int|None = None):
+    def add_right_context(self, n: int = 1, *, branch_from: int|None = None, timestamp: int = 0):
         '''
         Adds extra context (chains) to the right of the current state
 
@@ -143,12 +155,13 @@ class SummaryCandidate():
             branch_from = self.selected_state
 
         self.history.append(self.State.from_state(self.history[branch_from], f"right {n}"))
+        self.history[-1].timestamp = timestamp
         self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True))
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
 
     #-------------------------------------------------------------------------------------------------------------------
 
-    def add_left_context(self, n: int = 1, *, branch_from: int|None = None):
+    def add_left_context(self, n: int = 1, *, branch_from: int|None = None, timestamp: int = 0):
         '''
         Adds extra context (chains) to the left of the current state
 
@@ -169,12 +182,13 @@ class SummaryCandidate():
             branch_from = self.selected_state
 
         self.history.append(self.State.from_state(self.history[branch_from], f"left {n}"))
+        self.history[-1].timestamp = timestamp
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
 
     #-------------------------------------------------------------------------------------------------------------------
 
-    def add_bidirectional_context(self, n: int = 1, *, branch_from: int|None = None):
+    def add_bidirectional_context(self, n: int = 1, *, branch_from: int|None = None, timestamp: int = 0):
         '''
         Adds extra context (chains) to both directions of the current state
 
@@ -195,6 +209,7 @@ class SummaryCandidate():
             branch_from = self.selected_state
 
         self.history.append(self.State.from_state(self.history[branch_from], f"bidirectional {n}"))
+        self.history[-1].timestamp = timestamp
         self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True)) #Forward
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains #backward
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
@@ -219,6 +234,32 @@ class SummaryCandidate():
             # Recalculate current_index since history may have shrunk
             old_to_new = {i: new_i for new_i, i in enumerate(sorted(preserved))}
             self.selected_state = old_to_new.get(self.selected_state, 0)
+
+    #-------------------------------------------------------------------------------------------------------------------
+
+    def clear_timestamp(self, timestamp: int):
+        '''
+        Clears the history entries that have the specified ```timestamp```
+        '''
+        if self.context.timestamp == timestamp:
+            raise Exception("You cannot clear entries with the same timestamp as the current timestamp")
+        had_latest_state = False
+        if self.selected_state == -1:
+            had_latest_state = True
+            self.selected_state = len(self.history) - 1
+
+        old_history = self.history
+        self.history = [state for state in self.history if state.timestamp != timestamp]
+
+        if had_latest_state:
+            self.selected_state = -1
+        else:
+            # Adjust selected_state if items were removed before it
+            removed_before = sum(1 for i in range(len(old_history)) 
+                                if old_history[i].timestamp == timestamp and i < self.selected_state)
+            self.selected_state -= removed_before
+            self.selected_state = max(0, min(self.selected_state, len(self.history) - 1))
+
 
 #==========================================================================================================
 

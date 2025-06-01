@@ -64,7 +64,7 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
 
 #===============================================================================================================
 
-def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = False):
+def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = False, current_state_only: bool = False):
 
     panel_lines = []
 
@@ -74,11 +74,11 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
 
         col = "green" if c.expandable else "red"
 
-        for num, state in enumerate(c.history):
+        for num, state in enumerate([c.context] if current_state_only else c.history):
             #Yes I know this is goofy
             big_chain_in_column = False
             for c1 in focused_cluster.candidates:
-                if len(c1.history[num]) > 1:
+                if len(c1.context if current_state_only else c1.history[num]) > 1:
                     big_chain_in_column = True
                     break
 
@@ -97,18 +97,22 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
 
     panel_lines.append(Rule())
 
-    #Overall cluster score
-    cluster_scores = [
-        f"[cyan]{focused_cluster.historic_cross_score(i):.3f}[/cyan]" for i in range(len(focused_cluster.candidates[0].history))
-    ]
-
-    panel_lines.append(f"Cluster score: " + " [red]->[/red] ".join(cluster_scores))
+    #Overall cluster score\
+    if current_state_only:
+        panel_lines.append(f"Cluster score: [cyan]{focused_cluster.cross_score:.3f}[/cyan]")
+    else:
+        cluster_scores = [
+            f"[cyan]{focused_cluster.historic_cross_score(i):.3f}[/cyan]" for i in range(len(focused_cluster.candidates[0].history))
+        ]
+        panel_lines.append(f"Cluster score: " + " [red]->[/red] ".join(cluster_scores))
 
     panel_print(panel_lines, title=f"For cluster {focused_cluster.id}", expand=False)
 
 #===============================================================================================================
 
 def context_expansion(cluster: SelectedCluster):
+
+    timestamp = 0
 
     while True:
     #for _ in range(2):
@@ -123,6 +127,11 @@ def context_expansion(cluster: SelectedCluster):
         #Candidates are in order of relevance
         for pos, candidate in enumerate(cluster.candidates):
         #----------------------------------------------------------------------------------------------------------
+            #console.print(Rule())
+            #console.print(candidate.index_range)
+            #console.print(candidate.context.timestamp)
+            marked_for_deletion.append(False)
+
             if not candidate.expandable:
                 for c in candidate.context.chains:
                     seen_chains.add(c.index)
@@ -131,24 +140,30 @@ def context_expansion(cluster: SelectedCluster):
 
             #If I myself am forbidden, I just have to kill myself. It's that simple
             if candidate.chain.index in seen_chains:
-                marked_for_deletion.append(True)
+                marked_for_deletion[-1] = True
                 continue
 
             #Solidify the currently selected state if it's -1
             #otherwise the addition of context will change our state
             if candidate.selected_state == -1:
                 candidate.selected_state = len(candidate.history) - 1
+
+            #Refresh the timestamp of the current state
+            #Unsure if I'll have to make a copy instead
+            candidate.context.timestamp = timestamp
             
             if len(candidate.context.actions) == 0 or candidate.context.actions[-1].startswith("bidirectional"):
-                candidate.add_left_context()
-                candidate.add_right_context(branch_from=0)
-                candidate.add_bidirectional_context(branch_from=0)
+                branch_point = candidate.selected_state #We need to keep this, because we want to limit ourselves to the current timestamp
+                candidate.add_left_context(timestamp=timestamp)
+                candidate.add_right_context(branch_from=branch_point, timestamp=timestamp)
+                candidate.add_bidirectional_context(branch_from=branch_point, timestamp=timestamp)
             elif candidate.context.actions[-1].startswith("left"):
-                candidate.add_left_context()
+                candidate.add_left_context(timestamp=timestamp)
             elif candidate.context.actions[-1].startswith("right"):
-                candidate.add_right_context()
+                candidate.add_right_context(timestamp=timestamp)
             
-            candidate.optimize(stop_expansion=True)
+            #candidate.optimize(stop_expansion=True)
+            candidate.optimize(stop_expansion=True, timestamp=timestamp)
 
             #Check if the new state is forbidden
             while True:
@@ -161,7 +176,7 @@ def context_expansion(cluster: SelectedCluster):
                     #Let's see if that candidate that restricted us is still better
                     other_candidate = cluster.candidates[candidate_index_to_position[forbidden_chains[0].index]]
                     if candidate.score > other_candidate.score:
-                        cluster.candidates.pop(candidate_index_to_position[forbidden_chains[0].index])
+                        marked_for_deletion[candidate_index_to_position[forbidden_chains[0].index]] = True
                         candidate_index_to_position[forbidden_chains[0].index] = pos
                         break
                     else:
@@ -169,7 +184,8 @@ def context_expansion(cluster: SelectedCluster):
                         #I then need to find the immediately next best state, and check if that is forbidden too
                         #(Non-terminating)
                         candidate.history.pop(candidate.selected_state)
-                        candidate.optimize()
+                        #candidate.optimize()
+                        candidate.optimize(timestamp=timestamp)
 
                 elif len(forbidden_chains) == 2:
                     #This is a more serious case
@@ -179,19 +195,22 @@ def context_expansion(cluster: SelectedCluster):
                     other2 = cluster.candidates[candidate_index_to_position[forbidden_chains[1].index]]
 
                     if candidate.score > other1.score and candidate.score > other2.score:
-                        cluster.candidates.pop(candidate_index_to_position[forbidden_chains[0].index])
-                        cluster.candidates.pop(candidate_index_to_position[forbidden_chains[1].index])
+                        marked_for_deletion[candidate_index_to_position[forbidden_chains[0].index]] = True
+                        marked_for_deletion[candidate_index_to_position[forbidden_chains[1].index]] = True
+                        candidate_index_to_position[forbidden_chains[0].index]
                         candidate_index_to_position[forbidden_chains[0].index] = pos
                         candidate_index_to_position[forbidden_chains[1].index] = pos
                         break
                     else:
                         #The only state we can return to is the initial state
                         #And we can no longer expand, since we are restricted from both sides
-                        candidate.selected_state = 0
+                        candidate.selected_state = [i for i, s in enumerate(candidate.history) if s.timestamp == timestamp][0]
+                        #candidate.selected_state = 0
                         candidate.expandable = False
                         break
 
-            candidate.clear_history()
+            #candidate.clear_history()
+            candidate.clear_timestamp(timestamp-1)
             #Right now, forbidden_chains has all the chains that are forbidden in the current state
             #I either forbade them already myself, or someone else forbade them
             #The remaining chains, I have to forbid myself
@@ -202,10 +221,19 @@ def context_expansion(cluster: SelectedCluster):
 
             expanded |= candidate.expandable
 
-        console.print(candidate_index_to_position)
+        #console.print(candidate_index_to_position)
+
+        #Delete those that were marked for deletion
+        cluster.candidates = [c for i,c in enumerate(cluster.candidates) if not marked_for_deletion[i]]
+
+        #Clear history
+        for candidate in cluster.candidates:
+            candidate.clear_history()
 
         cluster.remove_duplicate_candidates().rerank_candidates()
-        print_candidates(cluster, print_action=True)
+        print_candidates(cluster, print_action=True, current_state_only=True)
 
         if not expanded:
             break
+
+        timestamp += 1
