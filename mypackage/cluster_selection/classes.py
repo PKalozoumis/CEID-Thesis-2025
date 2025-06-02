@@ -15,6 +15,12 @@ from sentence_transformers import CrossEncoder
 from rich.rule import Rule
 from rich.padding import Padding
 from rich.pretty import Pretty
+from rich.console import Console
+from rich.panel import Panel
+
+from itertools import chain
+
+console = Console()
 
 #==========================================================================================================
 
@@ -68,7 +74,14 @@ class SummaryCandidate():
         
         @property
         def id(self) -> str:
-            return f"{self.chains[0].index:03}-{self.chains[-1].index:03}"
+            return f"{self.chains[0].index:03}-{self.chains[-1].index:03}" if len(self.chains) > 1 else f"{self.chains[0].index:03}"
+        
+        @property
+        def index_range(self) -> range:
+            return range(self.chains[0].index, self.chains[-1].index + 1)
+        
+        def __eq__(self, other: SummaryCandidate.State) -> bool:
+            return self.id == other.id and self.actions == other.actions
 
     def __init__(self, chain: SentenceChain, score: float, evaluator: RelevanceEvaluator = None):
         self.chain = chain
@@ -101,9 +114,9 @@ class SummaryCandidate():
     
     @property
     def index_range(self):
-        return range(self.context.chains[0].index, self.context.chains[-1].index + 1)
+        return self.context.index_range
     
-    def optimize(self, *, stop_expansion: bool = False, timestamp: int|None = None) -> int:
+    def optimize(self, *, stop_expansion: bool = False, timestamp: int|None = None, constraints: list[int]|None = None) -> int:
         '''
         Sets the selected state to the optimal state. Returns the new selected index
 
@@ -115,6 +128,9 @@ class SummaryCandidate():
 
         timestamp: int, optional
             Only optimize on the states that have specific timestamp
+
+        constraints: list[int], optional
+            Prevent the optimization process from selecting states that contain the chains in this list
         '''
         if timestamp is not None:
             temp = [i for i, s in enumerate(self.history) if s.timestamp == timestamp]
@@ -123,15 +139,34 @@ class SummaryCandidate():
         else:
             temp = range(len(self.history))
 
-        new_state = max(temp, key=lambda i: self.history[i].score)
-        #print(f"I am chain {self.chain.index}, optimal_state={new_state}, current_state={self.selected_state}")
+        if constraints is not None:
+            #Only keep states that don't have chains in the constraints list
+            temp =  [i for i in temp if not any(it.index in constraints for it in self.history[i].chains)]
 
-        if stop_expansion and self.selected_state == new_state: #Optimal state did not change
+        if len(temp) > 0:
+            new_state = max(temp, key=lambda i: self.history[i].score)
+            #print(f"I am chain {self.chain.index}, optimal_state={new_state}, current_state={self.selected_state}")
+
+            if stop_expansion and self.selected_state == new_state: #Optimal state did not change
+                self.expandable = False
+
+            self.selected_state = new_state
+            return new_state
+        else:
             self.expandable = False
-
-        self.selected_state = new_state
-        return new_state
+            return None
     
+    #-------------------------------------------------------------------------------------------------------------------
+
+    def print_history(self):
+        text = []
+        for state in self.history:
+            text.append(("[red]-->[/red] " if self.context == state else "") + f"[cyan]{state.id}[/cyan]: Score = {state.score:.3f}, Timestamp = {state.timestamp}, Actions = [green]{state.actions}[/green]")
+            text.append(Rule())
+
+        text = text[:-1]
+        panel_print(text, title=f"For candidate {self.chain.index:03}")
+
     #-------------------------------------------------------------------------------------------------------------------
 
     def add_right_context(self, n: int = 1, *, branch_from: int|None = None, timestamp: int = 0):

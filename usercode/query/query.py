@@ -119,6 +119,7 @@ if __name__ == "__main__":
         #-----------------------------------------------------------------------------------------------------------------
         context_expansion(focused_cluster)
         focused_cluster.merge_candidates()
+        console.print(Rule(title="Merged candidates:", align="left"))
         print_candidates(focused_cluster)
         #panel_print(focused_cluster.text, title=f"Text (size = {len(focused_cluster.text.split())})")
 
