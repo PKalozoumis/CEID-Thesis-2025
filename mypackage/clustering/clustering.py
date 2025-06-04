@@ -19,12 +19,18 @@ def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) ->
     Groups the chains into lists based on the labels returned by ```chain_clustering```.
     The chains are ordered 
 
-    Args:
-        chains (list[SentenceChain]): The original set of chains
-        clustering (list[int]): A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
+    Arguments
+    ---
+    chains: list[SentenceChain]
+        The original set of chains
 
-    Returns:
-        dict[int[SentenceChain]]: A dictionary of clusters. Each cluster is a list of chains
+    clustering: list[int])
+        A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
+
+    Returns
+    ---
+    clusters: dict[int[SentenceChain]]
+        A dictionary of clusters. Each cluster is a list of chains
     '''
 
     clusters = {}
@@ -106,11 +112,15 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
     '''
     Inverts the label list. For each label, it returns the indices where it occurs
 
-    Args:
-        clustering (list[int]): A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
+    Arguments
+    ---
+    labels: list[int]
+        A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
 
-    Returns:
-        dict[int[int]]: A dictionary mapping each label to its indices
+    Returns
+    ---
+    indices: dict[int[int]]
+        A dictionary mapping each label to its indices
     '''
 
     indices = {}

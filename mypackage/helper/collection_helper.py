@@ -16,7 +16,7 @@ def count_vectorizer(docs: list[str]) -> spmatrix:
 
 #===============================================================================================
 
-def generate_examples(path,*, doc_limit :int|None = None, byte_offsets=None):
+def generate_examples(path,*, doc_limit: int|None = None, byte_offsets=None, remove_duplicates: bool = False):
     """
     Yields examples.
 
@@ -40,6 +40,9 @@ def generate_examples(path,*, doc_limit :int|None = None, byte_offsets=None):
                     break
 
     with open(path, encoding="utf-8") as f:
+
+        #For every document.....
+        #-----------------------------------------------------------
         for line in next_line(f):
             if line == "":
                 return
@@ -47,9 +50,29 @@ def generate_examples(path,*, doc_limit :int|None = None, byte_offsets=None):
             d = json.loads(line)
             summary = "\n".join(d["abstract_text"])
             summary = summary.replace("<S>", "").replace("</S>", "")
+
+            #Remove duplicate sentences from article text
+            #-----------------------------------------------------------
+            seen_sentences = set()
+            deduplicated = []
+
+            if remove_duplicates:
+                for sentence in d["article_text"]:
+                    if len(sentence.split()) > 7:
+                        if sentence in seen_sentences:
+                            print(f"{d['article_id']} IMPOSTOR DETECTED 🗣")
+                            pass
+                        else:
+                            deduplicated.append(sentence)
+                            seen_sentences.add(sentence)
+            else:
+                deduplicated = d["article_text"]
+
+            #Return document
+            #-----------------------------------------------------------
             yield {
                 "article_id": d["article_id"],
-                "article": "\n".join(d["article_text"]),
+                "article": "\n".join(deduplicated),
                 "summary": summary,
                 "section_names": "\n".join(d["section_names"])
             }

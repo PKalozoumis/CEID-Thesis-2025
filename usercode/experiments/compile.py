@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
 from matplotlib.axes import Axes
 
-from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, all_experiments
+from helper import experiment_wrapper, CHOSEN_DOCS, all_experiments
 from rich.rule import Rule
 from mypackage.storage import save_clusters
 
@@ -71,22 +71,18 @@ def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_n
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
-    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
-        "pubmed",
-        "arxiv",
-        "both"
-    ])
+    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("--temp", action="store_true", default=False, help="Recompile the default experiment into a new temporary experiment named by -x") #useful when wanting to test temp changes in code, instead of just parameters
     parser.add_argument("-c", action="store", type=str, default=None, help="An optional comment appended the created pickle files")
+    parser.add_argument("--no-cache", action="store_true", default=False, help="Disable cache. Retrieve docs directly from Elasticsearch")
     args = parser.parse_args()
 
-    if args.i == "both":
-        indexes = ["pubmed-index", "arxiv-index"]
+    indexes = args.i.split(",")
+
+    if len(indexes) > 1:
         if args.d is not None:
-            raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN BOTH, IT INVITES FRACTURE.")
-    else:
-        indexes = [args.i + "-index"]
+            raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN ALL, IT INVITES FRACTURE.")
 
     if args.temp:
         if args.x == "default":
@@ -105,10 +101,7 @@ if __name__ == "__main__":
         console.print(Rule())
 
         if not args.d:
-            if index == "pubmed-index":
-                docs_to_retrieve = PUBMED_DOCS
-            elif index == "arxiv-index":
-                docs_to_retrieve = ARXIV_DOCS
+            docs_to_retrieve = CHOSEN_DOCS.get(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
@@ -133,7 +126,7 @@ if __name__ == "__main__":
             console.print(THIS_NEXT_EXPERIMENT)
 
             model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
-            sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
+            sess = Session(index, base_path="../..", cache_dir="../cache", use= ("client" if args.no_cache else "cache"))
             docs = list(map(partial(ElasticDocument, sess, text_path="article"), docs_to_retrieve))
 
             #We need to process these documents in parallel

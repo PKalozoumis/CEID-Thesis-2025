@@ -47,8 +47,8 @@ if __name__ == "__main__":
 
     #Retrieval stage
     #-----------------------------------------------------------------------------------------------------------------
-    #sess = Session("pubmed-index", base_path="..")
-    sess = Session("pubmed-index", use="cache", cache_dir="../cache")
+    #sess = Session("pubmed", base_path="..")
+    sess = Session("pubmed", use="cache", cache_dir="../cache")
     query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article", cache_dir="cache")
     #res = query.execute(sess)
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         ElasticDocument(sess, id=2635, text_path="article"),
         ElasticDocument(sess, id=2581, text_path="article"),
         ElasticDocument(sess, id=372, text_path="article"),
-        ElasticDocument(sess, id=6415, text_path="article")
+        ElasticDocument(sess, id=1106, text_path="article")
     ]
 
     #-----------------------------------------------------------------------------------------------------------------

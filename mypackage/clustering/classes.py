@@ -41,7 +41,7 @@ class ChainCluster:
 
     def kth_most_similar_chain(self, k: int = 0) -> SentenceChain | None:
         '''
-        Parameters
+        Arguments
         ---
         k: int
             It's the k

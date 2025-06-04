@@ -1,9 +1,17 @@
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from ..elastic import ElasticDocument, Session
-from ..sentence import SentenceLike
 import os
-from dataclasses import dataclass
+from typing import NamedTuple
+
+from ..elastic import ElasticDocument, Session
+
+#================================================================================================================
+
+class Score(NamedTuple):
+    s1: int
+    s2: int
+    s3: int
+    s4: int
 
 #==============================================================================================
 
@@ -20,7 +28,7 @@ class Query():
 
     #------------------------------------------------------------------------------------------
 
-    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None, cache_dir: str | None = None):
+    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None):
         '''
         A class representing an Elasticsearch query.
         
@@ -38,16 +46,12 @@ class Query():
         text_path: str | None, optional
             Name of the field inside the document (inside ```_source```) that is the main text.
             This is forwarded to the generated documents' ```text_path``` argument
-
-        cache_dir: str | None, optional
-            Path to cache the returned documents in
         '''
         self.id = id
         self.text = text
         self.match_field = match_field
         self.source = source
         self.text_path = text_path
-        self.cache_dir = cache_dir
         self.vector = None
 
     #------------------------------------------------------------------------------------------
@@ -81,10 +85,10 @@ class Query():
 
         for res in results:
             filter_path = ",".join(["_source." + s for s in self.source])
-            elastic_doc = ElasticDocument(sess, res['_id'], filter_path=filter_path, text_path=self.text_path, cache_dir=self.cache_dir)
+            elastic_doc = ElasticDocument(sess, int(res['_id']), filter_path=filter_path, text_path=self.text_path)
             
             #Store to cache
-            elastic_doc.cache(res)
+            sess.cache_store(res, elastic_doc.id)
             temp_doc = res
 
             if len(res['_source']) > 0:

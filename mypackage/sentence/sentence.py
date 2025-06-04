@@ -3,13 +3,15 @@ from __future__ import annotations
 
 from sentence_transformers import SentenceTransformer
 from itertools import pairwise, starmap
-from ..helper import lock_kwargs
-from .helper import split_to_sentences
+import re
+
 from rich.table import Table
 from rich.console import Console
 from rich.markdown import Markdown
+
+from ..helper import lock_kwargs
+from .helper import split_to_sentences
 from .classes import Sentence, SentenceChain, SentenceLike, SimilarityPair
-import re
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -19,7 +21,7 @@ console = Console()
 
 #============================================================================================
 
-def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_duplicates: bool = False, remove_empty: bool =True, sep: str | None = None) -> list[Sentence]:
+def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_duplicates: bool = False, remove_empty: bool =True, sep: str | None = "\n") -> list[Sentence]:
     '''
     Breaks down a document into sentences. For the entire set of sentences, the embeddings are calculated
 
@@ -30,8 +32,12 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_
     transformer: SentenceTransformer
         The model that will generate the embeddings
     remove_duplicates: bool
-        Removes sentences that are 
-
+        Removes duplicate sentences (my dataset was goofy, and I've already indexed and cached the docs)
+    remove_empty: bool
+        Removes empty sentences. Defaults to ```True```
+    sep: str
+        The delimiter for splitting the document into sentences. Defaults to newline
+        
     Returns
     ---
     out: list[Sentence]
@@ -53,6 +59,7 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_
             if len(sentence.split()) > 7:
                 if sentence in seen_sentences:
                     #console.print(f"{doc.id}: {sentence}")
+                    print("IMPOSTOR DETECTED 🗣")
                     pass
                 else:
                     deduplicated.append(sentence)
@@ -97,85 +104,26 @@ def print_pairs(sentences):
 
 #============================================================================================
 
-def buggy_merge(
-        sentences: list[SentenceLike],
-        *,
-        threshold: float,
-        round_limit: int | None = 1,
-        pooling_method="average",
-        normalize: bool =True,
-    ):
-    '''
-    Clusters a list of sentence chains for a single document.
-    The chains inside each returned cluster are ordered based on their offset inside the document
-
-    Arguments
-    --------------------------------------------------------
-    chain: list[SentenceChain]
-        The list of chains to cluster
-
-    n_components: int
-        The number of dimensions to reduce the embedding space to.
-        Set to ```None``` to skip dimensionality reduction
-
-    Returns
-    --------------------------------------------------------
-    labels: list[int]
-        A list of labels. One label for each input chain
-
-    clustered_chains: dict[int, ChainCluster]
-        A dictionary of clusters, with the label as the key
-    '''
-    pairs = [SimilarityPair.from_sentences(s1, s2) for s1, s2 in pairwise(sentences)]
-
-    #No more merging can happen
-    if not any(filter(lambda x: x.sim > threshold, pairs)):
-        return sentences
-
-    chains = []
-
-    for i, pair in enumerate(pairs):
-
-        if i == 0:
-            chains.append([pair.s1, pair.s2])
-            continue
-        
-        if pair.sim >= threshold: #Add to the chain
-            chains[-1].append(pair.s2)
-        else: #Create new chain for this sentence
-            chains.append([pair.s2])
-
-    result = [SentenceChain(c, pooling_method, normalize=normalize) for c in chains]
-    
-    if round_limit is None:
-        return buggy_merge(result, threshold=threshold, round_limit=None, pooling_method=pooling_method, normalize=normalize)
-    elif round_limit > 1:
-        return buggy_merge(result, threshold=threshold, round_limit=round_limit-1, pooling_method=pooling_method, normalize=normalize)
-    else:
-        return result
-    
-#====================================================================================================================
-
 def iterative_merge(
         sentences: list[SentenceLike],
         *,
-        threshold: float,
+        threshold: float = 0.6,
         round_limit: int | None = 1,
         pooling_method: str = "average",
         normalize: bool = True
-    ) -> list[SentenceLike]:
+    ) -> list[SentenceChain]:
     '''
-    Clusters a list of sentence chains for a single document.
-    The chains inside each returned cluster are ordered based on their offset inside the document
+    Chains together a list of sentence chains for a single document.
+    The sentences inside each returned chain are ordered based on their offset inside the document
 
     Arguments
-    --------------------------------------------------------
+    ---
     sentences: list[SentenceLike]
         The list of sentences to chain
 
     threshold: float
         The cosine similarity threshold for two ```SentenceLike``` objects to be considered similar enough
-        to merge into the same chain. Takes values between ```0``` and ```1```
+        to merge into the same chain. Takes values between ```0``` and ```1```. Defaults to ```0.6```
         
     round_limit: int | None
         The number of rounds. On the first round we try to chain as many sentences from the document as possible, using
@@ -186,16 +134,16 @@ def iterative_merge(
         the original sentences
 
     pooling_method: str
-        The method we use to generate the new chain embedding from the partial ```SentenceLike``` objects' embeddings.
+        The method we use to generate the new chain vector from the partial ```SentenceLike``` objects' embeddings.
         By default it's ```average```
 
     normalize: bool
         Normalize the representative after pooling. Defaults to ```True```
 
     Returns
-    --------------------------------------------------------
-    chains: list[SentenceLike]
-        A list of chains. If ```round_limit == 0```, then the original set of sentences is returned
+    ---
+    chains: list[SentenceChain]
+        A list of chains. If ```round_limit == 0```, then the original set of sentences is returned, as single-sentence chains
     '''
     #round_limit will only reach down to 1 on normal operation (recursion)
     #This below will never happen unless you explicitly set the parameter to 0
@@ -258,9 +206,7 @@ def iterative_merge(
 #============================================================================================
 
 def chaining(method: str):
-
     match method:
         case 'iterative': return iterative_merge
-        case 'buggy': return buggy_merge
         case 'none': return lock_kwargs(iterative_merge, round_limit=0)
         case _: return None

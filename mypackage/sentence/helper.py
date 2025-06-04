@@ -6,6 +6,3 @@ def split_to_sentences(text: str, *, sep: str | None = "\n") -> list[str]:
         sentences = sentences[:-1]
 
     return sentences
-
-def cosine_sim(vec1, vec2) -> float:
-    return np.dot(vec1, vec2)/(np.linalg.norm(vec1)*np.linalg.norm(vec2))

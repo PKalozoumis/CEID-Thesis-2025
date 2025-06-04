@@ -9,6 +9,21 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #================================================================================================================
 
 def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt") -> Elasticsearch:
+    '''
+    Creates a connection to Elasticsearch
+
+    Arguments
+    ---
+    credentials_path: str
+        The path to the Elasticsearch credentials file. Defaults to ```credentials.json```
+    cert_path: str
+        The path to the Elasticsearch certificate. Defaults to ```http_ca.crt```
+
+    Returns
+    ---
+    client: Elasticsearch
+        The Elasticsearch client
+    '''
 
     with open(credentials_path, "r") as f:
         credentials = json.load(f)

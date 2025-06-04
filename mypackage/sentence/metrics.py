@@ -1,14 +1,12 @@
-from .classes import SentenceChain
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances, cosine_similarity
-import sys
 from itertools import pairwise
+
 from rich.console import Console
 from rich.table import Table
-from ..helper import create_table
 
-import numpy
-#numpy.set_printoptions(threshold=sys.maxsize)
+from ..helper import create_table
+from .classes import SentenceChain
 
 #================================================================================================
 
@@ -16,7 +14,7 @@ def within_chain_similarity(chain: SentenceChain) -> float:
     '''
     Caclculates the average similarity of every pair of sentences in the chain. 
 
-    Args
+    Arguments
     ---
     chain: SentenceChain
         The chain to calculate similarity for
@@ -37,6 +35,9 @@ def within_chain_similarity(chain: SentenceChain) -> float:
 #================================================================================================
 
 def chain_centroid_similarity(chain: SentenceChain):
+    '''
+    Calculates the average similarity between every sentence in the chain and the chain representative
+    '''
     if len(chain) == 1:
         return 1
 
@@ -51,6 +52,26 @@ def chain_centroid_similarity(chain: SentenceChain):
 #================================================================================================
 
 def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1, max_size: int|None = None):
+    '''
+    For each chain in the list, it calculates the average similarity between every sentence in the chain and the chain representative
+    Then, it calculates the average of those values. 
+
+    Arguments
+    ---
+    chains: list[SentenceChain]
+        The list of chains to calculate similarity for
+
+    min_size: int
+        Default is ```1```. Only consider chains that have at least min_size sentences inside
+
+    max_size: int
+        Default is ```None```. Only consider chains that have at most max_size sentences inside
+
+    Returns
+    ---
+    avg_sim: float
+        Average centroid similarity
+    '''
     if max_size is None:
         max_size = 6666
 
@@ -63,6 +84,9 @@ def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1
 #================================================================================================
 
 def inter_chain_distance(chain_a: SentenceChain, chain_b: SentenceChain):
+    '''
+    Calculates the average distance between every sentence of one chain and every sentence of another chain
+    '''
     dista = cosine_distances(chain_a.sentence_matrix(), chain_b.sentence_matrix())
     res = np.sum(dista, axis=1) / len(chain_b)
     return np.average(res)
@@ -74,7 +98,7 @@ def avg_within_chain_similarity(chains: list[SentenceChain], min_size: int = 1, 
     Caclculates the average similarity within each chain in the list.
     Then, it calculates the average of those values. 
 
-    Args
+    Arguments
     ---
     chains: list[SentenceChain]
         The list of chains to calculate similarity for

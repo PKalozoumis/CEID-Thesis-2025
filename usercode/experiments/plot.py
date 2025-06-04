@@ -27,7 +27,7 @@ from matplotlib import MatplotlibDeprecationWarning
 from matplotlib.lines import Line2D
 
 import numpy as np
-from helper import experiment_wrapper, ARXIV_DOCS, PUBMED_DOCS, document_index, experiment_names_from_dir
+from helper import experiment_wrapper, CHOSEN_DOCS, document_index, experiment_names_from_dir
 from mypackage.storage import load_pickles
 import math
 import warnings
@@ -194,13 +194,9 @@ def centroids(pkl_list: list[ProcessedDocument], imgpath, sess: Session, extra_v
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", action="store", default=None)
-    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Index name", choices=[
-        "pubmed",
-        "arxiv",
-        "both"
-    ])
+    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-x", nargs="?", action="store", type=str, default=None, help="Experiment name. Name of subdir in pickle/, images/ and /params")
-    parser.add_argument("p", action="store", type=str, help="The type of plot to make", choices=[
+    parser.add_argument("p", nargs="?", action="store", type=str, help="The type of plot to make", choices=[
         "full",
         "compare",
         "interdoc",
@@ -216,12 +212,11 @@ if __name__ == "__main__":
 
     #---------------------------------------------------------------------------------------
 
-    if args.i == "both":
-        indexes = ["pubmed-index", "arxiv-index"]
+    indexes = args.i.split(",")
+
+    if len(indexes) > 1:
         if args.d is not None:
-            raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN BOTH, IT INVITES FRACTURE.")
-    else:
-        indexes = [args.i + "-index"]
+            raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN ALL, IT INVITES FRACTURE.")
 
     #---------------------------------------------------------------------------
 
@@ -232,10 +227,7 @@ if __name__ == "__main__":
         console.print(f"Making plot: '{args.p}'")
 
         if not args.d:
-            if index == "pubmed-index":
-                docs_to_retrieve = PUBMED_DOCS
-            elif index == "arxiv-index":
-                docs_to_retrieve = ARXIV_DOCS
+            docs_to_retrieve = CHOSEN_DOCS.get(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 

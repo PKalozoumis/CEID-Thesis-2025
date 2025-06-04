@@ -1,28 +1,20 @@
 from __future__ import annotations
 
-from elasticsearch import Elasticsearch, AuthenticationException
+from elasticsearch import Elasticsearch
 from dataclasses import dataclass, field
-from ..helper import overrides
-from typing import Iterable, Any, NamedTuple
+from typing import Any
 import os
 import json
-from .elastic import elasticsearch_client
 from elastic_transport import ObjectApiResponse
 import warnings
+
 from rich.console import Console
-import numpy as np
-from sentence_transformers import SentenceTransformer
+
+from .elastic import elasticsearch_client
+from ..helper import overrides
 from ..sentence import Sentence
 
 console = Console()
-
-#================================================================================================================
-
-class Score(NamedTuple):
-    s1: int
-    s2: int
-    s3: int
-    s4: int
 
 #================================================================================================================
 
@@ -35,6 +27,8 @@ class Session():
     index_name: str
     cache_dir: str
     use: str
+    processed_docs_source: str
+    pickle_path: str
 
     def __init__(
             self,
@@ -46,12 +40,15 @@ class Session():
             base_path: str = None,
             credentials_path: str = "credentials.json",
             cert_path: str = "http_ca.crt",
-            use: str = "client"
+            use: str = "client",
+            processed_docs_source: str = "pickle",
+            pickle_path: str = None
         ):
         '''
         Represents a method for retrieving documents from a specific index.
         Retrieval method is typically an Elasticsearch client, but it can also be a cache directory.
-        Groups information about the client, the index and the authentication methods
+        Groups information about the client, the index and the authentication methods.
+        Also contains information about the source of the processed documents (clusters)
 
         Arguments
         ---
@@ -60,13 +57,13 @@ class Session():
 
         client: Elasticsearch, optional
             The Elasticsearch client. If not set, it's automatically generated from ```credentials_path``` and ```cert_path```.
-            Either ```client/credentials``` or ```cache_dir``` needs to be set. Using both gives priority to the cache
+            Either ```client/credentials``` or ```cache_dir``` needs to be always set. Using both gives priority to the cache
             for retrieval
 
         cache_dir: str, optional
             An alternative retrieval method to the Elasticsearch client. A cache directory to retrieve and store documents.
             When using the cache instead of the client, we can skip providing the credentials and the certificate.
-            Either ```cache_dir``` or ```client/credentials``` needs to be set. Using both gives priority to the cache
+            Either ```cache_dir``` or ```client/credentials``` needs to be always set. Using both gives priority to the cache
             for retrieval
 
         credentials_path: str
@@ -84,6 +81,14 @@ class Session():
         use: str
             Which method to use to retrieve documents.
             Possible values are ```client```, ```cache``` and ```both```. Defaults to ```client```
+
+        processed_docs_source: str
+            Which method to use to retrieve processed documents (clusters).
+            This is used by the functions in ```mypackage.storage```.
+            Possible values are ```pickle``` and ```db```
+
+        pickle_path: str
+            If ```processed_docs_source == pickle```, then pickle path points to a folder where documents can be retrieved. 
         '''
         self.client = client
         self.cache_dir = cache_dir
@@ -104,7 +109,13 @@ class Session():
 
     #----------------------------------------------------------------------------------------------
 
-    def cache_store(self, raw_elasticsearch_doc: ObjectApiResponse, id: str):
+    def cache_store(self, raw_elasticsearch_doc: ObjectApiResponse, id: int):
+        '''
+        Store a document to the cache
+
+        Arguments
+        ---
+        '''
         if self.cache_dir:
             fname = os.path.join(self.cache_dir, f"{self.index_name.replace('-', '_')}_{id:04}.json")
 
@@ -131,10 +142,16 @@ class Document():
     '''
     A class representing a document. Does not necessarily have to be an Elasticsearch document
 
-    Args:
-        doc (Any): The document's contents. Typically ```str``` or ```dict```, but it can be any other type
-        id (int, optional): A numeric ID for the document. For Elasticsearch documents, corresponds to the ID in the index
-        text_path (str, optional): Path to the document's main body where the text is located. Only applicable when document is of type ```dict```
+    Arguments
+    ---
+    doc: Any
+        The document's contents. Typically ```str``` or ```dict```, but it can be any other type
+    id: int, optional
+        A numeric ID for the document. For Elasticsearch documents, corresponds to the ID in the index
+    text_path: str, optional
+        Path to the document's main body where the text is located. Only applicable when document is of type ```dict```
+    sentences: list[Sentence], optional
+        A list to the document's sentences, as ```Sentence``` objects
     '''
     doc: Any
     id: int = field(default=None)
@@ -152,10 +169,14 @@ class Document():
         '''
         Create a Document from a JSON file
 
-        Args:
-            path (str): Path to the file
-            id (int, optional): A numeric ID for the document
-            text_path (str, optional): Path to the document's main body where the text is located
+        Arguments
+        ---
+        path: str
+            Path to the file
+        id: int, optional
+            A numeric ID for the document
+        text_path: str, optional
+            Path to the document's main body where the text is located
         '''
         doc = None
         
@@ -166,11 +187,6 @@ class Document():
             doc = json.load(f)
 
         return cls(doc, id, text_path)
-
-    #--------------------------------------------------------------------------------
-
-    def get(self) -> Any:
-        return self.doc
     
     #--------------------------------------------------------------------------------
     
@@ -191,6 +207,14 @@ class Document():
             warnings.warn(f"text_path '{self.text_path}' ignored, as the document is not a dictionary. Both text and get() will return the same result")
 
         return temp
+
+    #--------------------------------------------------------------------------------
+
+    def get(self) -> Any:
+        '''
+        Returns the document
+        '''
+        return self.doc
     
     #--------------------------------------------------------------------------------
 
@@ -199,8 +223,6 @@ class Document():
     
     def __repr__(self):
         return f"Document(id={self.id})"
-    
-    #--------------------------------------------------------------------------------
 
     def __eq__(self, other: Document) -> bool:
         return self.id == other.id
@@ -222,21 +244,19 @@ class ElasticDocument(Document):
 
     def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
         '''
-        A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
+        A class representing a documement in an Elasticsearch index. Can be used to retrieve and store a single document.
 
         Arguments
         ---
         session: Session
             An Elasticsearch session
-
-        doc_id: int
+        id: int
             The numeric ID of the requested document in Elasticsearch
-
         filter_path: str
             Comma-separated paths to the field(s) to keep from the response body. If path leads to a single field, then its contents will be returned instead. Defaults to ```_source```
-        
         text_path: str, optional
-            Name of the field (after filter_path is applied, if specified) where the document's body is located
+            Name of the field (after filter_path is applied, if specified) where the document's body is located.
+            For dictionary documents, it is necessary to provide a text path if you want to get the document's text
         '''
         super().__init__(None, id, text_path)
 
@@ -245,8 +265,20 @@ class ElasticDocument(Document):
 
     #--------------------------------------------------------------------------------
 
+    @property
+    @overrides(Document)
+    def text(self):
+        self.get()
+    
+        return super().text
+    
+    #--------------------------------------------------------------------------------
+
     @overrides(Document)
     def get(self):
+        '''
+        If the document has not yet been retrieved, it is retrieved and potentially stored in a cache
+        '''
         if self.doc is None:
             #print(f"Fetching Document(ID={self.id})")
 
@@ -277,15 +309,6 @@ class ElasticDocument(Document):
     
     #--------------------------------------------------------------------------------
     
-    @property
-    @overrides(Document)
-    def text(self):
-        self.get()
-    
-        return super().text
-    
-    #--------------------------------------------------------------------------------
-    
     def __repr__(self):
         return f"ElasticDocument(id={self.id})"
 
@@ -296,7 +319,6 @@ class ScrollingCorpus:
     Receives batches of documents from Elasticsearch.
     Used to retrieve the actual documents only. Cannot return metadata
     '''
-
     session: Session
     batch_size: int
     scroll_time: str
@@ -311,6 +333,24 @@ class ScrollingCorpus:
             doc_field: str,
             fields_to_keep: list[str] = []
         ):
+        '''
+        Receives batches of documents from Elasticsearch.
+        Used to retrieve the actual documents only. Cannot return metadata
+
+        Arguments
+        ---
+        session: Session
+            The Elasticsearch session
+        batch_size: int
+            Controls how many documents to retrieve per scroll request. Balances speed and memory usage. Defaults to ```10```
+        scroll_time: str
+            How long to keep the scroll context alive between requests. Defaults to ```5s```,
+            but it may need to be increased if the documents take a long time to return
+        doc_field:str
+            Specifies the field in ```_source``` where the document's text is located
+        fields_to_keep: str:
+            List of extra fields (besides ```doc_field```) to retrieve
+        '''
         self.session = session
         self.batch_size = batch_size
         self.scroll_time = scroll_time

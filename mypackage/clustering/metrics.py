@@ -19,7 +19,7 @@ def within_cluster_similarity(cluster: ChainCluster) -> float:
     '''
     Caclculates the average similarity of every pair of sentences in the cluster. 
 
-    Args
+    Arguments
     ---
     chains: list[SentenceChain]
         The chains in the cluster to calculate similarity for
@@ -44,7 +44,7 @@ def avg_within_cluster_similarity(clustering: ChainClustering):
     Caclculates the average similarity within each cluster in the list.
     Then, it calculates the average of those values. 
 
-    Args
+    Arguments
     ---
     chains: list[SentenceChain]
         The full list of chains across all clusters

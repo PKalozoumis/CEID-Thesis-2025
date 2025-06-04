@@ -1,12 +1,13 @@
-from rich.panel import Panel
-from rich.console import Console, Group
-from rich.table import Table
 import sys
 from itertools import islice
 from functools import wraps
 import json
 import numpy as np
 import copy
+
+from rich.panel import Panel
+from rich.console import Console, Group
+from rich.table import Table
 
 console = Console()
 
