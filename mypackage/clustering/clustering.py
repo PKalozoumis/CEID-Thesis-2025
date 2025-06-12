@@ -1,16 +1,13 @@
-#from sklearn.cluster._hdbscan.hdbscan import HDBSCAN
 from hdbscan import HDBSCAN
-from ..sentence import SentenceChain
-from .classes import ChainCluster, ChainClustering
 import numpy as np
 from matplotlib import pyplot as plt
 from umap import UMAP
-from numpy import ndarray
 import warnings
 from matplotlib.patches import Patch
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure
-from sklearn.metrics.pairwise import cosine_distances
+
+from ..sentence import SentenceChain
+from .classes import ChainCluster, ChainClustering
 
 #===================================================================================================
 
@@ -62,7 +59,7 @@ def chain_clustering(
     The chains inside each returned cluster are ordered based on their offset inside the document
 
     Arguments
-    --------------------------------------------------------
+    ---
     chain: list[SentenceChain]
         The list of chains to cluster
 
@@ -71,7 +68,7 @@ def chain_clustering(
         Set to ```None``` to skip dimensionality reduction
 
     Returns
-    --------------------------------------------------------
+    ---
     labels: list[int]
         A list of labels. One label for each input chain
 
@@ -159,13 +156,12 @@ def visualize_clustering(
 
     clustering: list[int]
         A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
-    
+
     save_to: str, optional
         Path to save the plot to. By default, the path is ```None``` and the plot does not get saved
 
     show: bool
         Whether to display the plot on the screen or not. Defaults to ```False```
-
     ax: Axes
         We can provide an optional subplot to plot on instead of generating the figure inside the function.
         If this argument is provided, then ```save_to``` and ```show``` are ignored
@@ -270,7 +266,7 @@ def cluster_mask(clusters: dict[int, ChainCluster]) -> list[int]:
     Returns
     ---
     mask: list[int]
-        The sentence clustering
+        A list of cluster labels. One label for each sentence in the document
     '''
 
     #Shows the current chain we're examining within the cluster

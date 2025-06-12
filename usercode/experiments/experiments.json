@@ -15,10 +15,6 @@
         "cluster_pooling_method": "average",
         "cluster_normalize":true
     },
-    "buggy": {
-        "title": "Old (broken) version",
-        "chaining_method": "buggy"
-    },
     "nochain": {
         "title": "No chaining",
         "chaining_method": "none"

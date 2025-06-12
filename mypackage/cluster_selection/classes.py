@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-from ..sentence import SentenceChain
-from ..query import Query
-from ..clustering import ChainCluster, ChainClustering
-from ..helper import panel_print
-from ..sentence import SentenceLike
-
 from dataclasses import dataclass, field
 import pickle
 import os
@@ -16,9 +10,12 @@ from rich.rule import Rule
 from rich.padding import Padding
 from rich.pretty import Pretty
 from rich.console import Console
-from rich.panel import Panel
 
-from itertools import chain
+from ..sentence import SentenceChain
+from ..query import Query
+from ..clustering import ChainCluster, ChainClustering
+from ..helper import panel_print
+from ..sentence import SentenceLike
 
 console = Console()
 
@@ -27,7 +24,7 @@ console = Console()
 @dataclass
 class RelevanceEvaluator():
     '''
-    Contains the query, as well as the model used to evaluate relevance with it
+    Contains the query, as well as the model used to evaluate a sentence's relevance with it
     '''
     query: Query
     model: CrossEncoder
@@ -53,24 +50,41 @@ class SummaryCandidate():
     #Candidate Filtering can disable this candidate if no improvement is seen
     expandable: bool
 
+    #---------------------------------------------------------------------------------------------------
+
     @dataclass
     class State():
+        '''
+        A specific context expansion state. Contains all the chains of the context, along with its score
+        '''
         chains: list[SentenceChain]
         score: float
         actions: list[str] = field(default_factory=list)
         timestamp: int = field(default=0)
 
         @classmethod
-        def from_state(cls, state: SummaryCandidate.State, action: str) -> SummaryCandidate.State:
+        def from_state(cls, state: SummaryCandidate.State, action: str = None) -> SummaryCandidate.State:
+            '''
+            Constructs a new state by copying an existing state.
+
+            Arguments
+            ---
+            state: State
+                The state to copy
+            action: str, optional
+                An optional action to add to the list of existing actions
+
+            Returns
+            ---
+            state: State
+                The new state
+            '''
             return cls(
                 chains = state.chains[:],
                 score = state.score,
-                actions = state.actions + [action],
+                actions = state.actions + ([action] if action is not None else []),
                 timestamp = state.timestamp
             )
-        
-        def __len__(self) -> int:
-            return len(self.chains)
         
         @property
         def id(self) -> str:
@@ -80,8 +94,13 @@ class SummaryCandidate():
         def index_range(self) -> range:
             return range(self.chains[0].index, self.chains[-1].index + 1)
         
+        def __len__(self) -> int:
+            return len(self.chains)
+        
         def __eq__(self, other: SummaryCandidate.State) -> bool:
             return self.id == other.id and self.actions == other.actions
+        
+    #---------------------------------------------------------------------------------------------------
 
     def __init__(self, chain: SentenceChain, score: float, evaluator: RelevanceEvaluator = None):
         self.chain = chain
@@ -89,12 +108,6 @@ class SummaryCandidate():
         self.history = [self.State([chain], score)]
         self.evaluator = evaluator
         self.expandable = True
-
-    def __str__(self) -> str:
-        return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
-    
-    def __repr__(self) -> str:
-        return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
 
     @property
     def context(self) -> State:
@@ -116,6 +129,8 @@ class SummaryCandidate():
     def index_range(self):
         return self.context.index_range
     
+    #---------------------------------------------------------------------------------------------------
+
     def optimize(self, *, stop_expansion: bool = False, timestamp: int|None = None, constraints: list[int]|None = None) -> int:
         '''
         Sets the selected state to the optimal state. Returns the new selected index
@@ -134,8 +149,6 @@ class SummaryCandidate():
         '''
         if timestamp is not None:
             temp = [i for i, s in enumerate(self.history) if s.timestamp == timestamp]
-            #if len(temp) == 0:
-                #temp = range(len(self.history))
         else:
             temp = range(len(self.history))
 
@@ -155,19 +168,8 @@ class SummaryCandidate():
         else:
             self.expandable = False
             return None
-    
-    #-------------------------------------------------------------------------------------------------------------------
 
-    def print_history(self):
-        text = []
-        for state in self.history:
-            text.append(("[red]-->[/red] " if self.context == state else "") + f"[cyan]{state.id}[/cyan]: Score = {state.score:.3f}, Timestamp = {state.timestamp}, Actions = [green]{state.actions}[/green]")
-            text.append(Rule())
-
-        text = text[:-1]
-        panel_print(text, title=f"For candidate {self.chain.index:03}")
-
-    #-------------------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------
 
     def add_right_context(self, n: int = 1, *, branch_from: int|None = None, timestamp: int = 0):
         '''
@@ -194,7 +196,7 @@ class SummaryCandidate():
         self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True))
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
 
-    #-------------------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------
 
     def add_left_context(self, n: int = 1, *, branch_from: int|None = None, timestamp: int = 0):
         '''
@@ -221,7 +223,7 @@ class SummaryCandidate():
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
 
-    #-------------------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------
 
     def add_bidirectional_context(self, n: int = 1, *, branch_from: int|None = None, timestamp: int = 0):
         '''
@@ -249,7 +251,18 @@ class SummaryCandidate():
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains #backward
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
 
-    #-------------------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------
+
+    def print_history(self):
+        text = []
+        for state in self.history:
+            text.append(("[red]-->[/red] " if self.context == state else "") + f"[cyan]{state.id}[/cyan]: Score = {state.score:.3f}, Timestamp = {state.timestamp}, Actions = [green]{state.actions}[/green]")
+            text.append(Rule())
+
+        text = text[:-1]
+        panel_print(text, title=f"For candidate {self.chain.index:03}")
+
+    #---------------------------------------------------------------------------------------------------
 
     def clear_history(self, exceptions: list[int] = []):
         '''
@@ -294,6 +307,14 @@ class SummaryCandidate():
                                 if old_history[i].timestamp == timestamp and i < self.selected_state)
             self.selected_state -= removed_before
             self.selected_state = max(0, min(self.selected_state, len(self.history) - 1))
+    
+    #---------------------------------------------------------------------------------------------------
+
+    def __str__(self) -> str:
+        return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
+    
+    def __repr__(self) -> str:
+        return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
 
 
 #==========================================================================================================
@@ -303,7 +324,7 @@ class SelectedCluster():
     '''
     Represents a cluster that is semanticall close to a given query.
     It contains a list of chains, along with their cross-encoder similarity scores
-    to the query. The overall cluster is further classified based on these partial score
+    to the query. The overall cluster is further classified based on these partial scores
     '''
 
     cluster: ChainCluster
@@ -311,7 +332,7 @@ class SelectedCluster():
     candidates: list[SummaryCandidate] = field(default=None, kw_only=True) #Looks confusing, but it's essentially the chains of the cluster, sorted by score
     evaluator: RelevanceEvaluator = field(default=None, kw_only=True)
 
-    #Temporary. For debugging only. Please never use or i will kill myself (real)
+    #Temporary. For debugging only. Please never use
     #---------------------------------------------------------------------------
     def store_scores(self, base_path:str) -> dict:
         res = {}
@@ -329,6 +350,32 @@ class SelectedCluster():
 
         self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(temp, reverse=True)]
 
+    #---------------------------------------------------------------------------
+
+    @property
+    def cross_score(self) -> float:
+        '''
+        A relevance score for the entire cluster, by summing up the individual cross-encoder scores of the chains
+        '''
+        if self.candidates is None:
+            return None
+
+        return np.round(sum([score for score in self.scores()]), decimals=3)
+    
+    @property
+    def id(self) -> str:
+        return self.cluster.id
+    
+    @property
+    def text(self) -> str:
+        #Sort by start
+        temp = sorted(self.selected_candidates(), key=lambda x: x.index_range.start, reverse=False)
+        return "\n\n".join(temp)
+    
+    @property
+    def clustering_context(self) -> ChainClustering:
+        return self.cluster.clustering_context
+    
     #---------------------------------------------------------------------------
     
     def evaluate_chains(self) -> SelectedCluster:
@@ -369,12 +416,19 @@ class SelectedCluster():
     #---------------------------------------------------------------------------
     
     def rerank_candidates(self) -> SelectedCluster:
+        '''
+        Sort candidates in decreasing order of score
+        '''
         self.candidates = sorted(self.candidates, key=lambda x: (x.score, 6666 - x.chain.index), reverse=True)
         return self
 
     #---------------------------------------------------------------------------
     
     def merge_candidates(self) -> SelectedCluster:
+        '''
+        Merges candidates that contain overlapping chains. A merge only happens between candidates whose scores
+        have the same sign (both positive or negative)
+        '''
         self.candidates = sorted(self.candidates, key=lambda x: x.index_range.start, reverse=False)
 
         prev = self.candidates[0]
@@ -429,21 +483,10 @@ class SelectedCluster():
         return [c.score for c in self.candidates]
     
     #---------------------------------------------------------------------------
-    
-    @property
-    def cross_score(self) -> float:
-        '''
-        A relevance score for the entire cluster, by summing up the individual cross-encoder scores of the chains
-        '''
-        if self.candidates is None:
-            return None
-
-        return np.round(sum([score for score in self.scores()]), decimals=3)
-    
-    #---------------------------------------------------------------------------
 
     def historic_cross_score(self, i: int) -> float:
         '''
+        Return the entire cluster's score at a specific point in time.
         This quietly assumes that all contexts move at the same pace (all histories have same length)
         '''
         if self.candidates is None:
@@ -452,19 +495,7 @@ class SelectedCluster():
         return np.round(sum([c.history[i].score for c in self.candidates]), decimals=3)
 
     #---------------------------------------------------------------------------
-
-    def print(self):
-        group = []
-        for i, chain in enumerate(self.cluster.chains):
-            group.append(Pretty(f"{i:02}. Chain {chain}"))
-            group.append(Rule())
-            group.append(Padding(chain.text, pad=(0,0,2,0)))
-
-        panel_print(group)
-
-    @property
-    def id(self) -> str:
-        return self.cluster.id
+    
     
     def selected_candidates(self) -> list[SummaryCandidate]:
         '''
@@ -476,17 +507,20 @@ class SelectedCluster():
         else:
             #We only keep candidates of positive score
             return [c for c in self.candidates if c.score > 0]
-    
-    @property
-    def text(self) -> str:
-        #Sort by start
-        temp = sorted(self.selected_candidates(), key=lambda x: x.index_range.start, reverse=False)
-        return "\n\n".join(temp)
-    
-    @property
-    def clustering_context(self) -> ChainClustering:
-        return self.cluster.clustering_context
-    
+        
+    #---------------------------------------------------------------------------
+
+    def print(self):
+        group = []
+        for i, chain in enumerate(self.cluster.chains):
+            group.append(Pretty(f"{i:02}. Chain {chain}"))
+            group.append(Rule())
+            group.append(Padding(chain.text, pad=(0,0,2,0)))
+
+        panel_print(group)
+
+    #---------------------------------------------------------------------------
+
     def __len__(self):
         return len(self.cluster)
         

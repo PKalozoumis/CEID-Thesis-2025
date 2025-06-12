@@ -49,7 +49,7 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------------------------------
     #sess = Session("pubmed", base_path="..")
     sess = Session("pubmed", use="cache", cache_dir="../cache")
-    query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article", cache_dir="cache")
+    query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article")
     #res = query.execute(sess)
 
     console.print(f"\n[green]Query:[/green] {query.text}\n")
@@ -129,9 +129,10 @@ if __name__ == "__main__":
 
     for doc, cluster_list in clusters_per_doc.items():
         seg = SummarySegment(cluster_list, doc)
-        seg.load_summary()
+        exists = seg.load_summary()
         segments.append(seg)
-        #panel_print([seg.text, Rule(), seg.summary.text], title=f"Summary of {seg.doc.id} ({seg.created_with})")
+        if exists:
+            panel_print([seg.text, Rule(), seg.summary.text], title=f"Summary of {seg.doc.id} ({seg.created_with})")
 
     llm = LLMSession("meta-llama-3.1-8b-instruct")
 

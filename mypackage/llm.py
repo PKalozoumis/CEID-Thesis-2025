@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .summarization.classes import SummarySegment
 
+#================================================================================================
+
 class LLMSession():
     model_name: str
     api_host: str

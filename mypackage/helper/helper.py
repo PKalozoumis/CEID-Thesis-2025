@@ -11,11 +11,6 @@ from rich.table import Table
 
 console = Console()
 
-#=============================================================================================================
-
-class DEVICE_EXCEPTION(Exception):
-    pass
-
 #===================================================================================
 
 def panel_print(text: str = "", title: str = "", *, return_panel=False, expand: bool = True):
@@ -217,3 +212,8 @@ def binary_search_ranges(ranges: list[tuple], target: int):
             low = mid + 1
 
     return -1  # not found in any range
+
+#=============================================================================================================
+
+class DEVICE_EXCEPTION(Exception):
+    pass

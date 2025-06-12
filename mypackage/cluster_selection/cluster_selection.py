@@ -20,7 +20,7 @@ console = Console()
     
 def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, method: str = "thres") -> list[SelectedCluster]:
     #Load the clusters corresponding to the retrieved documents
-    pkl_list = load_pickles(sess, "../experiments/pubmed-index/pickles/default", docs = docs)
+    pkl_list = load_pickles(sess, f"../experiments/{sess.index_name}/pickles/default", docs = docs)
 
     #Extract all the clusters from all the retrieved documents, into one container
     #Keep track which document each cluster came from
@@ -34,9 +34,8 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
                 clusters.append(cluster)
                 doc_labels.append(doc_number)
 
-    #visualize_clustering(clusters, doc_labels, show=True)
-
     #Find the similarity to each cluster centroid
+    #Sort in decreasing order of similarity to the query
     #Select best clusters
     #----------------------------------------------------------------------------------------------------------
     sim = cosine_similarity([cluster.vector for cluster in clusters], query.vector.reshape((1,-1)))
@@ -46,18 +45,16 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
     selected_clusters: list[SelectedCluster]
 
     if method == "topk":
-        #Mark top k clusters
         k = 7
         for i in range(k):
-            sorted_clusters[i][2] = 11
-            #print(sorted_clusters[i][0])
+            sorted_clusters[i][2] = 11 #marks the cluster as selected. debug only
             console.print((sorted_clusters[i][1].doc.id, sorted_clusters[i][0]))
             selected_clusters.append(SelectedCluster(sorted_clusters[i][1], sorted_clusters[i][0]))
     elif method == "thres":
         thres = 0.5
         for cluster in sorted_clusters:
             if cluster[0] > thres:
-                cluster[2] = 11
+                cluster[2] = 11 #marks the cluster as selected. debug only
                 selected_clusters.append(SelectedCluster(cluster[1], cluster[0]))
             else:
                 break
@@ -99,7 +96,7 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
 
     panel_lines.append(Rule())
 
-    #Overall cluster score\
+    #Overall cluster score
     if current_state_only:
         panel_lines.append(f"Cluster score: [cyan]{focused_cluster.cross_score:.3f}[/cyan]")
     else:
@@ -113,6 +110,9 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
 #===============================================================================================================
 
 def context_expansion(cluster: SelectedCluster):
+    '''
+    spaghetti code
+    '''
 
     timestamp = 0
     prev_round_forbids = None #Key is index of forbidden chain, value is who forbade it
@@ -167,7 +167,6 @@ def context_expansion(cluster: SelectedCluster):
             elif candidate.context.actions[-1].startswith("right"):
                 candidate.add_right_context(timestamp=timestamp)
             
-            #candidate.optimize(stop_expansion=True)
             candidate.optimize(stop_expansion=True, timestamp=timestamp)
 
             #Check if the new state is forbidden
@@ -217,8 +216,8 @@ def context_expansion(cluster: SelectedCluster):
                         candidate.expandable = False
                         break
 
-            #candidate.clear_history()
             candidate.clear_timestamp(timestamp-1)
+
             #Right now, forbidden_chains has all the chains that are forbidden in the current state
             #I either forbade them already myself, or someone else forbade them
             #The remaining chains, I have to forbid myself
@@ -237,9 +236,6 @@ def context_expansion(cluster: SelectedCluster):
                         if pos_to_forbid > pos:
                             pos_to_forbid: int
                             bad = cluster.candidates[pos_to_forbid]
-
-                            #We delete this guy's current option
-                            #bad.history.pop(cluster.candidates[pos_to_forbid].selected_state)
 
                             #We need to force him to choose something else
                             if bad.optimize(constraints=list(current_round_forbids.keys())) is None:

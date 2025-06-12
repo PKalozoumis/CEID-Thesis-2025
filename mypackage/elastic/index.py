@@ -31,14 +31,15 @@ def create_index(client: Elasticsearch, index_name: str, mapping_path: str = "ma
 #===================================================================================
 
 def empty_index(client: Elasticsearch, index_name: str):
-    resp = client.delete_by_query(index=index_name, body={
-        "query": {
-            "match_all": {}
-        }
-    })
+    if client.indices.exists(index=index_name):
+        resp = client.delete_by_query(index=index_name, body={
+            "query": {
+                "match_all": {}
+            }
+        })
 
-    print(resp)
-    print(f"\nEmptied Elasticsearch index {index_name}")
+        #print(resp)
+        print(f"Emptied Elasticsearch index {index_name}")
 
 #===================================================================================
 

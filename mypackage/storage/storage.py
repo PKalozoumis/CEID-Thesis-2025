@@ -1,11 +1,12 @@
-from ..clustering import ChainCluster, ChainClustering
-from ..elastic import Session, Document, ElasticDocument
-from ..sentence import SentenceChain
-from .classes import ProcessedDocument
 import pickle
 import os
 from typing import overload
 import json
+
+from ..clustering import ChainCluster, ChainClustering
+from ..elastic import Session, Document, ElasticDocument
+from ..sentence import SentenceChain
+from .classes import ProcessedDocument
 
 #==========================================================================================================
 
@@ -49,8 +50,6 @@ def restore_clusters(doc: Document, path: str) -> ProcessedDocument:
     #From our cluster objects, we want to get back the labels for all the chains
     offset_and_label = []
     offset_and_label: list[tuple[SentenceChain, int]]
-
-    out = []
 
     for cluster_data in data:
         #Recreate this cluster from its data

@@ -12,3 +12,4 @@ collection/vocab
 cached_docs
 !queries*.txt
 usercode/cache
+diagrams

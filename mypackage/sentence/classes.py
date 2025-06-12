@@ -9,6 +9,8 @@ import json
 from itertools import chain
 from typing import TYPE_CHECKING, Union
 
+import inspect
+
 from .helper import split_to_sentences
 
 if TYPE_CHECKING:
@@ -155,13 +157,13 @@ class SentenceChain(SentenceLike):
     sentences: list[Sentence]
     pooling_method: str
     parent_cluster: ChainCluster
-    index: int #The chain index in the global list of chains
+    index: int
 
     EXEMPLAR_BASED_METHODS = []
 
     #----------------------------------------------------------------------------------------------
 
-    def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average", *, normalize: bool = True):
+    def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average", *, normalize: bool = True, index: int | None = None):
         '''
         Arguments
         ---
@@ -175,8 +177,11 @@ class SentenceChain(SentenceLike):
 
         normalize: bool
             Normalize the representative after pooling. Defaults to ```True```
+
+        index: int, optional
+            The chain's index in the global list of chains for the document
         '''
-        self.index = None
+        self.index = index
         self.parent_cluster = None
         self.pooling_method = pooling_method
 

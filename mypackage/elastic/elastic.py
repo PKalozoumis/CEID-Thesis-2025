@@ -4,8 +4,6 @@ import sys
 import os
 import json
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 #================================================================================================================
 
 def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: str = "http_ca.crt") -> Elasticsearch:
@@ -43,28 +41,3 @@ def elasticsearch_client(credentials_path: str = "credentials.json", cert_path: 
         sys.exit()
 
     return client
-
-#===============================================================================================
-
-if __name__ == "__main__":
-    pass
-    '''
-
-    from rich.panel import Panel
-    from rich.console import Console
-
-    console = Console()
-    
-    session = Session("arxiv-index")
-    docs = [
-            Panel(
-                ElasticDocument(session, i, filter_path="_source.article_id,_source.summary", text_path="_source.summary").text(),
-                title="Text",
-                title_align="left",
-                border_style="cyan"
-            )
-            for i in range(1)
-        ]
-
-    console.print(docs[0])
-    '''

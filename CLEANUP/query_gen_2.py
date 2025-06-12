@@ -1,1 +1,0 @@
-query="Parkinson's disease cognitive impairment symptoms"

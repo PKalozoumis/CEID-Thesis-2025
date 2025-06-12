@@ -21,25 +21,25 @@ console = Console()
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Elasticsearch Index Management")
-    parser.add_argument("operation", nargs="?", action="store", type=str, default="index", help="Operation to perform", choices=[
+    parser.add_argument("operation", nargs="?", action="store", type=str, default="index", choices=[
         "index",
         "empty"
-    ])
-    parser.add_argument("-name", action="store", type=str, help="Index name", default=None)
-    parser.add_argument("-doc-limit", action="store", type=int, default=None)
-    parser.add_argument("--remove-duplicates", action="store_true", default=False)
+    ], help="Operation to perform")
+    parser.add_argument("-i", action="store", type=str, default=None, help="Index name")
+    parser.add_argument("-doc-limit", action="store", type=int, default=None, help="Only index a certain number of docs")
+    parser.add_argument("--remove-duplicates", action="store_true", default=False, help="Remove duplicate sentences from each doc")
     args = parser.parse_args()
 
     if args.name is None:
-        raise DEVICE_EXCEPTION("WHAT SHALL WE CALL THE NEW HOST?")
+        raise DEVICE_EXCEPTION("DOES IT NOT HAVE A NAME?")
 
     #Paths
     #---------------------------------------------
     index_name = args.name
     dataset_path = "../collection/pubmed.txt"
-    credentials_path = "../credentials.json"
-    cert_path = "../http_ca.crt"
-    mapping_path = "../mapping.json"
+    credentials_path = "credentials.json"
+    cert_path = "http_ca.crt"
+    mapping_path = "mapping.json"
     #---------------------------------------------
 
     client = elasticsearch_client(credentials_path, cert_path)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         empty_index(client, index_name)
     
     elif args.operation == "index":
-        empty_index(client, index_name)
+        console.print(f"[green]WE CALLED IT \"{args.name}\"[green]\n")
         num_docs = line_count(dataset_path)
 
         #When indexind document using bulk queries, the docs will be split into batches
@@ -72,5 +72,5 @@ if __name__ == "__main__":
                 client.bulk(index=index_name, operations=batch)
                 progress.update(task, advance=batch_size)
             
-        console.print("[green]PREPARATIONS ARE COMPLETE[/green]")
-        print(f"Elastic time: {round(time.time() - t, 2)}s")
+        console.print("\n[green]PREPARATIONS ARE COMPLETE[/green]")
+        print(f"\nElastic time: {round(time.time() - t, 2)}s")

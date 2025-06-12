@@ -291,7 +291,8 @@ class ElasticDocument(Document):
                     if self.session.use == "cache":
                         raise Exception("Session is in 'cache' mode, but the document was not found in cache. Consider setting mode to 'client' or 'both'")
                 self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
-                self.session.cache_store(self.doc, self.id)
+                if self.session.cache_dir is not None:
+                    self.session.cache_store(self.doc, self.id)
 
             #If the filter path points to a single field, return the value inside that field
             if self.filter_path and len(self.filter_path.split(",")) == 1:

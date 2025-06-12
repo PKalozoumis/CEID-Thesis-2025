@@ -69,7 +69,7 @@ def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_n
 #=============================================================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Run the preprocessing step for the specified documents, and with the specified parameters (experiments)")
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
@@ -126,7 +126,7 @@ if __name__ == "__main__":
             console.print(THIS_NEXT_EXPERIMENT)
 
             model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
-            sess = Session(index, base_path="../..", cache_dir="../cache", use= ("client" if args.no_cache else "cache"))
+            sess = Session(index, base_path="..", cache_dir="../cache", use= ("client" if args.no_cache else "cache"))
             docs = list(map(partial(ElasticDocument, sess, text_path="article"), docs_to_retrieve))
 
             #We need to process these documents in parallel
