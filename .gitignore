@@ -13,3 +13,4 @@ cached_docs
 !queries*.txt
 usercode/cache
 diagrams
+!final_summary.txt
