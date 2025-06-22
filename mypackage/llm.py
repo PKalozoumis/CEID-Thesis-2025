@@ -4,7 +4,7 @@ import lmstudio as lms
 from lmstudio import LMStudioClientError
 import platform
 import netifaces
-import json
+import re
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -85,5 +85,31 @@ Text:
     chat = lms.Chat(system_prompt)
     
     chat.add_user_message(text)
+
+    temp_text = ""
+    removed_json = False
+
     for fragment in llm.model.respond_stream(chat, response_format=schema):
-        yield fragment.content
+        temp_text += fragment.content
+
+        #Clean up the json
+        #-------------------------------------------------
+        
+        if removed_json:
+            if re.search(r"\s?\"\s?$", temp_text):
+                continue
+            if res := re.search(r"\s?\"\s?}\s?$", temp_text):
+                temp_text = temp_text[:-len(res.group())]
+
+        if not removed_json:
+            m = re.match(r"\s*{\s*\"\s?summary\s?\"\s?:\s?\"\s?", temp_text)
+            if m:
+                yield temp_text[len(m.group()):]
+                temp_text = ""
+                removed_json = True
+
+        #Once json is cleaned up, print
+        #-------------------------------------------------
+        if removed_json:
+            yield temp_text
+            temp_text = ""

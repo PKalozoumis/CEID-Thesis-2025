@@ -4,6 +4,7 @@ import numpy as np
 from itertools import chain
 from dataclasses import dataclass, field
 from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, PegasusForConditionalGeneration, PreTrainedTokenizer
+import time
 
 from ..cluster_selection import SelectedCluster, SummaryCandidate
 from ..elastic import ElasticDocument, Document
@@ -124,7 +125,7 @@ class SummarySegment():
         with open(f"generated_summaries/segment_{self.id}.json", "w") as f:
             json.dump({
                 'created_with': self.created_with,
-                'summary': self.summary
+                'summary': self.summary.text
             }, f)
 
     #---------------------------------------------------------------------------------------------------
@@ -162,10 +163,8 @@ class Summarizer():
 
     def __init__(self, query: Query, *, sus: str = "google/pegasus-pubmed", megasus: str = "google/bigbird-pegasus-large-pubmed", llm: LLMSession = None):
         self.query = query
-        self.sus = PegasusForConditionalGeneration.from_pretrained(sus)
+        #self.sus = PegasusForConditionalGeneration.from_pretrained(sus)
         self.megasus = BigBirdPegasusForConditionalGeneration.from_pretrained(megasus)
-        #self.sus = None
-        #self.megasus = None
         self.sus_tokenizer = AutoTokenizer.from_pretrained(sus)
         self.megasus_tokenizer = AutoTokenizer.from_pretrained(megasus)
         if llm is None:
@@ -191,23 +190,33 @@ class Summarizer():
             for fragment in llm_summarize(self.llm, self.query.text, segment.text):
                 txt += fragment
 
-            segment.summary = txt
+            segment.summary = Document(txt)
             segment.created_with = "llm"
         else:
             #Use BigBird
             inputs = self.megasus_tokenizer(segment.text, return_tensors='pt', truncation=True, max_length=4096)
             prediction = self.megasus.generate(**inputs)
             prediction = self.megasus_tokenizer.batch_decode(prediction, skip_special_tokens=True)
-            segment.summary = prediction[0]
+            segment.summary = Document(prediction[0])
             segment.created_with = "bigbird"
         return segment
     
     #---------------------------------------------------------------------------------------------------
 
-    def summarize_segments(self, segments: list[SummarySegment]) -> list[SummarySegment]:
+    def summarize_segments(self, segments: list[SummarySegment]) -> dict[str, float]:
+        '''
+        Returns
+        ---
+        times: list[float]
+            The time (in seconds) it took to summarize each segment
+        '''
+        times = {}
+
         for segment in segments:
-            if not segment.load_summary():
-                print("Generating summary...")
-                self.summarize_single_segment(segment).store_summary()
-        return segments
+            t = time.time()
+            if segment.summary is None:
+                self.summarize_single_segment(segment)
+            times['summarization_' + segment.id] = round(time.time() - t, 3)
+
+        return times
 

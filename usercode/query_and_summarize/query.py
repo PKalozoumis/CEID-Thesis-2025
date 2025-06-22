@@ -11,20 +11,19 @@ from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, clu
 from mypackage.llm import LLMSession, merge_summaries
 from mypackage.sentence import doc_to_sentences
 
+from sentence_transformers import SentenceTransformer, CrossEncoder
+import argparse
+from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+import time
+
+from rich.pretty import Pretty
 from rich.console import Console
 from rich.live import Live
 from rich.rule import Rule
 from rich.padding import Padding
-from sentence_transformers import SentenceTransformer
-from sentence_transformers import CrossEncoder
-from rich.pretty import Pretty
-import argparse
-from collections import defaultdict
-
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-
-import time
+from rich.tree import Tree
 
 console = Console()
 
@@ -38,19 +37,25 @@ if __name__ == "__main__":
     parser.add_argument("-s", action="store", type=str, default="thres", help="Best cluster selection method", choices=["topk", "thres"])
     parser.add_argument("--print", action="store_true", default=False, help="Print the cluster's text")
     parser.add_argument("--stats", action="store_true", default=False, help="Print cluster stats")
-    parser.add_argument("--cache", dest="cache", action="store_true", default=True, help="Try to load summary from cache")
-    parser.add_argument("--no-cache", dest="cache", action="store_false", help="Try to load summary from cache")
+    parser.add_argument("--score-cache", dest="score_cache", action="store_true", default=True, help="Try to load cross-encoder scores from cache")
+    parser.add_argument("--no-score-cache", dest="score_cache", action="store_false", help="Try to load cross-encoder scores from cache")
+    parser.add_argument("--summary-cache", dest="summary_cache", action="store_true", default=True, help="Try to load summary from cache")
+    parser.add_argument("--no-summary-cache", dest="summary_cache", action="store_false", help="Try to load summary from cache")
 
     args = parser.parse_args()
 
     console.print(Pretty(args))
 
+    times: dict[str, float] = {}
+
     #Retrieval stage
     #-----------------------------------------------------------------------------------------------------------------
-    #sess = Session("pubmed", base_path="..")
-    sess = Session("pubmed", use="cache", cache_dir="../cache")
+    sess = Session("pubmed", base_path="..", use="cache", cache_dir="../cache")
     query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article")
+    
+    times['elastic'] = time.time()
     #res = query.execute(sess)
+    times['elastic'] = time.time() - times['elastic']
 
     console.print(f"\n[green]Query:[/green] {query.text}\n")
 
@@ -70,11 +75,15 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------------------------------
 
     #Encode the query
+    times['query_encode'] = time.time()
     sentence_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
     query.load_vector(sentence_model)
+    times['query_encode'] = time.time() - times['query_encode']
 
     #Retrieve clusters from docs
+    times['cluster_retrieval'] = time.time()
     selected_clusters = cluster_retrieval(sess, returned_docs, query)
+    times['cluster_retrieval'] = time.time() - times['cluster_retrieval']
 
     panel_print([f"Cluster [green]{cluster.id}[/green] with score [cyan]{cluster.sim:.3f}[/cyan]" for cluster in selected_clusters], title="Retrieved clusters based on cosine similarity")
 
@@ -88,14 +97,16 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------------------------------
     os.makedirs("cross_scores", exist_ok=True)
     for cluster in selected_clusters:
+        times[f'cross_score_{cluster.id}'] = time.time()
         cluster.evaluator = evaluator
-        if not os.path.exists(f"cross_scores/{cluster.id}.pkl"):
+        if not args.score_cache or not os.path.exists(f"cross_scores/{cluster.id}.pkl"):
             cluster.evaluate_chains()
             cluster.store_scores("cross_scores")
         else:
             cluster.load_scores("cross_scores")
+        times[f'cross_score_{cluster.id}'] = time.time() - times[f'cross_score_{cluster.id}']
 
-    panel_print([f"Cluster {cluster.id} score: [cyan]{cluster.cross_score:.3f}[/cyan]" for cluster in selected_clusters], title="Cross-encoder scores of the selected clusters")
+    panel_print([f"Cluster [green]{cluster.id}[/green] score: [cyan]{cluster.cross_score:.3f}[/cyan]" for cluster in selected_clusters], title="Cross-encoder scores of the selected clusters")
 
     if args.c != -1:
         selected_clusters = [selected_clusters[args.c]]
@@ -105,6 +116,8 @@ if __name__ == "__main__":
 
     for focused_cluster in selected_clusters:
         focused_cluster: SelectedCluster
+
+        console.print(Rule(title=f"Cluster {focused_cluster.id}", align="center"))
 
         clusters_per_doc[focused_cluster.cluster.doc].append(focused_cluster)
 
@@ -117,11 +130,12 @@ if __name__ == "__main__":
 
         #Context Expansion
         #-----------------------------------------------------------------------------------------------------------------
+        times[f'context_expansion_{focused_cluster.id}'] = time.time()
         context_expansion(focused_cluster)
         focused_cluster.merge_candidates()
-        console.print(Rule(title="Merged candidates:", align="left"))
-        print_candidates(focused_cluster)
+        print_candidates(focused_cluster, title=f"Merged candidates for cluster {focused_cluster.id}")
         #panel_print(focused_cluster.text, title=f"Text (size = {len(focused_cluster.text.split())})")
+        times[f'context_expansion_{focused_cluster.id}'] = time.time() - times[f'context_expansion_{focused_cluster.id}']
 
     #Summarization
     #-----------------------------------------------------------------------------------------------------------------    
@@ -129,16 +143,51 @@ if __name__ == "__main__":
 
     for doc, cluster_list in clusters_per_doc.items():
         seg = SummarySegment(cluster_list, doc)
-        exists = seg.load_summary()
+        if args.summary_cache:
+            seg.load_summary()
         segments.append(seg)
-        if exists:
-            panel_print([seg.text, Rule(), seg.summary.text], title=f"Summary of {seg.doc.id} ({seg.created_with})")
+
+    panel_print([f"Segment [green]{segment.id}[/green]: [cyan]{len(segment.text.split()):.3f}[/cyan]" for segment in segments], title="Segment word counts")
 
     llm = LLMSession("meta-llama-3.1-8b-instruct")
 
-    #panel_print(segments[0].text, title=f"Text (size = {len(segments[0].text.split())})")
-    #summarizer = Summarizer(query)
-    #summarizer.summarize_segments(segments)
+    summarizer = Summarizer(query, llm=llm)
+    times = {**times, **summarizer.summarize_segments(segments)}
+
+    #Store to cache
+    if args.summary_cache:
+        for segment in segments:
+            segment.store_summary()
+    
+    #Print summaries
+    for seg in segments:
+        panel_print([seg.text, Rule(), seg.summary.text], title=f"Summary of {seg.doc.id} ({seg.created_with})")
+
+    #Print times
+    #------------------------------------------------------------------------------
+    times = {k:round(v, 3) for k,v in times.items()}
+
+    tree = Tree(f"[green]Total time: [cyan]{sum(times.values()):.3f}s[/cyan]")
+    tree.add(f"[green]Elasticsearch time: [cyan]{times['elastic']:.3f}s[/cyan]")
+    tree.add(f"[green]Query encoding: [cyan]{times['query_encode']:.3f}s[/cyan]")
+    tree.add(f"[green]Cluster retrieval: [cyan]{times['cluster_retrieval']:.3f}s[/cyan]")
+
+    score_tree = tree.add(f"[green]Cross-scores: [cyan]{sum(v for k,v in times.items() if k.startswith('cross_score')):.3f}s[/cyan]" + (" (used cache)" if args.score_cache else ""))
+    for k,v in times.items():
+        if k.startswith('cross_score'):
+            score_tree.add(f"[green]Cluster {k[12:]}: [cyan]{v:.3f}s[/cyan]")
+
+    context_tree = tree.add(f"[green]Context expansion: [cyan]{sum(v for k,v in times.items() if k.startswith('context_expansion')):.3f}s[/cyan]")
+    for k,v in times.items():
+        if k.startswith('context_expansion'):
+            context_tree.add(f"[green]Cluster {k[18:]}: [cyan]{v:.3f}s[/cyan]")
+
+    summary_tree = tree.add(f"[green]Summarization: [cyan]{sum(v for k,v in times.items() if k.startswith('summarization')):.3f}s[/cyan]")
+    for k,v in times.items():
+        if k.startswith('summarization'):
+            summary_tree.add(f"[green]Segment {k[14:]}: [cyan]{v:.3f}s[/cyan]")
+
+    console.print(tree)
 
     #Creating citations
     #------------------------------------------------------------------------------

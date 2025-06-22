@@ -428,6 +428,8 @@ class SelectedCluster():
         '''
         Merges candidates that contain overlapping chains. A merge only happens between candidates whose scores
         have the same sign (both positive or negative)
+
+        NOTE: Maybe this won't be necessary, since the context expansion no longer generates overlapping chains
         '''
         self.candidates = sorted(self.candidates, key=lambda x: x.index_range.start, reverse=False)
 
@@ -438,6 +440,7 @@ class SelectedCluster():
             if prev.score*candidate.score >= 0:
                 #There is overlap
                 if candidate.index_range.start in prev.index_range:
+                    print("Overlap detected")
                     #How many chains do we need to add?
                     extra_chains = candidate.index_range.stop - prev.index_range.stop
                     prev.context.chains += candidate.context.chains[len(candidate.context.chains)-extra_chains:]

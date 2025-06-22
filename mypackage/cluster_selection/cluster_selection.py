@@ -63,7 +63,7 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
 
 #===============================================================================================================
 
-def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = False, current_state_only: bool = False):
+def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = False, current_state_only: bool = False, title: str | None = None):
 
     panel_lines = []
 
@@ -105,7 +105,7 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
         ]
         panel_lines.append(f"Cluster score: " + " [red]->[/red] ".join(cluster_scores))
 
-    panel_print(panel_lines, title=f"For cluster {focused_cluster.id}", expand=False)
+    panel_print(panel_lines, title= title or f"For cluster {focused_cluster.id}", expand=False)
 
 #===============================================================================================================
 

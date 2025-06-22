@@ -113,13 +113,13 @@ class Query():
         if self.vector is not None:
             return
 
-        if not os.path.exists(path):
-            #print("Encoding query...")
-            self.encode(sentence_transformer)
-            np.save(path, self.vector)
-        else:
+        #if not os.path.exists(path):
+        print("Encoding query...")
+        self.encode(sentence_transformer)
+        np.save(path, self.vector)
+        #else:
             #print("Loading query from disk...")
-            self.vector = np.load(path)
+            #self.vector = np.load(path)
 
 
 #==============================================================================================
