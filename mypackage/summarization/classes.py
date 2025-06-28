@@ -3,7 +3,7 @@ import json
 import numpy as np
 from itertools import chain
 from dataclasses import dataclass, field
-from transformers import BigBirdPegasusForConditionalGeneration, AutoTokenizer, PegasusForConditionalGeneration, PreTrainedTokenizer
+from transformers import LlamaTokenizer
 import time
 
 from ..cluster_selection import SelectedCluster, SummaryCandidate
@@ -22,6 +22,10 @@ class SummarySegment():
     Represents the part/paragraph of the final summary referring to one specific document.
     Contains all the retrieved clusters that are relevant from the specific document, as well as general information
     about the document itself that should be included in the summary (e.g. author and main topic)
+
+
+    NOTE: Maybe this isn't that good. Maybe I should not be grouping based on document,
+    since I no longer summarize each document separately
     '''
     clusters: list[SelectedCluster]
     doc: ElasticDocument
@@ -100,8 +104,27 @@ class SummarySegment():
         #Sort by start
         temp = sorted(flat_candidates, key=lambda x: x.index_range.start, reverse=False)
 
-        #We need to handle the 
+        #NOTE: What happens if two candidates from different clusters have overlapping chains??
+
         return "\n\n".join([c.text for c in temp])
+    
+    #---------------------------------------------------------------------------------------------------
+
+    def pretty_text(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False):
+        '''
+        Get the text to be summarized, by combining all the chains from the selected clusters in order of apperance.
+        Reminder: the chains that are returned from each cluster depend on how relevant they are to the query
+        '''
+        flat_candidates: list[SummaryCandidate] = []
+        for c in self.clusters:
+            flat_candidates += c.selected_candidates()
+        
+        #Sort by start
+        temp = sorted(flat_candidates, key=lambda x: x.index_range.start, reverse=False)
+
+        #NOTE: What happens if two candidates from different clusters have overlapping chains??
+
+        return "\n\n".join([c.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes) for c in temp])
     
     #---------------------------------------------------------------------------------------------------
     
@@ -150,73 +173,31 @@ class SummarySegment():
 
 class Summarizer():
     '''
-    Contains all the models necessary for summarization. Also contains a connection to the LLM.
-    Classifies the provided ```SummarySegments``` and summarizes them using the appropriate model.
+    Contains a connection to the LLM used for summarization.
     The final output is the summary
     '''
-    sus: PegasusForConditionalGeneration #𐐘
-    megasus: BigBirdPegasusForConditionalGeneration #ඞ
-    sus_tokenizer: PreTrainedTokenizer
-    megasus_tokenizer: PreTrainedTokenizer
     llm: LLMSession
     query: Query
 
-    def __init__(self, query: Query, *, sus: str = "google/pegasus-pubmed", megasus: str = "google/bigbird-pegasus-large-pubmed", llm: LLMSession = None):
+    def __init__(self, query: Query, *, llm: LLMSession = None):
         self.query = query
-        #self.sus = PegasusForConditionalGeneration.from_pretrained(sus)
-        self.megasus = BigBirdPegasusForConditionalGeneration.from_pretrained(megasus)
-        self.sus_tokenizer = AutoTokenizer.from_pretrained(sus)
-        self.megasus_tokenizer = AutoTokenizer.from_pretrained(megasus)
         if llm is None:
             self.llm = LLMSession()
         else:
             self.llm = llm
-        
-    #---------------------------------------------------------------------------------------------------
-
-    def summarize_single_segment(self, segment: SummarySegment) -> SummarySegment:
-        if len(segment.text.split()) < 100:
-            segment.summary = segment.text
-            segment.created_with = "same"
-        elif len(segment.text.split()) < 900:
-            #Use LLM
-            '''
-            inputs = self.sus_tokenizer(segment.text, return_tensors='pt', truncation=True, max_length=1024)
-            prediction = self.sus.generate(**inputs)
-            prediction = self.sus_tokenizer.batch_decode(prediction, skip_special_tokens=True)
-            panel_print(prediction)
-            '''
-            txt = ""
-            for fragment in llm_summarize(self.llm, self.query.text, segment.text):
-                txt += fragment
-
-            segment.summary = Document(txt)
-            segment.created_with = "llm"
-        else:
-            #Use BigBird
-            inputs = self.megasus_tokenizer(segment.text, return_tensors='pt', truncation=True, max_length=4096)
-            prediction = self.megasus.generate(**inputs)
-            prediction = self.megasus_tokenizer.batch_decode(prediction, skip_special_tokens=True)
-            segment.summary = Document(prediction[0])
-            segment.created_with = "bigbird"
-        return segment
     
     #---------------------------------------------------------------------------------------------------
 
-    def summarize_segments(self, segments: list[SummarySegment]) -> dict[str, float]:
+    def summarize_segments(self, segments: list[SummarySegment]):
         '''
-        Returns
+        Yields
         ---
-        times: list[float]
-            The time (in seconds) it took to summarize each segment
+        fragment: str
+            The next text fragment of the output summary
         '''
-        times = {}
+        text_to_summarize = "\n".join([f"Document {segment.doc.id}\n-----\n{segment.text}" for segment in segments if len(segment.text.split()) > 0])
+        #tokens = LlamaTokenizer.from_pretrained("huggyllama/llama-7b").tokenize(text_to_summarize)
+        #print(len(tokens))
+        yield from llm_summarize(self.llm, self.query.text, text_to_summarize)
 
-        for segment in segments:
-            t = time.time()
-            if segment.summary is None:
-                self.summarize_single_segment(segment)
-            times['summarization_' + segment.id] = round(time.time() - t, 3)
-
-        return times
 

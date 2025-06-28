@@ -22,6 +22,9 @@ def evaluate_summary_relevance(model: CrossEncoder, summary: str, query: str):
 #================================================================================================================
 
 def summarize(args, cluster: SelectedCluster):
+    '''
+    temp
+    '''
     if args.cache:
         summary = load_summary(cluster)
 

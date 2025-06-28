@@ -62,15 +62,19 @@ I will now provide the document:
 
 def llm_summarize(llm: LLMSession, query: str, text: str):
 
-    system_prompt = f'''You are an expert summarizer. Given the following query and text, provide a clear and concise
-summary answering the query based only on the text.
+    system_prompt = f'''You are an expert summarizer. Given a query and a set of numbered documents separated by "---",
+write a detailed, comprehensive summary that fully answers the query using only the information from the documents.
+Every key fact or claim must include a clear citation referencing the document ID in square brackets (e.g., [doc1]).
+
+- Integrate all relevant points and nuances from all documents.
+- Do not add any information that is not explicitly stated in the documents.
+- Structure the summary with multiple paragraphs if needed for clarity and depth.
+- Alwaysnclude citations immediately after the facts or claims they support.
 
 Query:
------
+---
 {query}
 
-Text:
------
 {text}
 '''
     
@@ -88,18 +92,23 @@ Text:
 
     temp_text = ""
     removed_json = False
+    temp_temp = ""
 
-    for fragment in llm.model.respond_stream(chat, response_format=schema):
+    for fragment in llm.model.respond_stream(chat):
         temp_text += fragment.content
 
         #Clean up the json
         #-------------------------------------------------
         
         if removed_json:
-            if re.search(r"\s?\"\s?$", temp_text):
+            if res := re.search(r"\s?\"\s?$", temp_text):
+                temp_temp = res.group()
                 continue
             if res := re.search(r"\s?\"\s?}\s?$", temp_text):
                 temp_text = temp_text[:-len(res.group())]
+            else:
+                temp_text += temp_temp
+                temp_temp = ""
 
         if not removed_json:
             m = re.match(r"\s*{\s*\"\s?summary\s?\"\s?:\s?\"\s?", temp_text)
@@ -108,8 +117,7 @@ Text:
                 temp_text = ""
                 removed_json = True
 
-        #Once json is cleaned up, print
-        #-------------------------------------------------
+        #Json is removed from output
         if removed_json:
             yield temp_text
             temp_text = ""

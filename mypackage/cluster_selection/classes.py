@@ -30,6 +30,17 @@ class RelevanceEvaluator():
     model: CrossEncoder
 
     def predict(self, sentences: list[SentenceLike], *, join=False) -> float | list[float]:
+        '''
+        Uses the cross-encoder to evaluate each sentence or chain
+
+        Arguments
+        ---
+        sentences: list[SentenceLike]
+            The list of sentences or chains to evaluate
+        join: bool
+            If set to ```True```, it evaluates all sentences in the input list as one input sequence. Defaults to ```False```,
+            meaining that each sentence is evaluated separately
+        '''
         if join:
             return self.model.predict([(self.query.text, "".join([s.text for s in sentences]))])[0]
         else:
@@ -61,6 +72,7 @@ class SummaryCandidate():
         score: float
         actions: list[str] = field(default_factory=list)
         timestamp: int = field(default=0)
+        improvement_score: float = field(default=0)
 
         @classmethod
         def from_state(cls, state: SummaryCandidate.State, action: str = None) -> SummaryCandidate.State:
@@ -83,7 +95,8 @@ class SummaryCandidate():
                 chains = state.chains[:],
                 score = state.score,
                 actions = state.actions + ([action] if action is not None else []),
-                timestamp = state.timestamp
+                timestamp = state.timestamp,
+                improvement_score = state.improvement_score
             )
         
         @property
@@ -93,6 +106,10 @@ class SummaryCandidate():
         @property
         def index_range(self) -> range:
             return range(self.chains[0].index, self.chains[-1].index + 1)
+        
+        @property
+        def text(self):
+            return "".join([c.text for c in self.chains])
         
         def __len__(self) -> int:
             return len(self.chains)
@@ -125,13 +142,24 @@ class SummaryCandidate():
     def text(self):
         return "".join([c.text for c in self.context.chains])
     
+    def pretty_text(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False):
+
+        thing1 = lambda c: f"[cyan][{c.index}" + (f" ({len(c)} sentences)" if show_chain_sizes else "") + "]: [/cyan]"
+        thing2 = lambda c: c.text if c.index == self.chain.index else f"[green]{c.text}[/green]"
+
+        return "".join([
+            (thing1(c) if show_chain_indices else "") +
+            (thing2(c) if show_added_context else c.text)
+            for c in self.context.chains
+        ])
+    
     @property
     def index_range(self):
         return self.context.index_range
     
     #---------------------------------------------------------------------------------------------------
 
-    def optimize(self, *, stop_expansion: bool = False, timestamp: int|None = None, constraints: list[int]|None = None) -> int:
+    def optimize(self, *, stop_expansion: bool = False, timestamp: int|None = None, constraints: list[int]|None = None, threshold: float = 0.01) -> int:
         '''
         Sets the selected state to the optimal state. Returns the new selected index
 
@@ -146,6 +174,9 @@ class SummaryCandidate():
 
         constraints: list[int], optional
             Prevent the optimization process from selecting states that contain the chains in this list
+
+        threshold: float
+            Threshold for how much the score needs to improve relative to the size of the new context. Defaults to ```0.015```
         '''
         if timestamp is not None:
             temp = [i for i, s in enumerate(self.history) if s.timestamp == timestamp]
@@ -156,8 +187,13 @@ class SummaryCandidate():
             #Only keep states that don't have chains in the constraints list
             temp =  [i for i in temp if not any(it.index in constraints for it in self.history[i].chains)]
 
+        #This sets the current state as the bare minimum
+        #If no one else is above the threshold, we default to the current state
+        if self.selected_state is not None:
+            self.context.improvement_score = threshold
+
         if len(temp) > 0:
-            new_state = max(temp, key=lambda i: self.history[i].score)
+            new_state = max(temp, key=lambda i: self.history[i].improvement_score)
             #print(f"I am chain {self.chain.index}, optimal_state={new_state}, current_state={self.selected_state}")
 
             if stop_expansion and self.selected_state == new_state: #Optimal state did not change
@@ -195,6 +231,7 @@ class SummaryCandidate():
         self.history[-1].timestamp = timestamp
         self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True))
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
+        self.history[-1].improvement_score = (self.history[-1].score - self.history[branch_from].score)/len(self.history[-1].text.split())
 
     #---------------------------------------------------------------------------------------------------
 
@@ -222,6 +259,7 @@ class SummaryCandidate():
         self.history[-1].timestamp = timestamp
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
+        self.history[-1].improvement_score = (self.history[-1].score - self.history[branch_from].score)/len(self.history[-1].text.split())
 
     #---------------------------------------------------------------------------------------------------
 
@@ -250,6 +288,7 @@ class SummaryCandidate():
         self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True)) #Forward
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains #backward
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
+        self.history[-1].improvement_score = (self.history[-1].score - self.history[branch_from].score)/len(self.history[-1].text.split())
 
     #---------------------------------------------------------------------------------------------------
 
@@ -370,7 +409,13 @@ class SelectedCluster():
     def text(self) -> str:
         #Sort by start
         temp = sorted(self.selected_candidates(), key=lambda x: x.index_range.start, reverse=False)
-        return "\n\n".join(temp)
+        return "\n\n".join([t.text for t in temp])
+    
+    @property
+    def pretty_text(self) -> str:
+        #Sort by start
+        temp = sorted(self.selected_candidates(), key=lambda x: x.index_range.start, reverse=False)
+        return "\n\n".join([t.text for t in temp])
     
     @property
     def clustering_context(self) -> ChainClustering:
@@ -423,8 +468,17 @@ class SelectedCluster():
         return self
 
     #---------------------------------------------------------------------------
+
+    def filter_candidates(self, threshold: float = -5) -> SelectedCluster:
+        '''
+        Only keeps candidates that have a cross-score above the threshold
+        '''
+        self.candidates = list(filter(lambda x: x.score > threshold, self.candidates))
+        return self
     
-    def merge_candidates(self) -> SelectedCluster:
+    #---------------------------------------------------------------------------
+    
+    def merge_candidates(self, threshold: float = 2) -> SelectedCluster:
         '''
         Merges candidates that contain overlapping chains. A merge only happens between candidates whose scores
         have the same sign (both positive or negative)
@@ -437,7 +491,7 @@ class SelectedCluster():
         keep = []
         for candidate in self.candidates[1:]:
             #We only merge candidates with same sign of relevance score
-            if prev.score*candidate.score >= 0:
+            if (prev.score - threshold)*(candidate.score - threshold) >= 0:
                 #There is overlap
                 if candidate.index_range.start in prev.index_range:
                     print("Overlap detected")
@@ -500,16 +554,25 @@ class SelectedCluster():
     #---------------------------------------------------------------------------
     
     
-    def selected_candidates(self) -> list[SummaryCandidate]:
+    def selected_candidates(self, *, cluster_threshold: float = 10, candidate_threshold: float = 2) -> list[SummaryCandidate]:
         '''
         Returns the best candidates from this cluster that should be considered relevant to the query
+        
+        Arguments
+        ---
+        cluster_threshold: float
+            A cluster is considered good if it's cross-score is above the cluster threshold.
+            When a cluster is good, we use all its candidates for summarization.
+            If it's below the threshold, we only use its good candidates. Defaults to ```10```
+        candidate_threshold: float
+            A candidate is considered good if its cross-score is above the candidate threshold. Defaults to ```2```
         '''
-        if self.cross_score > 0:
+        if self.cross_score > cluster_threshold:
             #We take all the candidates    
             return self.candidates
         else:
-            #We only keep candidates of positive score
-            return [c for c in self.candidates if c.score > 0]
+            #We only keep good candidates
+            return [c for c in self.candidates if c.score > candidate_threshold]
         
     #---------------------------------------------------------------------------
 

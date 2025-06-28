@@ -118,7 +118,7 @@ def context_expansion(cluster: SelectedCluster):
     prev_round_forbids = None #Key is index of forbidden chain, value is who forbade it
 
     while True:
-    #for _ in range(3):
+    #for _ in range(1):
         expanded = False #Stop if nobody expands, 
 
         seen_chains = set()
@@ -189,7 +189,7 @@ def context_expansion(cluster: SelectedCluster):
                         #(Non-terminating)
                         initial_state_for_this_timestamp = [i for i, s in enumerate(candidate.history) if s.timestamp == timestamp][0]
                         candidate.history.pop(candidate.selected_state)
-                        #candidate.optimize()
+                        candidate.selected_state = None
                         candidate.optimize(timestamp=timestamp)
                         if candidate.selected_state == initial_state_for_this_timestamp:
                             candidate.expandable = False
@@ -262,6 +262,8 @@ def context_expansion(cluster: SelectedCluster):
             break
 
         timestamp += 1
+
+    #print_candidates(cluster, print_action=True, current_state_only=False)
 
     #Clear history
     for candidate in cluster.candidates:
