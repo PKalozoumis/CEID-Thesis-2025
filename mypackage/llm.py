@@ -13,11 +13,22 @@ if TYPE_CHECKING:
 #================================================================================================
 
 class LLMSession():
+    '''
+    A session for an LLM running in LM Studio
+    '''
     model_name: str
     api_host: str
     model: lms.LLM
 
-    def __init__(self, model_name: str = "llama-3.2-3b-instruct"):
+    def __init__(self, model_name: str = "meta-llama-3.1-8b-instruct"):
+        '''
+        A session for an LLM running in LM Studio
+
+        Arguments
+        ---
+        model_name: str
+            The name of the model
+        '''
         self.model_name = model_name
 
         #Check if I'm using WSL
@@ -33,49 +44,26 @@ class LLMSession():
 
 #================================================================================================
 
-def merge_summaries(llm: LLMSession, segments: list[SummarySegment], query: str):
-
-    system_prompt = f'''Rewrite the following document into a coherent, fluent document (with paragraph breaks as needed) that focused on answering the following query: \"{query}\".
-Only use content from the document. Do not paraphrase, interpret, or add new information, except to improve fluency. Keep original wording and phrasing. Ensure the result flows naturally and clearly.
-Use all relevant information from the document that answers the query.
-I will now provide the document:
-'''
-    
-    schema = {
-        "type": "object",
-        "properties": {
-            "answer": { "type": "string" },
-        },
-        "required": ["answer"],
-    }
-    
-    chat = lms.Chat(system_prompt)
-    text = "".join([seg.summary for seg in segments if len(seg.summary) > 0])
-    
-    chat.add_user_message(text)
-    for fragment in llm.model.respond_stream(chat):
-        yield fragment.content
-
-    #return json.loads(result.content)
-
-#================================================================================================
-
 def llm_summarize(llm: LLMSession, query: str, text: str):
 
-    system_prompt = f'''You are an expert summarizer. Given a query and a set of numbered documents separated by "---",
+    system_prompt = f'''You are an expert summarizer. Given a query and a set of documents separated by "---",
 write a detailed, comprehensive summary that fully answers the query using only the information from the documents.
-Every key fact or claim must include a clear citation referencing the document ID in square brackets (e.g., [doc1]).
+All sentences of the summary must include a clear citation to the document's numeric ID in square brackets
+where that fact or claim originates. The citation must only include a number.
 
 - Integrate all relevant points and nuances from all documents.
 - Do not add any information that is not explicitly stated in the documents.
 - Structure the summary with multiple paragraphs if needed for clarity and depth.
-- Alwaysnclude citations immediately after the facts or claims they support.
+'''
+    
+    system_prompt = f'''You are an expert summarizer. Given a query and a series of facts,
+write a detailed, comprehensive summary that fully answers the query using only the information from the facts.
+Each fact begins with an ID in the format <1234_0-5>. All sentences of the summary must include a clear citation to the fact's ID
+where that claim originates, in the same format <1234_0-5>, with angle brackets (`<` and `>`) — not parentheses or any other symbol.
 
-Query:
----
-{query}
-
-{text}
+- Integrate all relevant points and nuances from all facts.
+- Do not add any information that is not explicitly stated in the facts.
+- Structure the summary with multiple paragraphs if needed for clarity and depth.
 '''
     
     schema = {
@@ -88,36 +76,37 @@ Query:
     
     chat = lms.Chat(system_prompt)
     
-    chat.add_user_message(text)
+    chat.add_user_message(f"Query: \"{query}\"\n{text}\nSummary:\n")
 
     temp_text = ""
     removed_json = False
     temp_temp = ""
 
     for fragment in llm.model.respond_stream(chat):
-        temp_text += fragment.content
+        if False:
+            temp_text += fragment.content
+            #Clean up the json
+            #-------------------------------------------------
+            if removed_json:
+                if res := re.search(r"\s?\"\s?$", temp_text):
+                    temp_temp = res.group()
+                    continue
+                if res := re.search(r"\s?\"\s?}\s?$", temp_text):
+                    temp_text = temp_text[:-len(res.group())]
+                else:
+                    temp_text += temp_temp
+                    temp_temp = ""
 
-        #Clean up the json
-        #-------------------------------------------------
-        
-        if removed_json:
-            if res := re.search(r"\s?\"\s?$", temp_text):
-                temp_temp = res.group()
-                continue
-            if res := re.search(r"\s?\"\s?}\s?$", temp_text):
-                temp_text = temp_text[:-len(res.group())]
-            else:
-                temp_text += temp_temp
-                temp_temp = ""
+            if not removed_json:
+                m = re.match(r"\s*{\s*\"\s?summary\s?\"\s?:\s?\"\s?", temp_text)
+                if m:
+                    yield temp_text[len(m.group()):]
+                    temp_text = ""
+                    removed_json = True
 
-        if not removed_json:
-            m = re.match(r"\s*{\s*\"\s?summary\s?\"\s?:\s?\"\s?", temp_text)
-            if m:
-                yield temp_text[len(m.group()):]
+            #Json is removed from output
+            if removed_json:
+                yield temp_text
                 temp_text = ""
-                removed_json = True
-
-        #Json is removed from output
-        if removed_json:
-            yield temp_text
-            temp_text = ""
+        else:
+            yield fragment.content

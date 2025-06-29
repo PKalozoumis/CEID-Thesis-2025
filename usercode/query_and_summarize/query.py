@@ -6,9 +6,9 @@ from mypackage.elastic import Session, ElasticDocument, Document
 from mypackage.clustering.metrics import cluster_stats
 from mypackage.helper import panel_print
 from mypackage.query import Query
-from mypackage.summarization import SummarySegment, Summarizer
+from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, print_candidates
-from mypackage.llm import LLMSession, merge_summaries
+from mypackage.llm import LLMSession
 from mypackage.sentence import doc_to_sentences
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -40,6 +40,8 @@ if __name__ == "__main__":
     parser.add_argument("--stats", action="store_true", default=False, help="Print cluster stats")
     parser.add_argument("--summ", dest="summ", action="store_true", default=True, help="Summarize")
     parser.add_argument("--no-summ", dest="summ", action="store_false", help="Summarize")
+    parser.add_argument("-cet", action="store", type=float, default=0.01, help="Context expansion threshold")
+    parser.add_argument("-csm", action="store", type=str, default="flat_relevance", help="Candidate sorting method")
 
     args = parser.parse_args()
 
@@ -110,15 +112,12 @@ if __name__ == "__main__":
     
 
     #-----------------------------------------------------------------------------------------------------------------
-    clusters_per_doc = defaultdict(list)
     cross_scores = []
     for focused_cluster in selected_clusters:
         focused_cluster: SelectedCluster
 
         console.print(Rule(title=f"Cluster {focused_cluster.id}", align="center"))
-
         cross_scores.append(focused_cluster.cross_score)
-        clusters_per_doc[focused_cluster.cluster.doc].append(focused_cluster)
 
         #Print cluster chains
         if args.print:
@@ -130,40 +129,39 @@ if __name__ == "__main__":
         #Context Expansion
         #-----------------------------------------------------------------------------------------------------------------
         times[f'context_expansion_{focused_cluster.id}'] = time.time()
-        context_expansion(focused_cluster)
+        context_expansion(focused_cluster, threshold=args.cet)
         focused_cluster.filter_candidates().merge_candidates()
         print_candidates(focused_cluster, title=f"Merged candidates for cluster {focused_cluster.id}")
         #panel_print(focused_cluster.text, title=f"Text (size = {len(focused_cluster.text.split())})")
         times[f'context_expansion_{focused_cluster.id}'] = time.time() - times[f'context_expansion_{focused_cluster.id}']
 
     panel_print([f"Cluster [green]{cluster.id}[/green] score: [cyan]{cross_scores[i]}[/cyan] -> [cyan]{cluster.cross_score:.3f}[/cyan] ([green]+{round(cluster.cross_score - cross_scores[i], 3):.3f}[/green])" for i, cluster in enumerate(selected_clusters)], title="Cross-encoder scores of the selected clusters after context expansion")
+    panel_print([f"Cluster [green]{cluster.id}[/green] score: [cyan]{cluster.selected_candidate_cross_score:.3f}[/cyan]" for i, cluster in enumerate(selected_clusters)], title="Cross-encoder scores (only selected candidates considered)")
 
     #Summarization
     #-----------------------------------------------------------------------------------------------------------------
 
     #Print text
-    segments: list[SummarySegment] = []
-
-    for doc, cluster_list in clusters_per_doc.items():
-        seg = SummarySegment(cluster_list, doc)
-        segments.append(seg)
-
-    panel_print([f"Segment [green]{segment.id}[/green]: [cyan]{len(segment.text.split()):.3f}[/cyan]" for segment in segments], title="Segment word counts")
-    panel_print(list(chain.from_iterable([Rule(f"Document {seg.doc.id}"), seg.pretty_text(show_added_context=True, show_chain_indices=True)] for seg in segments)), title=f"Segment contents")
+    unit = SummaryUnit(selected_clusters, sorting_method=args.csm)
+    unit.pretty_print(show_added_context=True, show_chain_indices=True)
+    panel_print(unit.text)
     
     #Summarize
     if args.summ:
-        #llm = LLMSession("meta-llama-3.1-8b-instruct")
-        llm = LLMSession("llama-3.2-3b-instruct")
+        is_first_fragment = True
+
+        llm = LLMSession("meta-llama-3.1-8b-instruct")
 
         summarizer = Summarizer(query, llm=llm)
         times['summary_time'] = time.time()
+        times['summary_response_time'] = time.time()
 
         with Live(panel_print(return_panel=True), refresh_per_second=10) as live:
-            summary_text = ""
-            for fragment in summarizer.summarize_segments(segments):
-                summary_text += fragment
-                live.update(panel_print(summary_text, return_panel=True))
+            for fragment in summarizer.summarize(unit):
+                if is_first_fragment:
+                    times['summary_response_time'] = time.time() - times['summary_response_time']
+                    is_first_fragment = False
+                live.update(panel_print(unit.summary, return_panel=True))
 
         times['summary_time'] = time.time() - times['summary_time']
 
@@ -186,61 +184,8 @@ if __name__ == "__main__":
         if k.startswith('context_expansion'):
             context_tree.add(f"[green]Cluster {k[18:]}: [cyan]{v:.3f}s[/cyan]")
 
-    tree.add(f"[green]Summarization[/green]: [cyan]{times['summary_time']}[/cyan]")
+    summary_tree = tree.add(f"[green]Summarization[/green]: [cyan]{times['summary_time']}s[/cyan]")
+    summary_tree.add(f"[green]Response time[/green]: [cyan]{times['summary_response_time']:.3f}s[/cyan]")
+
 
     console.print(tree)
-
-    #Creating citations
-    #------------------------------------------------------------------------------
-    if False:
-        my_segment = segments[0]
-
-        panel_print(Pretty(my_segment.flat_candidates()))
-
-        #Transform the summary into embeddings
-        doc_to_sentences(my_segment.summary, sentence_model, sep=". ")
-        flat_chains = my_segment.flat_chains()
-
-        #Calculate cosine similarity between each sentence of the summary and the text
-        #(may need to improve down the line)
-        sims = cosine_similarity(my_segment.summary_matrix(), flat_chains)
-        max_sim = np.argmax(sims, axis=1)
-        console.print(max_sim)
-
-        #my_segment.clusters[0].clustering_context.chains[]
-
-        #Set citations list
-        my_segment.citations = [None]*len(my_segment.summary.sentences)
-        for summary_sentence_index, chain_pos in enumerate(max_sim):
-            my_segment.citations[summary_sentence_index] = flat_chains[chain_pos].index
-
-        #Add citations to the summary
-        text = ""
-        for c, s in zip(my_segment.citations, my_segment.summary.sentences):
-            text += s.text
-            if c is not None:
-                text += f"[cyan] [{c}][/cyan]"
-            text += ". "
-
-        citation_text = []
-        for candidate_chain in [x.index for x in flat_chains]:
-            if candidate_chain in my_segment.citations:
-                citation_text.append(f"[cyan][{candidate_chain}][/cyan]: "+ my_segment.clusters[0].clustering_context.chains[candidate_chain].text)
-            else:
-                citation_text.append(f"[red][{candidate_chain}][/red]: " + my_segment.clusters[0].clustering_context.chains[candidate_chain].text)
-
-
-        panel_print([text, Padding(Rule()), "\n\n".join(citation_text)], title="Summary with citations")
-
-    #Retrieve fragments of text from the llm and add them to the full text
-    #------------------------------------------------------------------------------
-
-    if False:
-        full_text = ""
-        with Live(panel_print(return_panel=True), refresh_per_second=10) as live:
-            for fragment in merge_summaries(llm, segments, query.text):
-                full_text += fragment
-                live.update(panel_print(full_text, return_panel=True))
-
-    
-    

@@ -105,6 +105,9 @@ class SummaryCandidate():
         
         @property
         def index_range(self) -> range:
+            '''
+            The range is inclusive
+            '''
             return range(self.chains[0].index, self.chains[-1].index + 1)
         
         @property
@@ -131,6 +134,10 @@ class SummaryCandidate():
         return self.history[self.selected_state]
     
     @property
+    def id(self) -> str:
+        return f"{self.chain.doc.id}_{self.context.id}"
+    
+    @property
     def score(self):
         return self.context.score
     
@@ -140,7 +147,7 @@ class SummaryCandidate():
 
     @property
     def text(self):
-        return "".join([c.text for c in self.context.chains])
+        return " ".join([c.text for c in self.context.chains])
     
     def pretty_text(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False):
 
@@ -155,6 +162,9 @@ class SummaryCandidate():
     
     @property
     def index_range(self):
+        '''
+        The range is inclusive
+        '''
         return self.context.index_range
     
     #---------------------------------------------------------------------------------------------------
@@ -176,7 +186,7 @@ class SummaryCandidate():
             Prevent the optimization process from selecting states that contain the chains in this list
 
         threshold: float
-            Threshold for how much the score needs to improve relative to the size of the new context. Defaults to ```0.015```
+            Threshold for how much the score needs to improve relative to the size of the new context. Defaults to ```0.01```
         '''
         if timestamp is not None:
             temp = [i for i, s in enumerate(self.history) if s.timestamp == timestamp]
@@ -221,17 +231,23 @@ class SummaryCandidate():
             meaning the currently selected state (denoted by ```selected_state```). Setting to ```-1```
             expands from the latest state in the history
         '''
-        if not self.expandable:
+        if n <= 0 or not self.expandable:
             return
         
         if branch_from is None:
             branch_from = self.selected_state
+            if branch_from == -1:
+                branch_from = len(self.history) - 1
 
         self.history.append(self.State.from_state(self.history[branch_from], f"right {n}"))
         self.history[-1].timestamp = timestamp
         self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True))
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
-        self.history[-1].improvement_score = (self.history[-1].score - self.history[branch_from].score)/len(self.history[-1].text.split())
+
+        #added_length = len(self.history[-1].text.split()) - len(self.history[branch_from].text.split())
+        added_length = len(self.history[-1].text.split())
+        if added_length > 0:
+            self.history[-1].improvement_score = round((self.history[-1].score - self.history[branch_from].score)/added_length, 3)
 
     #---------------------------------------------------------------------------------------------------
 
@@ -249,17 +265,23 @@ class SummaryCandidate():
             meaning the currently selected state (denoted by ```selected_state```). Setting to ```-1```
             expands from the latest state in the history
         '''
-        if not self.expandable:
+        if n <= 0 or not self.expandable:
             return
         
         if branch_from is None:
             branch_from = self.selected_state
+            if branch_from == -1:
+                branch_from = len(self.history) - 1
 
         self.history.append(self.State.from_state(self.history[branch_from], f"left {n}"))
         self.history[-1].timestamp = timestamp
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
-        self.history[-1].improvement_score = (self.history[-1].score - self.history[branch_from].score)/len(self.history[-1].text.split())
+
+        #added_length = len(self.history[-1].text.split()) - len(self.history[branch_from].text.split())
+        added_length = len(self.history[-1].text.split())
+        if added_length > 0:
+            self.history[-1].improvement_score = round((self.history[-1].score - self.history[branch_from].score)/added_length, 3)
 
     #---------------------------------------------------------------------------------------------------
 
@@ -277,25 +299,31 @@ class SummaryCandidate():
             meaning the currently selected state (denoted by ```selected_state```). Setting to ```-1```
             expands from the latest state in the history
         '''
-        if not self.expandable:
+        if n <= 0 or not self.expandable:
             return
         
         if branch_from is None:
             branch_from = self.selected_state
+            if branch_from == -1:
+                branch_from = len(self.history) - 1
 
         self.history.append(self.State.from_state(self.history[branch_from], f"bidirectional {n}"))
         self.history[-1].timestamp = timestamp
         self.history[-1].chains.extend(self.history[-1].chains[-1].next(n, force_list=True)) #Forward
         self.history[-1].chains = self.history[-1].chains[0].prev(n, force_list=True) + self.history[-1].chains #backward
         self.history[-1].score = self.evaluator.predict(self.history[-1].chains, join=True) #Evaluate the new context
-        self.history[-1].improvement_score = (self.history[-1].score - self.history[branch_from].score)/len(self.history[-1].text.split())
+
+        #added_length = len(self.history[-1].text.split()) - len(self.history[branch_from].text.split())
+        added_length = len(self.history[-1].text.split())
+        if added_length > 0:
+            self.history[-1].improvement_score = round((self.history[-1].score - self.history[branch_from].score)/added_length, 3)
 
     #---------------------------------------------------------------------------------------------------
 
     def print_history(self):
         text = []
         for state in self.history:
-            text.append(("[red]-->[/red] " if self.context == state else "") + f"[cyan]{state.id}[/cyan]: Score = {state.score:.3f}, Timestamp = {state.timestamp}, Actions = [green]{state.actions}[/green]")
+            text.append(("[red]-->[/red] " if self.context == state else "") + f"[cyan]{state.index_range.start}-{state.index_range.stop}[/cyan]: Score = {state.score:.3f}, Timestamp = {state.timestamp}, Actions = [green]{state.actions}[/green]")
             text.append(Rule())
 
         text = text[:-1]
@@ -399,7 +427,21 @@ class SelectedCluster():
         if self.candidates is None:
             return None
 
-        return np.round(sum([score for score in self.scores()]), decimals=3)
+        return np.round(sum(self.scores()), decimals=3)
+    
+    #---------------------------------------------------------------------------
+    
+    @property
+    def selected_candidate_cross_score(self) -> float:
+        '''
+        A relevance score for only the best candidates of the cluster, by summing up their individual cross-encoder scores
+        '''
+        if self.candidates is None:
+            return None
+
+        return np.round(sum([c.score for c in self.selected_candidates()]), decimals=3)
+    
+    #---------------------------------------------------------------------------
     
     @property
     def id(self) -> str:
@@ -552,7 +594,6 @@ class SelectedCluster():
         return np.round(sum([c.history[i].score for c in self.candidates]), decimals=3)
 
     #---------------------------------------------------------------------------
-    
     
     def selected_candidates(self, *, cluster_threshold: float = 10, candidate_threshold: float = 2) -> list[SummaryCandidate]:
         '''

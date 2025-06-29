@@ -109,7 +109,7 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
 
 #===============================================================================================================
 
-def context_expansion(cluster: SelectedCluster):
+def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
     '''
     spaghetti code
     '''
@@ -117,8 +117,8 @@ def context_expansion(cluster: SelectedCluster):
     timestamp = 0
     prev_round_forbids = None #Key is index of forbidden chain, value is who forbade it
 
-    while True:
-    #for _ in range(1):
+    #while True:
+    for _ in range(1):
         expanded = False #Stop if nobody expands, 
 
         seen_chains = set()
@@ -167,7 +167,7 @@ def context_expansion(cluster: SelectedCluster):
             elif candidate.context.actions[-1].startswith("right"):
                 candidate.add_right_context(timestamp=timestamp)
             
-            candidate.optimize(stop_expansion=True, timestamp=timestamp)
+            candidate.optimize(stop_expansion=True, timestamp=timestamp, threshold=threshold)
 
             #Check if the new state is forbidden
             while True:
@@ -190,7 +190,7 @@ def context_expansion(cluster: SelectedCluster):
                         initial_state_for_this_timestamp = [i for i, s in enumerate(candidate.history) if s.timestamp == timestamp][0]
                         candidate.history.pop(candidate.selected_state)
                         candidate.selected_state = None
-                        candidate.optimize(timestamp=timestamp)
+                        candidate.optimize(timestamp=timestamp, threshold=threshold)
                         if candidate.selected_state == initial_state_for_this_timestamp:
                             candidate.expandable = False
 
@@ -238,7 +238,7 @@ def context_expansion(cluster: SelectedCluster):
                             bad = cluster.candidates[pos_to_forbid]
 
                             #We need to force him to choose something else
-                            if bad.optimize(constraints=list(current_round_forbids.keys())) is None:
+                            if bad.optimize(constraints=list(current_round_forbids.keys()), threshold=threshold) is None:
                                 marked_for_deletion[pos_to_forbid] = True
 
                             #print(f"I AM {candidate.context.id} AND I NEED TO FORBID CHAIN {ch.index} AT POSITION {pos_to_forbid}")
