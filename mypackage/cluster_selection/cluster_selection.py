@@ -18,9 +18,9 @@ console = Console()
 
 #=====================================================================================================
     
-def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, method: str = "thres") -> list[SelectedCluster]:
+def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, method: str = "thres", base_path: str = ".") -> list[SelectedCluster]:
     #Load the clusters corresponding to the retrieved documents
-    pkl_list = load_pickles(sess, f"../experiments/{sess.index_name}/pickles/default", docs = docs)
+    pkl_list = load_pickles(sess, f"{base_path}/experiments/{sess.index_name}/pickles/default", docs = docs)
 
     #Extract all the clusters from all the retrieved documents, into one container
     #Keep track which document each cluster came from

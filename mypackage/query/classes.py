@@ -114,7 +114,6 @@ class Query():
             return
 
         #if not os.path.exists(path):
-        print("Encoding query...")
         self.encode(sentence_transformer)
         np.save(path, self.vector)
         #else:

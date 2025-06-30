@@ -18,6 +18,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import time
 from itertools import chain
+from dataclasses import dataclass, field, fields
+from typing import Literal, get_origin, get_args, Any
+import json
 
 from rich.pretty import Pretty
 from rich.console import Console
@@ -28,30 +31,42 @@ from rich.tree import Tree
 
 console = Console()
 
+@dataclass
+class Arguments():
+    c: int = field(default=0, metadata={"help": "The cluster number"})
+    s: Literal["topk", "thres"] = field(default="thres", metadata={"help": "Best cluster selection method"})
+    print: bool = field(default=False, metadata={"help": "Print the cluster's text"})
+    stats: bool = field(default=False, metadata={"help": "Print cluster stats"})
+    summ: bool = field(default=True, metadata={"help": "Summarize"})
+    cet: float = field(default=0.01, metadata={"help": "Context expansion threshold"})
+    csm: str = field(default="flat_relevance", metadata={"help": "Candidate sorting method"})
+
+
+@dataclass
+class Message():
+    type: str
+    contents: Any
+
+    def to_json(self, string=False) -> dict:
+        data = {'type': self.type, 'contents': self.contents}
+        if string:
+            return json.dumps(data)
+        return data
+
+    def to_sse(self):
+        return f"data: {self.to_json(string=True)}\n\n".encode("utf-8")
+
 #===============================================================================================================
 
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", action="store", type=int, default=0, help="The cluster number")
-    parser.add_argument("-m", action="store", type=str, default="sus", help="The model to use", choices=["sus", "llm"])
-    parser.add_argument("-s", action="store", type=str, default="thres", help="Best cluster selection method", choices=["topk", "thres"])
-    parser.add_argument("--print", action="store_true", default=False, help="Print the cluster's text")
-    parser.add_argument("--stats", action="store_true", default=False, help="Print cluster stats")
-    parser.add_argument("--summ", dest="summ", action="store_true", default=True, help="Summarize")
-    parser.add_argument("--no-summ", dest="summ", action="store_false", help="Summarize")
-    parser.add_argument("-cet", action="store", type=float, default=0.01, help="Context expansion threshold")
-    parser.add_argument("-csm", action="store", type=str, default="flat_relevance", help="Candidate sorting method")
-
-    args = parser.parse_args()
-
-    console.print(Pretty(args))
-
+def query(query_str: str, *, args: Arguments = None, base_path="."):
+    if args is None:
+        args = Arguments()
+    
     times = defaultdict(float)
 
     #Retrieval stage
     #-----------------------------------------------------------------------------------------------------------------
-    sess = Session("pubmed", base_path="..", use="cache", cache_dir="../cache")
+    sess = Session("pubmed", base_path=base_path, use="cache", cache_dir=f"{base_path}/cache")
     query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article")
     
     times['elastic'] = time.time()
@@ -83,7 +98,7 @@ if __name__ == "__main__":
 
     #Retrieve clusters from docs
     times['cluster_retrieval'] = time.time()
-    selected_clusters = cluster_retrieval(sess, returned_docs, query)
+    selected_clusters = cluster_retrieval(sess, returned_docs, query, base_path=base_path)
     times['cluster_retrieval'] = time.time() - times['cluster_retrieval']
 
     panel_print([f"[green]{i:02}.[/green] Cluster [green]{cluster.id}[/green] with score [cyan]{cluster.sim:.3f}[/cyan]" for i, cluster in enumerate(selected_clusters)], title="Retrieved clusters based on cosine similarity")
@@ -161,6 +176,7 @@ if __name__ == "__main__":
                 if is_first_fragment:
                     times['summary_response_time'] = time.time() - times['summary_response_time']
                     is_first_fragment = False
+                yield Message("fragment", fragment)
                 live.update(panel_print(unit.summary, return_panel=True))
 
         times['summary_time'] = time.time() - times['summary_time']
@@ -189,3 +205,29 @@ if __name__ == "__main__":
 
 
     console.print(tree)
+
+    yield Message("end", 1)
+
+#===============================================================================================================
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+
+    for f in fields(Arguments):
+        if f.type is bool:
+            parser.add_argument(f"--{f.name}", action="store_true", dest=f.name, default=f.default, help=f.metadata['help'])
+            if f.default == True:
+                parser.add_argument(f"--no-{f.name}", action="store_false", dest=f.name, help=f.metadata['help'])
+        elif get_origin(f.type) is Literal:
+            parser.add_argument(f"-{f.name}", action="store", type=str, default=f.default, help=f.metadata['help'], choices=list(get_args(f.type)))
+        else:
+            parser.add_argument(f"-{f.name}", action="store", type=f.type, default=f.default, help=f.metadata['help'])
+
+    args = parser.parse_args()
+
+    console.print(Pretty(args))
+    for msg in query("Query", args=args, base_path=".."):
+        pass
+
+    

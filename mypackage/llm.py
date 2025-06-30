@@ -59,21 +59,15 @@ where that fact or claim originates. The citation must only include a number.
     system_prompt = f'''You are an expert summarizer. Given a query and a series of facts,
 write a detailed, comprehensive summary that fully answers the query using only the information from the facts.
 Each fact begins with an ID in the format <1234_0-5>. All sentences of the summary must include a clear citation to the fact's ID
-where that claim originates, in the same format <1234_0-5>, with angle brackets (`<` and `>`) — not parentheses or any other symbol.
+where that claim originates. A citation must strictly be in the same format <1234_0-5>, with just angle brackets (`<` and `>`) - not parentheses, or any other symbol.
+The citation must not be surrounded by parentheses.
+If multiple citations are needed for the same sentence, keep them as two separate, consecutive references e.g. <1234_0><1234_1>
 
-- Integrate all relevant points and nuances from all facts.
+- Integrate all relevant points and nuances from all facts, but condensed
 - Do not add any information that is not explicitly stated in the facts.
-- Structure the summary with multiple paragraphs if needed for clarity and depth.
+- Structure the summary with multiple paragraphs if needed for clarity and depth, but keep it concise
 '''
-    
-    schema = {
-        "type": "object",
-        "properties": {
-            "summary": { "type": "string" },
-        },
-        "required": ["summary"],
-    }
-    
+
     chat = lms.Chat(system_prompt)
     
     chat.add_user_message(f"Query: \"{query}\"\n{text}\nSummary:\n")
@@ -82,31 +76,6 @@ where that claim originates, in the same format <1234_0-5>, with angle brackets 
     removed_json = False
     temp_temp = ""
 
-    for fragment in llm.model.respond_stream(chat):
-        if False:
-            temp_text += fragment.content
-            #Clean up the json
-            #-------------------------------------------------
-            if removed_json:
-                if res := re.search(r"\s?\"\s?$", temp_text):
-                    temp_temp = res.group()
-                    continue
-                if res := re.search(r"\s?\"\s?}\s?$", temp_text):
-                    temp_text = temp_text[:-len(res.group())]
-                else:
-                    temp_text += temp_temp
-                    temp_temp = ""
-
-            if not removed_json:
-                m = re.match(r"\s*{\s*\"\s?summary\s?\"\s?:\s?\"\s?", temp_text)
-                if m:
-                    yield temp_text[len(m.group()):]
-                    temp_text = ""
-                    removed_json = True
-
-            #Json is removed from output
-            if removed_json:
-                yield temp_text
-                temp_text = ""
-        else:
-            yield fragment.content
+    stream = llm.model.respond_stream(chat)
+    for fragment in stream:
+        yield fragment.content
