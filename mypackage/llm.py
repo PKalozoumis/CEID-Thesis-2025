@@ -44,23 +44,14 @@ class LLMSession():
 
 #================================================================================================
 
-def llm_summarize(llm: LLMSession, query: str, text: str):
-
-    system_prompt = f'''You are an expert summarizer. Given a query and a set of documents separated by "---",
-write a detailed, comprehensive summary that fully answers the query using only the information from the documents.
-All sentences of the summary must include a clear citation to the document's numeric ID in square brackets
-where that fact or claim originates. The citation must only include a number.
-
-- Integrate all relevant points and nuances from all documents.
-- Do not add any information that is not explicitly stated in the documents.
-- Structure the summary with multiple paragraphs if needed for clarity and depth.
-'''
+def llm_summarize(llm: LLMSession, query: str, text: str, stop_dict):
     
     system_prompt = f'''You are an expert summarizer. Given a query and a series of facts,
 write a detailed, comprehensive summary that fully answers the query using only the information from the facts.
-Each fact begins with an ID in the format <1234_0-5>. All sentences of the summary must include a clear citation to the fact's ID
-where that claim originates. A citation must strictly be in the same format <1234_0-5>, with just angle brackets (`<` and `>`) - not parentheses, or any other symbol.
-The citation must not be surrounded by parentheses.
+Each fact begins with an ID in the format <1234_0-5>. At the end of each sentence in the summary, you must include a clear citation to the fact's ID
+where that claim originates. A citation must strictly be in the same format <1234_0-5>, with just angle brackets (`<` and `>`).
+Do not use parentheses or any other symbol for citations.
+Do not surround the citation with parentheses.
 If multiple citations are needed for the same sentence, keep them as two separate, consecutive references e.g. <1234_0><1234_1>
 
 - Integrate all relevant points and nuances from all facts, but condensed
@@ -78,4 +69,11 @@ If multiple citations are needed for the same sentence, keep them as two separat
 
     stream = llm.model.respond_stream(chat)
     for fragment in stream:
-        yield fragment.content
+        if stop_dict['stop']:
+            stream.cancel()
+            stream.close()
+            stop_dict['stopped'] = True
+            yield stream, "amogus"
+        else:
+            yield stream, fragment.content
+        

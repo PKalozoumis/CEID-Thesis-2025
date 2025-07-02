@@ -18,9 +18,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import time
 from itertools import chain
-from dataclasses import dataclass, field, fields
-from typing import Literal, get_origin, get_args, Any
-import json
 
 from rich.pretty import Pretty
 from rich.console import Console
@@ -29,36 +26,18 @@ from rich.rule import Rule
 from rich.padding import Padding
 from rich.tree import Tree
 
+from classes import Message, Arguments
+
 console = Console()
-
-@dataclass
-class Arguments():
-    c: int = field(default=0, metadata={"help": "The cluster number"})
-    s: Literal["topk", "thres"] = field(default="thres", metadata={"help": "Best cluster selection method"})
-    print: bool = field(default=False, metadata={"help": "Print the cluster's text"})
-    stats: bool = field(default=False, metadata={"help": "Print cluster stats"})
-    summ: bool = field(default=True, metadata={"help": "Summarize"})
-    cet: float = field(default=0.01, metadata={"help": "Context expansion threshold"})
-    csm: str = field(default="flat_relevance", metadata={"help": "Candidate sorting method"})
-
-
-@dataclass
-class Message():
-    type: str
-    contents: Any
-
-    def to_json(self, string=False) -> dict:
-        data = {'type': self.type, 'contents': self.contents}
-        if string:
-            return json.dumps(data)
-        return data
-
-    def to_sse(self):
-        return f"data: {self.to_json(string=True)}\n\n".encode("utf-8")
 
 #===============================================================================================================
 
-def query(query_str: str, *, args: Arguments = None, base_path="."):
+def query_function(query_str: str, *, args: Arguments = None, base_path: str = "..", sse_format: bool = False, console_messages: bool = False):
+    def message_sender(msg: Message):
+        return msg.to_sse() if sse_format else msg.to_json(string=True)
+    
+    console.print(f"[green]Console messages[/green]: {console_messages}")
+
     if args is None:
         args = Arguments()
     
@@ -73,7 +52,9 @@ def query(query_str: str, *, args: Arguments = None, base_path="."):
     #res = query.execute(sess)
     times['elastic'] = time.time() - times['elastic']
 
-    console.print(f"\n[green]Query:[/green] {query.text}\n")
+    if console_messages:
+        yield message_sender(Message("query", query.text))
+    #console.print(f"\n[green]Query:[/green] {query.text}\n")
 
     returned_docs = [
         ElasticDocument(sess, id=1923, text_path="article"),
@@ -101,11 +82,19 @@ def query(query_str: str, *, args: Arguments = None, base_path="."):
     selected_clusters = cluster_retrieval(sess, returned_docs, query, base_path=base_path)
     times['cluster_retrieval'] = time.time() - times['cluster_retrieval']
 
-    panel_print([f"[green]{i:02}.[/green] Cluster [green]{cluster.id}[/green] with score [cyan]{cluster.sim:.3f}[/cyan]" for i, cluster in enumerate(selected_clusters)], title="Retrieved clusters based on cosine similarity")
+    if console_messages:
+        yield message_sender(Message("cosine_sim", [{'id': cluster.id, 'sim': cluster.sim} for cluster in selected_clusters]))
+
+    #panel_print([f"[green]{i:02}.[/green] Cluster [green]{cluster.id}[/green] with score [cyan]{cluster.sim:.3f}[/cyan]" for i, cluster in enumerate(selected_clusters)], title="Retrieved clusters based on cosine similarity")
 
     #Print cluster stats
     if args.stats:
-        panel_print([Pretty(cluster_stats(cluster)) for cluster in selected_clusters], title="Cluster Stats")
+        if console_messages:
+            yield message_sender(Message("console", {
+                'type': 'cluster_stats',
+                'data': [cluster_stats(cluster) for cluster in selected_clusters]
+            }))
+        #panel_print([Pretty(cluster_stats(cluster)) for cluster in selected_clusters], title="Cluster Stats")
 
     evaluator = RelevanceEvaluator(query, CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2'))
 
@@ -128,6 +117,9 @@ def query(query_str: str, *, args: Arguments = None, base_path="."):
 
     #-----------------------------------------------------------------------------------------------------------------
     cross_scores = []
+
+    yield message_sender(Message("fragment", "Expanding context..."))
+
     for focused_cluster in selected_clusters:
         focused_cluster: SelectedCluster
 
@@ -155,7 +147,6 @@ def query(query_str: str, *, args: Arguments = None, base_path="."):
 
     #Summarization
     #-----------------------------------------------------------------------------------------------------------------
-
     #Print text
     unit = SummaryUnit(selected_clusters, sorting_method=args.csm)
     unit.pretty_print(show_added_context=True, show_chain_indices=True)
@@ -171,13 +162,23 @@ def query(query_str: str, *, args: Arguments = None, base_path="."):
         times['summary_time'] = time.time()
         times['summary_response_time'] = time.time()
 
-        with Live(panel_print(return_panel=True), refresh_per_second=10) as live:
-            for fragment in summarizer.summarize(unit):
+        #Generate the fragments
+        stop_dict = {'stop': False, 'stopped': False}
+        for stream, fragment in summarizer.summarize(unit, stop_dict):
+            try:
                 if is_first_fragment:
                     times['summary_response_time'] = time.time() - times['summary_response_time']
                     is_first_fragment = False
-                yield Message("fragment", fragment)
-                live.update(panel_print(unit.summary, return_panel=True))
+                if stop_dict['stopped']:
+                    break
+                else:
+                    yield message_sender(Message("fragment", fragment))
+            except GeneratorExit:
+                stop_dict['stop'] = True
+                console.print("[red]Client disconnected[/red]")
+            except BrokenPipeError:
+                stop_dict['stop'] = True
+                console.print("[red]Client disconnected (broken pipe)[/red]")
 
         times['summary_time'] = time.time() - times['summary_time']
 
@@ -206,28 +207,5 @@ def query(query_str: str, *, args: Arguments = None, base_path="."):
 
     console.print(tree)
 
-    yield Message("end", 1)
-
-#===============================================================================================================
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-
-    for f in fields(Arguments):
-        if f.type is bool:
-            parser.add_argument(f"--{f.name}", action="store_true", dest=f.name, default=f.default, help=f.metadata['help'])
-            if f.default == True:
-                parser.add_argument(f"--no-{f.name}", action="store_false", dest=f.name, help=f.metadata['help'])
-        elif get_origin(f.type) is Literal:
-            parser.add_argument(f"-{f.name}", action="store", type=str, default=f.default, help=f.metadata['help'], choices=list(get_args(f.type)))
-        else:
-            parser.add_argument(f"-{f.name}", action="store", type=f.type, default=f.default, help=f.metadata['help'])
-
-    args = parser.parse_args()
-
-    console.print(Pretty(args))
-    for msg in query("Query", args=args, base_path=".."):
-        pass
-
-    
+    if not stop_dict['stop']:
+        yield message_sender(Message("end", 1))

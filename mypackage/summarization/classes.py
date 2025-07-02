@@ -163,10 +163,12 @@ class Summarizer():
     
     #---------------------------------------------------------------------------------------------------
 
-    def summarize(self, unit: SummaryUnit):
+    def summarize(self, unit: SummaryUnit, stop_dict):
         '''
         Yields
         ---
+        stream: PredictionStream
+            The stream from the LLM
         fragment: str
             The next text fragment of the output summary
         '''
@@ -178,7 +180,7 @@ class Summarizer():
         prefix_regex = re.compile("(.*?)(<(\d+|$)(_(\d+|$))?(-(\d+|$))?(>|$))(.*)")
         full_regex = re.compile("(.*?)(<\d+_\d+(-\d+)?>)(.*)")
 
-        for fragment in llm_summarize(self.llm, self.query.text, unit.text):
+        for stream, fragment in llm_summarize(self.llm, self.query.text, unit.text, stop_dict):
 
             #Identify start of citation
             if not parsing_citation:
@@ -187,11 +189,11 @@ class Summarizer():
                     citation_temp_text = res.group(2) #We hold the text that is potentially a citation
 
                     unit.summary += res.group(1)
-                    yield res.group(1) #The first part (before the <) we can safely return to the user
+                    yield stream, res.group(1) #The first part (before the <) we can safely return to the user
 
                 else: #Normal operations
                     unit.summary += fragment
-                    yield fragment
+                    yield stream, fragment
             else:
                 #We need to check if the new input still matches
                 #If yes, then we should check if we're done
@@ -202,11 +204,11 @@ class Summarizer():
                         parsing_citation = False
                         temp = f"[cyan]{res.group(2)}[/cyan]{res.group(4)}"
                         unit.summary += temp
-                        yield temp
+                        yield stream, temp
                         citation_temp_text = ""
                 else: #The input stops being a citation. We throw the held text to the summary
                     unit.summary += citation_temp_text
-                    yield citation_temp_text
+                    yield stream, citation_temp_text
                     citation_temp_text = ""
 
 
