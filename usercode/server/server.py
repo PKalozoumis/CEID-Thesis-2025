@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath("../.."))
 from flask import Flask, request, make_response, Response
 from query_code import query_function
 from rich.console import Console
+from classes import Arguments
 
 console = Console()
 app = Flask(__name__)
@@ -24,7 +25,8 @@ def query():
     return Response(query_function(
         query_text,
         sse_format=True,
-        console_messages= True if int(request.args.get("console_messages", 0)) == 1 else False
+        console_messages= True if int(request.args.get("console_messages", 0)) == 1 else False,
+        args=Arguments.from_query_params(request.args)
     ),
     mimetype='text/event-stream')
 

@@ -57,14 +57,14 @@ def restore_clusters(doc: Document, path: str) -> ProcessedDocument:
         clusters[cluster.label] = cluster
         offset_and_label.extend((chain, cluster.label) for chain in cluster)
     
-    offset_and_label.sort(key=lambda tup: tup[0].offset)
+    offset_and_label.sort(key=lambda tup: tup[0].first_index)
     chains = list([tup[0] for tup in offset_and_label])
     labels = list([tup[1] for tup in offset_and_label])
 
     #Assign index to each chain
     #(temporary, because currently the index is not stored in the pickles)
     for i, chain in enumerate(chains):
-        chain.index = i
+        chain.chain_index = i
 
     sentences = [sentence for chain in chains for sentence in chain]
     doc.sentences = sentences

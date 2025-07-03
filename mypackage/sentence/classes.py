@@ -73,7 +73,7 @@ class Sentence(SentenceLike):
     _text: str
     _vector: ndarray
     doc: Document
-    offset: int = field(default=-1) #The sentence index inside the document
+    index: int = field(default=-1) #The sentence index inside the document
     parent_chain: SentenceChain = field(default=None)
 
     #----------------------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ class Sentence(SentenceLike):
         #The parent chain is responsible for returning the most sentences it can
         #It will return the max number of sentences that it owns, and it will delegate responsibility
         #to the next chain for the remaining sentences
-        return self.parent_chain.get_next_sentences(self.offset, n, force_list=force_list)
+        return self.parent_chain.get_next_sentences(self.index, n, force_list=force_list)
     
     #----------------------------------------------------------------------------------------------
     
@@ -133,7 +133,7 @@ class Sentence(SentenceLike):
         #The parent chain is responsible for returning the most sentences it can
         #It will return the max number of sentences that it owns, and it will delegate responsibility
         #to the previous chain for the remaining sentences
-        return self.parent_chain.get_prev_sentences(self.offset, n, force_list=force_list)
+        return self.parent_chain.get_prev_sentences(self.index, n, force_list=force_list)
     
     #----------------------------------------------------------------------------------------------
     
@@ -157,13 +157,13 @@ class SentenceChain(SentenceLike):
     sentences: list[Sentence]
     pooling_method: str
     parent_cluster: ChainCluster
-    index: int
+    chain_index: int #Chain order inside the document
 
     EXEMPLAR_BASED_METHODS = []
 
     #----------------------------------------------------------------------------------------------
 
-    def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average", *, normalize: bool = True, index: int | None = None):
+    def __init__(self, sentences: SentenceLike | list[SentenceLike], pooling_method: str = "average", *, normalize: bool = True, chain_index: int | None = None):
         '''
         Arguments
         ---
@@ -178,10 +178,10 @@ class SentenceChain(SentenceLike):
         normalize: bool
             Normalize the representative after pooling. Defaults to ```True```
 
-        index: int, optional
+        chain_index: int, optional
             The chain's index in the global list of chains for the document
         '''
-        self.index = index
+        self.chain_index = chain_index
         self.parent_cluster = None
         self.pooling_method = pooling_method
 
@@ -245,12 +245,16 @@ class SentenceChain(SentenceLike):
         return self.sentences[0].doc
     
     @property
-    def offset(self) -> int:
-        return self.sentences[0].offset
+    def first_index(self) -> int:
+        return self.sentences[0].index
     
     @property
-    def offset_range(self) -> range:
-        return range(self.offset, self.offset + self.__len__())
+    def last_index(self) -> int:
+        return self.sentences[-1].index
+    
+    @property
+    def index_range(self) -> range:
+        return range(self.first_index, self.first_index + self.__len__())
 
     #----------------------------------------------------------------------------------------------
     
@@ -263,10 +267,10 @@ class SentenceChain(SentenceLike):
     #----------------------------------------------------------------------------------------------
     
     def get_global(self, global_key: int) -> Sentence:
-        if global_key not in self.offset_range:
-            raise ValueError(f"The global sentence index {global_key} is not in the chain's range {self.offset_range}")
+        if global_key not in self.index_range:
+            raise ValueError(f"The global sentence index {global_key} is not in the chain's range {self.index_range}")
 
-        return self.sentences[global_key - self.offset]
+        return self.sentences[global_key - self.first_index]
     
     #--------------------------------------------------------------------------------------------------------------------------
     
@@ -290,10 +294,10 @@ class SentenceChain(SentenceLike):
             unless ```force_list==True```
         '''
 
-        if offset + 1 < self.offset:
-            raise ValueError(f"Chain with offset {self.offset} cannot provide sentences starting from offset {offset}")
+        if offset + 1 < self.first_index:
+            raise ValueError(f"Chain with offset {self.first_index} cannot provide sentences starting from offset {offset}")
 
-        last_owned_offset = self.offset + self.__len__() - 1
+        last_owned_offset = self.first_index + self.__len__() - 1
         max_owned_offset_from_requested = min(offset + n, last_owned_offset)
         remaining_sentences = max(0, offset + n - last_owned_offset)
 
@@ -304,7 +308,7 @@ class SentenceChain(SentenceLike):
             #Το 'πα εγώ στον σκύλο μου κι' ο σκύλος στην ουρά του
             extra_sentences = self.next().get_next_sentences(last_owned_offset, remaining_sentences, force_list=True)
 
-        res = self.sentences[(offset + 1 - self.offset) : (max_owned_offset_from_requested - self.offset + 1)] + extra_sentences
+        res = self.sentences[(offset + 1 - self.first_index) : (max_owned_offset_from_requested - self.first_index + 1)] + extra_sentences
 
         if force_list:
             return res
@@ -334,10 +338,10 @@ class SentenceChain(SentenceLike):
         '''
         print(f"get_prev_sentences(requester_offset={offset}, n={n}) len={self.__len__()}")
 
-        if offset + 1 < self.offset:
-            raise ValueError(f"Chain with offset {self.offset} cannot provide sentences starting from offset {offset}")
+        if offset + 1 < self.first_index:
+            raise ValueError(f"Chain with offset {self.first_index} cannot provide sentences starting from offset {offset}")
 
-        first_owned_offset = self.offset
+        first_owned_offset = self.first_index
         min_owned_offset_from_requested = max(offset - n, first_owned_offset)
         remaining_sentences = max(0, first_owned_offset - offset + n)
 
@@ -352,10 +356,10 @@ class SentenceChain(SentenceLike):
             #Το 'πα εγώ στον σκύλο μου κι' ο σκύλος στην ουρά του
             extra_sentences = self.prev().get_prev_sentences(first_owned_offset, remaining_sentences, force_list=True)
 
-        print(f"start={min_owned_offset_from_requested - self.offset}")
-        print(f"end={offset - self.offset}")
+        print(f"start={min_owned_offset_from_requested - self.first_index}")
+        print(f"end={offset - self.first_index}")
 
-        res = extra_sentences + self.sentences[(min_owned_offset_from_requested - self.offset) : (offset - self.offset)]
+        res = extra_sentences + self.sentences[(min_owned_offset_from_requested - self.first_index) : (offset - self.first_index)]
 
         if force_list:
             return res
@@ -383,7 +387,7 @@ class SentenceChain(SentenceLike):
             A list with the next ```n``` chains. If ```n == 1```, then only one ```SentenceChain``` is returned,
             unless ```force_list==True```
         '''
-        res = self.parent_cluster.clustering_context.chains[(self.index + 1) : (self.index + 1 + n)]
+        res = self.parent_cluster.clustering_context.chains[(self.chain_index + 1) : (self.chain_index + 1 + n)]
         if force_list:
             return res
         return res if n > 1 else res[0] 
@@ -409,7 +413,7 @@ class SentenceChain(SentenceLike):
             A list with the previous ```n``` chains. If ```n == 1```, then only one ```SentenceChain``` is returned,
             unless ```force_list==True```
         '''
-        res = self.parent_cluster.clustering_context.chains[self.index - n : self.index]
+        res = self.parent_cluster.clustering_context.chains[self.chain_index - n : self.chain_index]
         if force_list:
             return res
         return res if n > 1 else res[0] 
@@ -417,7 +421,7 @@ class SentenceChain(SentenceLike):
     #--------------------------------------------------------------------------------------------------------------------------
 
     def __str__(self):
-        return f"SentenceChain(index={self.index}, start_offset={self.offset}, size={self.__len__()}, end_offset={self.offset + self.__len__() - 1})"
+        return f"SentenceChain(index={self.chain_index}, start_offset={self.first_index}, size={self.__len__()}, end_offset={self.first_index + self.__len__() - 1})"
     
     def __iter__(self):
         return iter(self.sentences)
@@ -437,9 +441,9 @@ class SentenceChain(SentenceLike):
     def data(self) -> dict:
         return {
             'vector': self.vector,
-            'offset': self.offset,
+            'offset': self.first_index,
             'pooling_method': self.pooling_method,
-            'index': self.index,
+            'index': self.chain_index,
             'sentences': [s.vector for s in self.sentences]
         }
     
@@ -449,7 +453,7 @@ class SentenceChain(SentenceLike):
         obj._vector = data['vector']
         obj.pooling_method = data['pooling_method']
         obj.parent_cluster = parent
-        obj.index = data.get('index', None)
+        obj.chain_index = data.get('index', None)
 
         offset = data['offset']
         text = split_to_sentences(doc.text)

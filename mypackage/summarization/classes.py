@@ -11,7 +11,7 @@ import re
 from ..cluster_selection import SelectedCluster, SummaryCandidate
 from ..elastic import ElasticDocument, Document
 from ..llm import LLMSession, llm_summarize
-from ..helper import panel_print
+from ..helper import panel_print, rich_console_text
 from ..query import Query
 from ..sentence import SentenceChain
 
@@ -81,7 +81,7 @@ class SummaryUnit():
                     reverse=True
                 ) if 'relevance' in self.sorting_method else sorted (
                     chain.from_iterable([c.selected_candidates() for c in cluster_list]),
-                    key=lambda candidate: candidate.index_range.start,
+                    key=lambda candidate: candidate.first_index,
                     reverse=False
                 )
                 for cluster_list in clusters_per_doc
@@ -101,7 +101,7 @@ class SummaryUnit():
                     reverse=True
                 ) if 'relevance' in self.sorting_method else sorted (
                     cluster.selected_candidates(),
-                    key=lambda candidate: candidate.index_range.start,
+                    key=lambda candidate: candidate.first_index,
                     reverse=False
                 )
                 for cluster in sorted_clusters
@@ -116,7 +116,7 @@ class SummaryUnit():
     
     #------------------------------------------------------------------------------------
 
-    def pretty_print(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False):
+    def pretty_print(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False, return_text = True):
 
         def candidate_list_pretty_text(candidate_list: list[SummaryCandidate]):
             return "\n\n".join([c.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes) for c in candidate_list])
@@ -125,14 +125,18 @@ class SummaryUnit():
 
         if self.sorting_method == "flat_relevance":
             for candidate in self.sorted_candidates[0]:
-                to_print += [f"[#FF6A00]{candidate.id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
+                id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
+                to_print += [f"[#FF6A00]{id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
         else:
             for candidate_list in self.sorted_candidates:
                 to_print.append(Rule(f"Document {candidate_list[0].chain.doc.id}" if self.sorting_method.startswith("document") else f"Cluster {candidate_list[0].chain.parent_cluster.id}"))
                 to_print += [candidate_list_pretty_text(candidate_list)]
                 to_print.append("")
 
-        panel_print(to_print, title="Summarization input text")
+        panel = panel_print(to_print, title="Summarization input text", return_panel=return_text)
+        if return_text:
+            return rich_console_text(panel)
+       
 
     #------------------------------------------------------------------------------------
 
@@ -141,7 +145,7 @@ class SummaryUnit():
         txt = ""
         for candidate_list in self.sorted_candidates:
             for candidate in self.sorted_candidates[0]:
-                txt += f"<{candidate.id}>: {candidate.text}\n\n"
+                txt += f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>: {candidate.text}\n\n"
         return txt
     
 #================================================================================================================
@@ -171,6 +175,9 @@ class Summarizer():
             The stream from the LLM
         fragment: str
             The next text fragment of the output summary
+        citation: dict|None
+            If a citation is included at the end of the current fragment, an object is returned that described the citation.
+            If there's no citation, None is returned
         '''
 
         unit.summary = ""
@@ -178,9 +185,9 @@ class Summarizer():
         citation_temp_text = ""
 
         prefix_regex = re.compile("(.*?)(<(\d+|$)(_(\d+|$))?(-(\d+|$))?(>|$))(.*)")
-        full_regex = re.compile("(.*?)(<\d+_\d+(-\d+)?>)(.*)")
+        full_regex = re.compile("(.*?)(<(?P<doc>\d+)_(?P<start>\d+)-(?P<end>\d+)>)(.*)")
 
-        for stream, fragment in llm_summarize(self.llm, self.query.text, unit.text, stop_dict):
+        for _, fragment in llm_summarize(self.llm, self.query.text, unit.text, stop_dict):
 
             #Identify start of citation
             if not parsing_citation:
@@ -189,11 +196,11 @@ class Summarizer():
                     citation_temp_text = res.group(2) #We hold the text that is potentially a citation
 
                     unit.summary += res.group(1)
-                    yield stream, res.group(1) #The first part (before the <) we can safely return to the user
+                    yield res.group(1), None #The first part (before the <) we can safely return to the user
 
                 else: #Normal operations
                     unit.summary += fragment
-                    yield stream, fragment
+                    yield fragment, None
             else:
                 #We need to check if the new input still matches
                 #If yes, then we should check if we're done
@@ -201,14 +208,30 @@ class Summarizer():
                 if prefix_regex.match(citation_temp_text):
                     #We are done. We found the entire citation
                     if res := full_regex.match(citation_temp_text):
-                        parsing_citation = False
-                        temp = f"[cyan]{res.group(2)}[/cyan]{res.group(4)}"
+                        
+                        temp = temp = res.group(1) + "<citation>"
+
+                        #What if the remaining text is also a citation?
+                        res2 = prefix_regex.match(res.group(6))
+
+                        #We are done
+                        if res2 is None:
+                            temp += res.group(6)
+                            citation_temp_text = ""
+                            parsing_citation = False
+                        #Remaining text IS a potential citation. It should be examined next iteration
+                        else:
+                            citation_temp_text = res.group(6)
+
                         unit.summary += temp
-                        yield stream, temp
-                        citation_temp_text = ""
+                        yield temp, {
+                            'doc': int(res.group('doc')),
+                            'start': int(res.group('start')),
+                            'end': int(res.group('end')) if res.group('end') is not None else int(res.group('start'))
+                        }
                 else: #The input stops being a citation. We throw the held text to the summary
                     unit.summary += citation_temp_text
-                    yield stream, citation_temp_text
+                    yield citation_temp_text, None
                     citation_temp_text = ""
 
 

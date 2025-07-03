@@ -48,11 +48,12 @@ def llm_summarize(llm: LLMSession, query: str, text: str, stop_dict):
     
     system_prompt = f'''You are an expert summarizer. Given a query and a series of facts,
 write a detailed, comprehensive summary that fully answers the query using only the information from the facts.
-Each fact begins with an ID in the format <1234_0-5>. At the end of each sentence in the summary, you must include a clear citation to the fact's ID
-where that claim originates. A citation must strictly be in the same format <1234_0-5>, with just angle brackets (`<` and `>`).
+Each fact begins with an ID in the format <1234_0-5>. These IDs are exclusively located at the beginning of a fact, and are followed by a colon.
+At the end of each sentence in the summary, you must include a clear citation to the relevant fact's ID.
+A citation must strictly be in the same format <1234_0-5>, with just angle brackets (`<` and `>`).
 Do not use parentheses or any other symbol for citations.
 Do not surround the citation with parentheses.
-If multiple citations are needed for the same sentence, keep them as two separate, consecutive references e.g. <1234_0><1234_1>
+Keep the IDs as is and never break them into parts or merge them
 
 - Integrate all relevant points and nuances from all facts, but condensed
 - Do not add any information that is not explicitly stated in the facts.
@@ -73,7 +74,7 @@ If multiple citations are needed for the same sentence, keep them as two separat
             stream.cancel()
             stream.close()
             stop_dict['stopped'] = True
-            yield stream, "amogus"
+            yield stream, "."
         else:
             yield stream, fragment.content
         

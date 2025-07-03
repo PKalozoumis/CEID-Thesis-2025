@@ -4,6 +4,7 @@ from ..query import Query
 from .classes import SelectedCluster
 from ..storage import load_pickles
 from ..helper import panel_print
+from .helper import print_candidates
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -15,6 +16,9 @@ from rich.rule import Rule
 import copy
 
 console = Console()
+
+import inspect
+import textwrap
 
 #=====================================================================================================
     
@@ -63,53 +67,7 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
 
 #===============================================================================================================
 
-def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = False, current_state_only: bool = False, title: str | None = None):
-
-    panel_lines = []
-
-    for i, c in enumerate(focused_cluster.candidates):
-        line_text = f"[green]{i:02}[/green]. "
-        line_text_list = []
-
-        col = "green" if c.expandable else "red"
-
-        for num, state in enumerate([c.context] if current_state_only else c.history):
-            #Yes I know this is goofy
-            big_chain_in_column = False
-            for c1 in focused_cluster.candidates:
-                if len(c1.context if current_state_only else c1.history[num]) > 1:
-                    big_chain_in_column = True
-                    break
-
-            if not big_chain_in_column:
-                temp = f"[{col}]{state.chains[0].index:03}[/{col}]"
-            else:   
-                temp = f"[{col}]{state.chains[0].index:03}[/{col}]".rjust(19).ljust(23 if c.expandable else 19) if len(state) == 1 else f"[{col}]{state.id}[/{col}]"
-
-            history_text = f"Chain {temp}" if len(state) == 1 else f"Chains {temp}"
-            history_text += f" with score " + f"[cyan]{state.score:.3f}[/cyan]".rjust(20)
-            history_text += f" ({' -> '.join(state.actions)})".ljust(19) if print_action else ""
-            line_text_list.append(history_text)
-
-        line_text += " [red]->[/red] ".join(line_text_list)
-        panel_lines.append(line_text)
-
-    panel_lines.append(Rule())
-
-    #Overall cluster score
-    if current_state_only:
-        panel_lines.append(f"Cluster score: [cyan]{focused_cluster.cross_score:.3f}[/cyan]")
-    else:
-        cluster_scores = [
-            f"[cyan]{focused_cluster.historic_cross_score(i):.3f}[/cyan]" for i in range(len(focused_cluster.candidates[0].history))
-        ]
-        panel_lines.append(f"Cluster score: " + " [red]->[/red] ".join(cluster_scores))
-
-    panel_print(panel_lines, title= title or f"For cluster {focused_cluster.id}", expand=False)
-
-#===============================================================================================================
-
-def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
+def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float = 0.01):
     '''
     spaghetti code
     '''
@@ -117,8 +75,8 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
     timestamp = 0
     prev_round_forbids = None #Key is index of forbidden chain, value is who forbade it
 
-    #while True:
-    for _ in range(1):
+    while True:
+    #for _ in range(1):
         expanded = False #Stop if nobody expands, 
 
         seen_chains = set()
@@ -139,12 +97,12 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
 
             if not candidate.expandable:
                 for c in candidate.context.chains:
-                    seen_chains.add(c.index)
-                    current_round_forbids[c.index] = pos
+                    seen_chains.add(c.chain_index)
+                    current_round_forbids[c.chain_index] = pos
                 continue
 
             #If I myself am forbidden, I just have to kill myself. It's that simple
-            if candidate.chain.index in seen_chains:
+            if candidate.chain.chain_index in seen_chains:
                 marked_for_deletion[pos] = True
                 continue
 
@@ -171,17 +129,17 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
 
             #Check if the new state is forbidden
             while True:
-                forbidden_chains = [c for c in candidate.context.chains if c.index in seen_chains]
+                forbidden_chains = [c for c in candidate.context.chains if c.chain_index in seen_chains]
 
                 if len(forbidden_chains) == 0:
                     break
                 if len(forbidden_chains) == 1:
                     #Because someone better than us restricted us, that some has actually already been scored
                     #Let's see if that candidate that restricted us is still better
-                    other_candidate = cluster.candidates[current_round_forbids[forbidden_chains[0].index]]
+                    other_candidate = cluster.candidates[current_round_forbids[forbidden_chains[0].chain_index]]
                     if candidate.score > other_candidate.score:
-                        marked_for_deletion[current_round_forbids[forbidden_chains[0].index]] = True
-                        current_round_forbids[forbidden_chains[0].index] = pos
+                        marked_for_deletion[current_round_forbids[forbidden_chains[0].chain_index]] = True
+                        current_round_forbids[forbidden_chains[0].chain_index] = pos
                         break
                     else:
                         #If this extra chain was forbidden, then I need to delete this state from the history
@@ -198,15 +156,15 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
                     #This is a more serious case
                     #We need to beat both of the candidates that restrict us
                     #Only then is it beneficial for the current candidate to exist
-                    other1 = cluster.candidates[current_round_forbids[forbidden_chains[0].index]]
-                    other2 = cluster.candidates[current_round_forbids[forbidden_chains[1].index]]
+                    other1 = cluster.candidates[current_round_forbids[forbidden_chains[0].chain_index]]
+                    other2 = cluster.candidates[current_round_forbids[forbidden_chains[1].chain_index]]
 
                     if candidate.score > other1.score and candidate.score > other2.score:
-                        marked_for_deletion[current_round_forbids[forbidden_chains[0].index]] = True
-                        marked_for_deletion[current_round_forbids[forbidden_chains[1].index]] = True
-                        current_round_forbids[forbidden_chains[0].index]
-                        current_round_forbids[forbidden_chains[0].index] = pos
-                        current_round_forbids[forbidden_chains[1].index] = pos
+                        marked_for_deletion[current_round_forbids[forbidden_chains[0].chain_index]] = True
+                        marked_for_deletion[current_round_forbids[forbidden_chains[1].chain_index]] = True
+                        current_round_forbids[forbidden_chains[0].chain_index]
+                        current_round_forbids[forbidden_chains[0].chain_index] = pos
+                        current_round_forbids[forbidden_chains[1].chain_index] = pos
                         break
                     else:
                         #The only state we can return to is the initial state
@@ -222,9 +180,9 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
             #I either forbade them already myself, or someone else forbade them
             #The remaining chains, I have to forbid myself
             for c in candidate.context.chains:
-                if c.index not in seen_chains:
-                    seen_chains.add(c.index)
-                    current_round_forbids[c.index] = pos
+                if c.chain_index not in seen_chains:
+                    seen_chains.add(c.chain_index)
+                    current_round_forbids[c.chain_index] = pos
 
             #After checking if my current chains are forbidden, I now have a final set of chains (that I have also forbidden)
             #...I now need to check if anyone below me acquired these chains in the previous round
@@ -232,7 +190,7 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
             #(which are also their only choices, they have not reached the current round yet)
             if prev_round_forbids is not None:
                 for ch in candidate.context.chains:
-                    if pos_to_forbid := prev_round_forbids.get(ch.index, None):
+                    if pos_to_forbid := prev_round_forbids.get(ch.chain_index, None):
                         if pos_to_forbid > pos:
                             pos_to_forbid: int
                             bad = cluster.candidates[pos_to_forbid]
@@ -251,12 +209,12 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
         cluster.candidates = [c for i,c in enumerate(cluster.candidates) if not marked_for_deletion[i]]
 
         cluster.remove_duplicate_candidates().rerank_candidates()
-        print_candidates(cluster, print_action=True, current_state_only=True)
+        yield print_candidates(cluster, print_action=True, current_state_only=True, return_text=True)
 
         prev_round_forbids = {}
         for pos, candidate in enumerate(cluster.candidates):
             for ch in candidate.context.chains:
-                prev_round_forbids[ch.index] = pos
+                prev_round_forbids[ch.chain_index] = pos
 
         if not expanded:
             break
@@ -268,3 +226,11 @@ def context_expansion(cluster: SelectedCluster, *, threshold:  float = 0.01):
     #Clear history
     for candidate in cluster.candidates:
         candidate.clear_history()
+
+#Copy the exact same function, but make it a non-generator
+src = inspect.getsource(context_expansion_generator)
+src = textwrap.dedent(src)
+src = src.replace("def context_expansion_generator", "def context_expansion")
+src = src.replace("yield ", "")
+
+exec(src, globals())

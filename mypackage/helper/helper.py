@@ -4,6 +4,7 @@ from functools import wraps
 import json
 import numpy as np
 import copy
+from io import StringIO
 
 from rich.panel import Panel
 from rich.console import Console, Group
@@ -197,21 +198,11 @@ def write_to_excel_tab(worksheet, title: str, row_data: dict[str, list], column_
 
 #===================================================================================
 
-def binary_search_ranges(ranges: list[tuple], target: int):
-    low, high = 0, len(ranges) - 1
-
-    while low <= high:
-        mid = (low + high) // 2
-        start, end = ranges[mid]
-
-        if start <= target <= end:
-            return mid  # target inside this range
-        elif target < start:
-            high = mid - 1
-        else:  # target > end
-            low = mid + 1
-
-    return -1  # not found in any range
+def rich_console_text(obj) -> str:
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=True, color_system="truecolor")
+    console.print(obj) #doesn't actually show anything
+    return buffer.getvalue()
 
 #=============================================================================================================
 

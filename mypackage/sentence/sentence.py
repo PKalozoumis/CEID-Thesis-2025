@@ -200,7 +200,7 @@ def iterative_merge(
         return iterative_merge(result, threshold=threshold, round_limit=round_limit-1, pooling_method=pooling_method, normalize=normalize)
     else: #round_limit == 1
         for i,s in enumerate(result):
-            s.index = i
+            s.chain_index = i
         return result
 
 #============================================================================================

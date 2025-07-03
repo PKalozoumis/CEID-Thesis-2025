@@ -33,6 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("-chains", action="store", default="", type=str)
     parser.add_argument("--print-chains", action="store_true", default=True, dest="print_chains", help="Use the cross-encoder to evaluate the relevance of a chain to the query")
     parser.add_argument("--no-print-chains", action="store_false", default=True, dest="print_chains", help="Use the cross-encoder to evaluate the relevance of a chain to the query")
+    parser.add_argument("-sentences", action="store", default="", type=str)
     args = parser.parse_args()
 
     #--------------------------------------------------------------------------------------
@@ -57,6 +58,18 @@ if __name__ == "__main__":
 
         if args.print:
             panel_print(doc.doc.text, title=f"{doc.doc.id}")
+
+        if args.sentences:
+            to_print = []
+
+            #Split the input string into the chains that we want to examine
+            for sentence in args.sentences.split(","):
+                sentence = int(sentence)
+                to_print.append(Rule(f"[green]Sentence {sentence}[/green]"))
+                to_print.append(Padding(doc.sentences[sentence].text, pad=(0,0,1,0)))
+                
+            panel_print(to_print)
+
         
         if args.chains:
             to_print = []

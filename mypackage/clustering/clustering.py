@@ -294,7 +294,7 @@ def cluster_mask(clusters: dict[int, ChainCluster]) -> list[int]:
                 continue
 
             #If this cluster's current chain contains the next sentence we're looking for
-            if cur_chain.offset == current_offset:
+            if cur_chain.first_index == current_offset:
                 reached_end = False
                 
                 #For each sentence in that chain, we must append this cluster's label to the result
