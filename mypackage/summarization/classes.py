@@ -118,25 +118,30 @@ class SummaryUnit():
 
     def pretty_print(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False, return_text = True):
 
-        def candidate_list_pretty_text(candidate_list: list[SummaryCandidate]):
-            return "\n\n".join([c.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes) for c in candidate_list])
-
-        to_print = []
-
-        if self.sorting_method == "flat_relevance":
-            for candidate in self.sorted_candidates[0]:
-                id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
-                to_print += [f"[#FF6A00]{id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
+        if len(self.sorted_candidates) == 0:
+            panel = panel_print("But, there was nothing to print", title="Summarization input text (formatted)", return_panel=return_text)
         else:
-            for candidate_list in self.sorted_candidates:
-                to_print.append(Rule(f"Document {candidate_list[0].chain.doc.id}" if self.sorting_method.startswith("document") else f"Cluster {candidate_list[0].chain.parent_cluster.id}"))
-                to_print += [candidate_list_pretty_text(candidate_list)]
-                to_print.append("")
+            def candidate_list_pretty_text(candidate_list: list[SummaryCandidate]):
+                return "\n\n".join([c.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes) for c in candidate_list])
 
-        panel = panel_print(to_print, title="Summarization input text", return_panel=return_text)
+            to_print = []
+
+            if self.sorting_method == "flat_relevance":
+                for candidate in self.sorted_candidates[0]:
+                    id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
+                    to_print += [f"[#FF6A00]{id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
+            else:
+                for candidate_list in self.sorted_candidates:
+                    to_print.append(Rule(f"Document {candidate_list[0].chain.doc.id}" if self.sorting_method.startswith("document") else f"Cluster {candidate_list[0].chain.parent_cluster.id}"))
+                    to_print += [candidate_list_pretty_text(candidate_list)]
+                    to_print.append("")
+
+            panel = panel_print(to_print, title="Summarization input text (formatted)", return_panel=return_text)
+
+        #----------------------------------
+        
         if return_text:
             return rich_console_text(panel)
-       
 
     #------------------------------------------------------------------------------------
 

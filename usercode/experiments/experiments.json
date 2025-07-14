@@ -42,5 +42,10 @@
     "cluster_no_norm":{
         "title": "No normalization of cluster representatives",
         "cluster_normalize": false
+    },
+    "most_similar_pooling":{
+        "title": "Most similar vector becomes representative",
+        "pooling_method": "most_similar",
+        "cluster_pooling_method": "most_similar"
     }
 }

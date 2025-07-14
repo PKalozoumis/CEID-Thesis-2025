@@ -116,19 +116,19 @@ def round_data(data: list, to_string = False):
 
 #===================================================================================
 
-def create_table(column_names: list[str], data: dict, *, title:str|None = None, round=True) -> Table:
+def create_table(column_names: list[str], row_data: dict[str, list], *, title:str|None = None, round=True) -> Table:
     table = Table(title=title, title_justify="left", header_style="")
-    data = copy.deepcopy(data)
+    row_data = copy.deepcopy(row_data)
     
-    for key in data:
-        if not isinstance(data[key], list):
-            data[key] = [data[key]]
+    for key in row_data:
+        if not isinstance(row_data[key], list):
+            row_data[key] = [row_data[key]]
 
         if round:
-            data[key] = round_data(data[key], to_string=True)
+            row_data[key] = round_data(row_data[key], to_string=True)
         else:
-            for i in range(len(data[key])):
-                data[key][i] = f"{data[key][i]}"
+            for i in range(len(row_data[key])):
+                row_data[key][i] = f"{row_data[key][i]}"
 
     for i, name in enumerate(column_names):
         if i == 0:
@@ -136,7 +136,7 @@ def create_table(column_names: list[str], data: dict, *, title:str|None = None, 
         else:
             table.add_column(name)
 
-    for name, value_list in data.items():
+    for name, value_list in row_data.items():
         table.add_row(name, *value_list)
 
     return table

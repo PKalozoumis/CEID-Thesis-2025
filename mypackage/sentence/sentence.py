@@ -4,6 +4,7 @@ from __future__ import annotations
 from sentence_transformers import SentenceTransformer
 from itertools import pairwise, starmap
 import re
+from nltk.tokenize import sent_tokenize
 
 from rich.table import Table
 from rich.console import Console

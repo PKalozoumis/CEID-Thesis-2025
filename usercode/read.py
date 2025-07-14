@@ -23,17 +23,18 @@ console = Console()
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Read document contents from an index")
+    parser = argparse.ArgumentParser(description="Read the sentences and chains of a specific document")
     parser.add_argument("-i", action="store", type=str, help="The index name", default="pubmed")
     parser.add_argument("-d", action="store", type=str, help="Comma-separated list of document IDs")
+    parser.add_argument("-x", action="store", type=str, help="Experiment")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--cache", action="store_true", help="Use the cache")
     group.add_argument("--store", action="store_true", help="Store to cache")
-    parser.add_argument("--print", action="store_true", help="Disable printing")
-    parser.add_argument("-chains", action="store", default="", type=str)
-    parser.add_argument("--print-chains", action="store_true", default=True, dest="print_chains", help="Use the cross-encoder to evaluate the relevance of a chain to the query")
-    parser.add_argument("--no-print-chains", action="store_false", default=True, dest="print_chains", help="Use the cross-encoder to evaluate the relevance of a chain to the query")
-    parser.add_argument("-sentences", action="store", default="", type=str)
+    parser.add_argument("--print", action="store_true", help="Print full document text")
+    parser.add_argument("-c", action="store", dest="chains", default="", type=str)
+    parser.add_argument("--print-chains", action="store_true", default=True, dest="print_chains", help="Print chain text alongside its score")
+    parser.add_argument("--no-print-chains", action="store_false", default=True, dest="print_chains", help="Print chain text alongside its score")
+    parser.add_argument("-s", action="store", dest="sentences", default="", type=str)
     args = parser.parse_args()
 
     #--------------------------------------------------------------------------------------
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         evaluator = RelevanceEvaluator(query, CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2'))
     
     docs = [ElasticDocument(sess, id=id, text_path="article") for id in args.d.split(",")]
-    processed = load_pickles(sess, os.path.join("experiments", sess.index_name, "pickles", "default"), docs)
+    processed = load_pickles(sess, os.path.join("experiments", sess.index_name, "pickles", args.x), docs)
 
     #--------------------------------------------------------------------------------------
 

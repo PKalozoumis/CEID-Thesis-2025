@@ -22,9 +22,9 @@ import textwrap
 
 #=====================================================================================================
     
-def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, method: str = "thres", base_path: str = ".") -> list[SelectedCluster]:
+def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, method: str = "thres", base_path: str = ".", experiment: str = "default") -> list[SelectedCluster]:
     #Load the clusters corresponding to the retrieved documents
-    pkl_list = load_pickles(sess, f"{base_path}/experiments/{sess.index_name}/pickles/default", docs = docs)
+    pkl_list = load_pickles(sess, f"{base_path}/experiments/{sess.index_name}/pickles/{experiment}", docs = docs)
 
     #Extract all the clusters from all the retrieved documents, into one container
     #Keep track which document each cluster came from

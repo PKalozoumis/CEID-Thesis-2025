@@ -1,5 +1,3 @@
-#How does chaining affect the clustering result
-
 import sys
 import os
 sys.path.append(os.path.abspath("../.."))

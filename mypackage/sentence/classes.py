@@ -8,6 +8,8 @@ from functools import cached_property
 import json
 from itertools import chain
 from typing import TYPE_CHECKING, Union
+from nltk.tokenize import sent_tokenize
+from sklearn.metrics.pairwise import cosine_similarity
 
 import inspect
 
@@ -159,7 +161,8 @@ class SentenceChain(SentenceLike):
     parent_cluster: ChainCluster
     chain_index: int #Chain order inside the document
 
-    EXEMPLAR_BASED_METHODS = []
+    VALID_METHODS = ["average", "max", "most_similar", "k_most_similar"]
+    EXEMPLAR_BASED_METHODS = ["most_similar", "k_most_similar"]
 
     #----------------------------------------------------------------------------------------------
 
@@ -183,6 +186,9 @@ class SentenceChain(SentenceLike):
         '''
         self.chain_index = chain_index
         self.parent_cluster = None
+
+        if pooling_method not in SentenceChain.VALID_METHODS:
+            raise ValueError(f"Invalid pooling method {pooling_method}")
         self.pooling_method = pooling_method
 
         #Convert single sentence into a list with only one sentence (or chain)
@@ -212,6 +218,14 @@ class SentenceChain(SentenceLike):
     def pooling_max(sentences: list[SentenceLike], *, normalize: bool = True) -> ndarray:
         vec = np.max(np.row_stack([s.vector for s in sentences]), axis=0)
         return vec / np.linalg.norm(vec) if normalize else vec
+    
+    @staticmethod
+    def pooling_most_similar(sentences: list[SentenceLike], *, normalize: bool = True) -> ndarray:
+        sentence_matrix = [sentence.vector for sentence in sentences]
+        sims = np.sum(cosine_similarity(sentence_matrix), axis=1)
+        most_similar_index = sorted(range(len(sims)), key=lambda i: sims[i], reverse=True)[0]
+        vec = sentences[most_similar_index]
+        return vec / np.linalg.norm(vec) if normalize else vec
 
     @staticmethod
     def pooling(sentences: list[SentenceLike], pooling_method: str, *, normalize: bool = True) -> ndarray:
@@ -229,6 +243,7 @@ class SentenceChain(SentenceLike):
         match pooling_method:
             case "average": return SentenceChain.pooling_average(sentences, normalize=normalize)
             case "max": return SentenceChain.pooling_max(sentences, normalize=normalize)
+            case "most_similar": return SentenceChain.pooling_most_similar(sentences, normalize=normalize)
 
     #----------------------------------------------------------------------------------------------
 

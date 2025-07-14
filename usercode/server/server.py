@@ -25,7 +25,6 @@ def query():
     return Response(query_function(
         query_text,
         sse_format=True,
-        console_messages= True if int(request.args.get("console_messages", 0)) == 1 else False,
         args=Arguments.from_query_params(request.args)
     ),
     mimetype='text/event-stream')
@@ -33,7 +32,6 @@ def query():
     #After a connection is terminated, the generator waits until the first yield to throw the exception
     #Only then can I actually stop the function
     
-
 #Main
 #Only if running from pure flask
 #Ideally you want to run through some other WSGI server

@@ -11,6 +11,7 @@ astunparse==1.6.3
 async-timeout==5.0.1
 attrs==25.1.0
 bertopic==0.17.0
+blinker==1.9.0
 blis==0.7.11
 cachetools==5.5.2
 catalogue==2.0.10
@@ -40,6 +41,7 @@ evaluate==0.4.3
 exceptiongroup==1.2.2
 executing==2.2.0
 filelock==3.17.0
+Flask==3.1.1
 flatbuffers==25.2.10
 fonttools==4.56.0
 frozenlist==1.5.0
@@ -56,6 +58,7 @@ google-pasta==0.2.0
 google-resumable-media==2.7.2
 googleapis-common-protos==1.68.0
 grpcio==1.70.0
+gunicorn==23.0.0
 h11==0.14.0
 h5py==3.13.0
 hdbscan==0.8.40
@@ -68,6 +71,7 @@ ipykernel==6.29.5
 ipython==8.32.0
 ipywidgets==8.1.5
 isort==6.0.1
+itsdangerous==2.2.0
 jedi==0.19.2
 Jinja2==3.1.5
 joblib==1.4.2
@@ -106,6 +110,7 @@ narwhals==1.31.0
 nest-asyncio==1.6.0
 netifaces==0.11.0
 networkx==3.4.2
+nltk==3.9.1
 numba==0.61.0
 numpy==1.26.4
 nvidia-cublas-cu12==12.4.5.8
@@ -175,6 +180,7 @@ spacy==3.7.5
 spacy-legacy==3.0.12
 spacy-loggers==1.0.5
 srsly==2.5.1
+sseclient==0.0.27
 stack-data==0.6.3
 sympy==1.13.1
 tensorboard==2.18.0

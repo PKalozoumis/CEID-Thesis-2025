@@ -40,6 +40,9 @@ console = Console()
 #=============================================================================================================
 
 def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess: Session, no_outliers):
+    '''
+    Draw one large figure, where each subplot contains the clustering results of a specific document
+    '''
     #Make the figure
     #------------------------------------------------------------
     fig = plt.figure(figsize=(19.2,10.8))
@@ -59,6 +62,7 @@ def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess:
 
     #Plottting
     #------------------------------------------------------------
+    #For every document, visualize its clustering in the designated subplot
     for i, p in enumerate(pkl):
         console.print(f"Plotting document {p.doc.id}")
         legend_elements = visualize_clustering(p.chains, p.labels, ax=ax[i], return_legend=True, no_outliers=no_outliers)
@@ -72,7 +76,12 @@ def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess:
 
 #=============================================================================================================
 
+
 def compare(experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
+    '''
+    Creates multiple figures.
+    Each figure compares the clustering results of two or more experiments, on the same document
+    '''
 
     for i, doc in enumerate(docs):
         experiment_list = experiment_names_from_dir(os.path.join(sess.index_name, "pickles"), experiment_names)
@@ -161,6 +170,10 @@ def interdoc2(pkl_list: list[ProcessedDocument], imgpath, sess: Session, no_outl
 #=============================================================================================================
 
 def centroids(pkl_list: list[ProcessedDocument], imgpath, sess: Session, extra_vector = None):
+    '''
+    A single plot where we visualize the representatives of all clusters, from all documents, on the same space.
+    Optionally, an extra vector (usually the query) can be placed in the plot, to visualize its relation to the other objects.
+    '''
     fig, ax = plt.subplots(figsize=(8.4, 4.8))
     fig.subplots_adjust(right=0.7)
     fig.suptitle(f"Cluster centroids visualized on the same space ({sess.index_name})")
@@ -220,6 +233,7 @@ if __name__ == "__main__":
 
     #---------------------------------------------------------------------------
 
+    #Run the selected visualization for each of the selected indexes...
     for index in indexes:
         console.print(f"\nRunning for index '{index}'")
         console.print(Rule())
@@ -250,6 +264,7 @@ if __name__ == "__main__":
             if args.x is None:
                 args.x = "default"
 
+            #Run for all the selected experiments...
             for experiment_name in args.x.split(","):
                 console.print(f"Plotting experiment '{experiment_name}'")
                 pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)
@@ -271,6 +286,7 @@ if __name__ == "__main__":
             if args.x is None:
                 args.x = "default"
 
+            #Run for all the selected experiments...
             for experiment_name in args.x.split(","):
                 console.print(f"Plotting experiment '{experiment_name}'")
                 pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)

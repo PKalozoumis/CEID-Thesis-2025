@@ -52,7 +52,7 @@ Each fact begins with an ID in the format <1234_0-5>. These IDs are exclusively 
 At the end of each sentence in the summary, you must include a clear citation to the relevant fact's ID.
 A citation must strictly be in the same format <1234_0-5>, with just angle brackets (`<` and `>`).
 Do not use parentheses or any other symbol for citations.
-Do not surround the citation with parentheses.
+Do not surround the citations with parentheses.
 Keep the IDs as is and never break them into parts or merge them
 
 - Integrate all relevant points and nuances from all facts, but condensed
@@ -70,7 +70,7 @@ Keep the IDs as is and never break them into parts or merge them
 
     stream = llm.model.respond_stream(chat)
     for fragment in stream:
-        if stop_dict['stop']:
+        if stop_dict['force_stop']:
             stream.cancel()
             stream.close()
             stop_dict['stopped'] = True

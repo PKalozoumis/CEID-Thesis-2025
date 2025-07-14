@@ -1,5 +1,3 @@
-#How does chaining affect the clustering result
-
 import sys
 import os
 sys.path.append(os.path.abspath("../.."))
@@ -31,6 +29,7 @@ console = Console()
 
 #==============================================================================================
 
+#The preprocessing steps
 def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_name: str):
     console.print(f"Document {doc.id:02}: Creating sentences...")
     sentences = doc_to_sentences(doc, model, remove_duplicates=params['remove_duplicates'])
@@ -46,6 +45,7 @@ def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_n
     )
     console.print(f"Document {doc.id:02}: Created {len(merged)} chains")
 
+    #Clustering parameters
     console.print(f"Document {doc.id:02}: Clustering chains...")
     clustering = chain_clustering(
         merged,
@@ -58,12 +58,8 @@ def work(doc: ElasticDocument, model: SentenceTransformer, params: dict, index_n
         pooling_method=params['cluster_pooling_method']
     )
     
+    #Save to database
     path = os.path.join(index_name, "pickles", params['name'])
-    '''
-    with open(os.path.join(index_name, "pickles", params['name'], f"{doc.id}.pkl"), "wb") as f:
-        doc.session.client = None #Prepare for pickling
-        pickle.dump(ProcessedDocument(doc, merged, labels, clusters), f)
-    '''
     save_clusters(clustering, path, params=params)
 
 #=============================================================================================================
@@ -125,12 +121,11 @@ if __name__ == "__main__":
             console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}' in '{index}'")
             console.print(THIS_NEXT_EXPERIMENT)
 
+            #Load sentence transformer and elastic session
             model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
             sess = Session(index, base_path="..", cache_dir="../cache", use= ("client" if args.no_cache else "cache"))
             docs = list(map(partial(ElasticDocument, sess, text_path="article"), docs_to_retrieve))
 
-            #We need to process these documents in parallel
-            #We need to create the chains, as well as cluster them
             dir_path = os.path.join(sess.index_name, "pickles", THIS_NEXT_EXPERIMENT['name'])
             os.makedirs(dir_path, exist_ok=True)
             if args.temp: #Mark experiment as temporary
@@ -138,6 +133,7 @@ if __name__ == "__main__":
 
             procs = []
             
+            #Run the preprocessing function for each document, in separate processes
             for i, doc in enumerate(docs):
                 p = Process(target=work, args=(doc,model,THIS_NEXT_EXPERIMENT, index))
                 p.start()

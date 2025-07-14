@@ -1,9 +1,3 @@
-#Some documents are generating too many clusters, while others are just fine
-#For example, I'm using this list:
-#[1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 6415]
-#Documents 4355, and 372 have too many clusters and many outliers
-#What makes those documents different?
-
 import os
 import sys
 
@@ -45,11 +39,11 @@ console = Console()
 #=================================================================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Evaluation of preprocessing results")
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
-    parser.add_argument("mode", nargs="?", action="store", type=str, help="The type of plot to make", choices=[
+    parser.add_argument("mode", nargs="?", action="store", type=str, help="What to compare", choices=[
         "doc", #Compare documents for each separate experiment
         "exp"  #Compare experiments for each separate document
     ], default="doc")
