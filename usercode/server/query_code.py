@@ -174,7 +174,8 @@ def query_function(query_str: str, *, args: Arguments = None, base_path: str = "
 
         #Summarization
         #-----------------------------------------------------------------------------------------------------------------
-        #Print text
+        
+        #The text to be summarized
         unit = SummaryUnit(selected_clusters, sorting_method=args.csm)
         
         if console_messages:

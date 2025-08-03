@@ -134,7 +134,7 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
                 if len(forbidden_chains) == 0:
                     break
                 if len(forbidden_chains) == 1:
-                    #Because someone better than us restricted us, that some has actually already been scored
+                    #Because someone better than us restricted us, that someone has actually already been scored
                     #Let's see if that candidate that restricted us is still better
                     other_candidate = cluster.candidates[current_round_forbids[forbidden_chains[0].chain_index]]
                     if candidate.score > other_candidate.score:
@@ -162,7 +162,6 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
                     if candidate.score > other1.score and candidate.score > other2.score:
                         marked_for_deletion[current_round_forbids[forbidden_chains[0].chain_index]] = True
                         marked_for_deletion[current_round_forbids[forbidden_chains[1].chain_index]] = True
-                        current_round_forbids[forbidden_chains[0].chain_index]
                         current_round_forbids[forbidden_chains[0].chain_index] = pos
                         current_round_forbids[forbidden_chains[1].chain_index] = pos
                         break

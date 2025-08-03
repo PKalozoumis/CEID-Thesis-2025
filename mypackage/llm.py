@@ -46,23 +46,50 @@ class LLMSession():
 
 def llm_summarize(llm: LLMSession, query: str, text: str, stop_dict):
     
-    system_prompt = f'''You are an expert summarizer. Given a query and a series of facts,
-write a detailed, comprehensive summary that fully answers the query using only the information from the facts.
-Each fact begins with an ID in the format <1234_0-5>. These IDs are exclusively located at the beginning of a fact, and are followed by a colon.
-At the end of each sentence in the summary, you must include a clear citation to the relevant fact's ID.
-A citation must strictly be in the same format <1234_0-5>, with just angle brackets (`<` and `>`).
-Do not use parentheses or any other symbol for citations.
-Do not surround the citations with parentheses.
-Keep the IDs as is and never break them into parts or merge them
+    prompt = f'''You are a summarization expert. Given a query and a series of facts, you write a detailed, comprehensive summary that fully answers the query using only information from the facts.
 
+### What is a fact:
+A fact is a span of text that comes from a specific document and is relevant to the query.
+Each fact always begins with an ID that looks like <1234_0-5>, followed by a colon.
+
+### Instructions on how to generate the summary:
 - Integrate all relevant points and nuances from all facts, but condensed
-- Do not add any information that is not explicitly stated in the facts.
-- Structure the summary with multiple paragraphs if needed for clarity and depth, but keep it concise
+- Never add any information that is not explicitly stated in the facts.
+- Structure the summary with multiple paragraphs for clarity and depth, but keep it concise
+
+### Each sentence in the summary is accompanied by a citation to the relevant fact:
+- The citation must always be at the end of the sentence
+- The citation must always be in the same format <1234_0-5>, with just angle brackets (`<` and `>`).
+- Never use parentheses or any other symbol for citations.
+- Never surround the citations with parentheses.
+- If a sentence is the result of two or more facts, then include citations for all facts, one after the other (e.g. <1234_0-1><5678_5-6>)
+
+### This is an example of the desired output for one of the summary sentences:
+Query: "What is the capital city of France?"  
+Facts:
+<1001_0-1>: Paris is the capital city of France and a major cultural center.
+Summary:  
+Paris is the capital city of France <1001_0-1>.
+
+### Here is another example, where a summary sentence is supported by two or more facts:
+Query: "What is notable about the current state of the Amazon rainforest?" 
+Facts:
+<1234_0-1>: The Amazon rainforest contains over 390 billion individual trees.
+<5678_5-6>: In the last decade, deforestation in the Amazon has risen by 85%.
+Summary:  
+The Amazon rainforest contains over 390 billion trees, yet deforestation has increased by 85% in the last decade <1234_0-1><5678_5-6>.
+
+### Now summarize the following:
+Query: "{query}"
+Facts:
+{text}
+Summary:
+
 '''
 
-    chat = lms.Chat(system_prompt)
+    chat = lms.Chat()
     
-    chat.add_user_message(f"Query: \"{query}\"\n{text}\nSummary:\n")
+    chat.add_user_message(prompt)
 
     temp_text = ""
     removed_json = False
