@@ -20,6 +20,7 @@ class Arguments():
     summ: bool = field(default=True, metadata={"help": "Summarize"})
     cet: float = field(default=0.01, metadata={"help": "Context expansion threshold"})
     csm: str = field(default="flat_relevance", metadata={"help": "Candidate sorting method"})
+    llm_backend: Literal["llamacpp", "lmstudio"] = field(default="lmstudio", metadata={"help": "The server where the LLM runs"})
 
     #-------------------------------------------------------------------------------------
 
@@ -74,7 +75,7 @@ class Arguments():
 @dataclass
 class Message():
     type: str
-    contents: Any
+    contents: Any = field(default=None)
 
     @classmethod
     def from_sse_event(cls, event):

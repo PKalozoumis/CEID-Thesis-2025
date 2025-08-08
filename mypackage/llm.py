@@ -1,52 +1,26 @@
 from __future__ import annotations
 
+import requests
+import json
+from abc import ABC, abstractmethod
+
 import lmstudio as lms
-from lmstudio import LMStudioClientError
+from lmstudio import LMStudioClientError, LlmPredictionConfig
 import platform
 import netifaces
-import re
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from .summarization.classes import SummarySegment
 
 #================================================================================================
 
-class LLMSession():
-    '''
-    A session for an LLM running in LM Studio
-    '''
+class LLMSession(ABC):
     model_name: str
     api_host: str
-    model: lms.LLM
+    cache_prompt: bool
 
-    def __init__(self, model_name: str = "meta-llama-3.1-8b-instruct"):
-        '''
-        A session for an LLM running in LM Studio
-
-        Arguments
-        ---
-        model_name: str
-            The name of the model
-        '''
-        self.model_name = model_name
-
-        #Check if I'm using WSL
-        #If so, LMStudio is running the windows host, which is the gateway
-        if 'microsoft' in platform.uname().release.lower():
-            gateway = netifaces.gateways()['default'][netifaces.AF_INET][0]
-            self.api_host = f"{gateway}:1234"
-        else:
-            self.api_host = "localhost:1234"
-
-        client = lms.Client(api_host=self.api_host)
-        self.model = client.llm.model(model_name)
-
-#================================================================================================
-
-def llm_summarize(llm: LLMSession, query: str, text: str, stop_dict):
-    
-    prompt = f'''You are a summarization expert. Given a query and a series of facts, you write a detailed, comprehensive summary that fully answers the query using only information from the facts.
+    system_prompt = f'''You are a summarization expert. Given a query and a series of facts, you write a detailed, comprehensive summary that fully answers the query using only information from the facts.
 
 ### What is a fact:
 A fact is a span of text that comes from a specific document and is relevant to the query.
@@ -57,12 +31,10 @@ Each fact always begins with an ID that looks like <1234_0-5>, followed by a col
 - Never add any information that is not explicitly stated in the facts.
 - Structure the summary with multiple paragraphs for clarity and depth, but keep it concise
 
-### Each sentence in the summary is accompanied by a citation to the relevant fact:
-- The citation must always be at the end of the sentence
-- The citation must always be in the same format <1234_0-5>, with just angle brackets (`<` and `>`).
-- Never use parentheses or any other symbol for citations.
-- Never surround the citations with parentheses.
-- If a sentence is the result of two or more facts, then include citations for all facts, one after the other (e.g. <1234_0-1><5678_5-6>)
+### Each sentence in the summary must be accompanied by a citation to the relevant fact:
+- The citation must always be at the end of the sentence, followed by a fullstop.
+- The citation must always be in the ID format <1234_0-5>, with just angle brackets (`<` and `>`).
+- If a sentence uses multiple facts, list IDs back to back with no text in between (e.g. <1234_0-1><5678_5-6>)
 
 ### This is an example of the desired output for one of the summary sentences:
 Query: "What is the capital city of France?"  
@@ -78,30 +50,130 @@ Facts:
 <5678_5-6>: In the last decade, deforestation in the Amazon has risen by 85%.
 Summary:  
 The Amazon rainforest contains over 390 billion trees, yet deforestation has increased by 85% in the last decade <1234_0-1><5678_5-6>.
-
-### Now summarize the following:
-Query: "{query}"
-Facts:
-{text}
-Summary:
-
 '''
+    @classmethod
+    def create(cls, backend: Literal["llamacpp", "lmstudio"], model_name: str = "meta-llama-3.1-8b-instruct", api_host="localhost:8080"):
+        if backend == "llamacpp":
+            return LlamaCppSession(model_name, api_host)
+        elif backend == "lmstudio":
+            return LMStudioSession(model_name, api_host)
 
-    chat = lms.Chat()
+    @abstractmethod
+    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+        pass
+
+    @abstractmethod
+    def cache_system_prompt(cls):
+        pass
+
+    @classmethod
+    def prompt(self, query: str, text: str):
+        return  self.system_prompt + f"\n### Now summarize the following:\nQuery: \"{query}\"\nFacts:\n{text}\nSummary:\n"
+
+#================================================================================================
     
-    chat.add_user_message(prompt)
+class LlamaCppSession(LLMSession):
 
-    temp_text = ""
-    removed_json = False
-    temp_temp = ""
+    def __init__(self, model_name: str = "meta-llama-3.1-8b-instruct", api_host="localhost:8080"):
+        self.model_name = model_name
+        self.api_host = api_host
 
-    stream = llm.model.respond_stream(chat)
-    for fragment in stream:
-        if stop_dict['force_stop']:
-            stream.cancel()
+    #-------------------------------------------------------------------------------------------------
+
+    def cache_system_prompt(self):
+        resp = requests.post(f"http://{self.api_host}/chat/completions", headers={'Content-Type': 'application/json'}, json={
+            'model': "llama",
+            'messages': [
+                { "role": "user", "content": self.system_prompt }
+            ],
+            'max_completion_tokens': 0,
+            'cache_prompt': True
+        })
+
+    #-------------------------------------------------------------------------------------------------
+
+    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+        stream = requests.post(f"http://{self.api_host}/chat/completions", stream=True, headers={'Content-Type': 'application/json'}, json={
+            'model': "llama",
+            'messages': [
+                { "role": "user", "content": self.prompt(query, text) }
+            ],
+            'cache_prompt': cache_prompt,
+            'stream': True,
+        })
+
+        try:
+            if stop_dict['force_stop']:
+                stop_dict['stopped'] = True
+                stream.close()
+                yield "."
+
+            for line in stream.iter_lines():
+                #Stop on client request
+                #This ensures that the LLM no longer generates tokens
+                if stop_dict['force_stop']:
+                    stop_dict['stopped'] = True
+                    stream.close()
+                    yield "."
+                    break
+                else:
+                    if line:
+                        decoded = line.decode("utf-8")
+                        if decoded.startswith("data: "):
+                            data_str = decoded[len("data: "):]
+                            if data_str == "[DONE]":
+                                break
+
+                            #Extract content from SSE message
+                            event = json.loads(data_str)
+                            content = event['choices'][0]['delta'].get('content', None)
+                            if content is not None:
+                                yield str(content)
+        except KeyboardInterrupt:
             stream.close()
-            stop_dict['stopped'] = True
-            yield stream, "."
-        else:
-            yield stream, fragment.content
+            yield "."
+            raise KeyboardInterrupt
         
+
+#================================================================================================
+    
+class LMStudioSession(LLMSession):
+
+    def __init__(self, model_name: str = "meta-llama-3.1-8b-instruct", api_host="localhost:8080"):
+        self.model_name = model_name
+
+        #Check if I'm using WSL
+        #If so, LMStudio is running the windows host, which is the gateway
+        if 'microsoft' in platform.uname().release.lower():
+            gateway = netifaces.gateways()['default'][netifaces.AF_INET][0]
+            self.api_host = f"{gateway}:1234"
+        else:
+            self.api_host = "localhost:1234"
+
+        client = lms.Client(api_host=self.api_host)
+        self.model = client.llm.model(model_name)
+
+    #-------------------------------------------------------------------------------------------------
+
+    def cache_system_prompt(self):
+        chat = lms.Chat()
+        chat.add_user_message(self.system_prompt)
+        stream = self.model.respond_stream(chat, config=LlmPredictionConfig(max_tokens=1))
+        for fragment in stream:
+            pass
+
+    #-------------------------------------------------------------------------------------------------
+
+    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+        chat = lms.Chat()
+        chat.add_user_message(self.prompt(query, text))
+        stream = self.model.respond_stream(chat)
+
+        for fragment in stream:
+            if stop_dict['force_stop']:
+                stream.cancel()
+                stream.close()
+                stop_dict['stopped'] = True
+                yield "."
+            else:
+                yield fragment.content

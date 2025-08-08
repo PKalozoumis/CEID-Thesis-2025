@@ -6,11 +6,15 @@ from flask import Flask, request, make_response, Response
 from query_code import query_function
 from rich.console import Console
 from classes import Arguments
+from mypackage.llm import LLMSession
+import argparse
 
 console = Console()
 app = Flask(__name__)
 
 #==================================================================================
+
+cached_prompt = False
 
 @app.route("/query")
 def query():
@@ -30,6 +34,7 @@ def query():
     mimetype='text/event-stream')
 
     #After a connection is terminated, the generator waits until the first yield to throw the exception
+    #In other words, the server realizes the client has disconnected only when it tries to send something
     #Only then can I actually stop the function
     
 #Main
@@ -37,4 +42,9 @@ def query():
 #Ideally you want to run through some other WSGI server
 #==================================================================================
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--llm-backend", type=str, choices=["llamacpp", "lmstudio"], default="lmstudio")
+    args = parser.parse_args()
+
+    LLMSession.create(args.llm_backend, api_host="localhost:8080").cache_system_prompt()
     app.run(port=4625)

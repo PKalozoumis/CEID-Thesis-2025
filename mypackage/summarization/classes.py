@@ -10,7 +10,7 @@ import re
 
 from ..cluster_selection import SelectedCluster, SummaryCandidate
 from ..elastic import ElasticDocument, Document
-from ..llm import LLMSession, llm_summarize
+from ..llm import LLMSession
 from ..helper import panel_print, rich_console_text
 from ..query import Query
 from ..sentence import SentenceChain
@@ -163,16 +163,13 @@ class Summarizer():
     llm: LLMSession
     query: Query
 
-    def __init__(self, query: Query, *, llm: LLMSession = None):
+    def __init__(self, query: Query, llm=LLMSession):
         self.query = query
-        if llm is None:
-            self.llm = LLMSession()
-        else:
-            self.llm = llm
+        self.llm = llm
     
     #---------------------------------------------------------------------------------------------------
 
-    def summarize(self, unit: SummaryUnit, stop_dict):
+    def summarize(self, unit: SummaryUnit, stop_dict, *, cache_prompt: bool = False):
         '''
         Yields
         ---
@@ -192,7 +189,7 @@ class Summarizer():
         prefix_regex = re.compile("(.*?)(<(\d+|$)(_(\d+|$))?(-(\d+|$))?(>|$))(.*)")
         full_regex = re.compile("(.*?)(<(?P<doc>\d+)_(?P<start>\d+)-(?P<end>\d+)>)(.*)")
 
-        for _, fragment in llm_summarize(self.llm, self.query.text, unit.text, stop_dict):
+        for fragment in self.llm.summarize(self.query.text, unit.text, stop_dict, cache_prompt=cache_prompt):
 
             #Identify start of citation
             if not parsing_citation:

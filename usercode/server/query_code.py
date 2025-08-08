@@ -174,7 +174,6 @@ def query_function(query_str: str, *, args: Arguments = None, base_path: str = "
 
         #Summarization
         #-----------------------------------------------------------------------------------------------------------------
-        
         #The text to be summarized
         unit = SummaryUnit(selected_clusters, sorting_method=args.csm)
         
@@ -182,24 +181,22 @@ def query_function(query_str: str, *, args: Arguments = None, base_path: str = "
             res = unit.pretty_print(show_added_context=True, show_chain_indices=True, return_text=True)
             yield message_sender(Message("ansi_text", res))
 
-            #res = rich_console_text(panel_print(unit.text, return_panel=True, title="Summarization input text"))
-            #yield message_sender(Message("ansi_text", res))
-        
-        #Summarize
+        #When an error occurs, we tell the summarizer to stop, so that the connection to the LLM terminates
+        #This prevents the LLM from generating more tokens
         stop_dict = {'force_stop': False, 'stopped': False}
 
         if args.summ:
             is_first_fragment = True
 
             yield message_sender(Message("info", "Summarizing..."))
-            llm = LLMSession("meta-llama-3.1-8b-instruct")
+            llm = LLMSession.create(args.llm_backend, "meta-llama-3.1-8b-instruct")
 
             summarizer = Summarizer(query, llm=llm)
             times['summary_time'] = time.time()
             times['summary_response_time'] = time.time()
 
             #Generate the fragments
-            for fragment, citation in summarizer.summarize(unit, stop_dict):
+            for fragment, citation in summarizer.summarize(unit, stop_dict, cache_prompt=True):
                 try:
                     if is_first_fragment:
                         times['summary_response_time'] = time.time() - times['summary_response_time']
@@ -226,9 +223,11 @@ def query_function(query_str: str, *, args: Arguments = None, base_path: str = "
                 except GeneratorExit:
                     stop_dict['force_stop'] = True
                     console.print("[red]Client disconnected[/red]")
+                    #yield message_sender(Message("dummy"))
                 except BrokenPipeError:
                     stop_dict['force_stop'] = True
                     console.print("[red]Client disconnected (broken pipe)[/red]")
+                    #yield message_sender(Message("dummy"))
 
             times['summary_time'] = time.time() - times['summary_time']
             yield message_sender(Message('time', {'summary_time': times['summary_time']}))

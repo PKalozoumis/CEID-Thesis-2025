@@ -1,20 +1,23 @@
-from llama_cpp import Llama
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import torch
 
-llm = Llama(model_path="../../models/Meta-Llama-3.1-8B-Instruct-Q6_K.gguf", verbose=False, n_ctx=4096, chat_format="llama-3")
+model_name = "meta-llama/Llama-3.1-8B-Instruct"
 
-llm.create_chat_completion(
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."}
-    ]
+quantization_config = BitsAndBytesConfig(
+    llm_int8_enable_fp32_cpu_offload=True,
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16
 )
 
-output = llm(
-      "Q: Hello how are you today? A: ", # Prompt
-      max_tokens=32, # Generate up to 32 tokens, set to None to generate up to the end of the context window
-      stop=["Q:"], # Stop generating just before the model would generate a new question
-      echo=True # Echo the prompt back in the output
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    quantization_config=quantization_config,
+    device_map="auto",
+    torch_dtype=torch.bfloat16,
+    ignore_mismatched_sizes=True
 )
 
-#output = llm("Q: What is the capital of France? A:", stop=["<|eot_id|>"], max_tokens=)
-
-print(output)
+print(model.get_memory_footprint())
