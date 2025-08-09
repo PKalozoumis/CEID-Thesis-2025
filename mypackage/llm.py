@@ -8,6 +8,8 @@ import lmstudio as lms
 from lmstudio import LMStudioClientError, LlmPredictionConfig
 import platform
 import netifaces
+import re
+
 
 from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
@@ -52,7 +54,7 @@ Summary:
 The Amazon rainforest contains over 390 billion trees, yet deforestation has increased by 85% in the last decade <1234_0-1><5678_5-6>.
 '''
     @classmethod
-    def create(cls, backend: Literal["llamacpp", "lmstudio"], model_name: str = "meta-llama-3.1-8b-instruct", api_host="localhost:8080"):
+    def create(cls, backend: Literal["llamacpp", "lmstudio"], model_name: str = "meta-llama-3.1-8b-instruct", api_host=None):
         if backend == "llamacpp":
             return LlamaCppSession(model_name, api_host)
         elif backend == "lmstudio":
@@ -75,6 +77,8 @@ The Amazon rainforest contains over 390 billion trees, yet deforestation has inc
 class LlamaCppSession(LLMSession):
 
     def __init__(self, model_name: str = "meta-llama-3.1-8b-instruct", api_host="localhost:8080"):
+        if api_host is None:
+            api_host = "localhost:8080"
         self.model_name = model_name
         self.api_host = api_host
 
@@ -139,16 +143,23 @@ class LlamaCppSession(LLMSession):
     
 class LMStudioSession(LLMSession):
 
-    def __init__(self, model_name: str = "meta-llama-3.1-8b-instruct", api_host="localhost:8080"):
+    def __init__(self, model_name: str = "meta-llama-3.1-8b-instruct", api_host="localhost:1234"):
+        if api_host is None:
+            api_host = "localhost:1234"
         self.model_name = model_name
 
-        #Check if I'm using WSL
-        #If so, LMStudio is running the windows host, which is the gateway
-        if 'microsoft' in platform.uname().release.lower():
-            gateway = netifaces.gateways()['default'][netifaces.AF_INET][0]
-            self.api_host = f"{gateway}:1234"
-        else:
-            self.api_host = "localhost:1234"
+        res = re.match(r"(\w+):(\d+)", api_host)
+
+        if res.group(1) == "localhost":
+            #Check if I'm using WSL
+            #If so, LMStudio is running the windows host, which is the gateway
+            if 'microsoft' in platform.uname().release.lower():
+                gateway = netifaces.gateways()['default'][netifaces.AF_INET][0]
+                self.api_host = f"{gateway}:{res.group(2)}"
+            else:
+                self.api_host = api_host
+
+        print(self.api_host)
 
         client = lms.Client(api_host=self.api_host)
         self.model = client.llm.model(model_name)

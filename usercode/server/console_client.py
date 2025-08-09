@@ -2,6 +2,11 @@ import os
 import sys
 sys.path.append(os.path.abspath("../.."))
 
+import socketio
+import socketio.exceptions
+import asyncio
+import asyncio.exceptions
+
 from typing import Literal, get_origin, get_args, Any
 from dataclasses import fields
 import argparse
@@ -20,19 +25,41 @@ from rich.tree import Tree
 from classes import Message, Arguments
 from collections import defaultdict
 
+import time
+
 console = Console()
+sio = socketio.AsyncClient()
+
+
+@sio.event(namespace="/query")
+async def connect():
+    console.print("[green]Connected to server successfully[/green]\n")
+    #Send query and arguments to the server
+    await sio.emit('init_query', data_to_send, namespace="/query")
+
+@sio.event(namespace="/query")
+async def disconnect():
+    global end
+    console.print("Disconnecting from server...\n")
+    end = True
+
+@sio.event(namespace="/query")
+async def message(data):
+    console.print(f"[cyan][MESSAGE][/cyan]: {data}")
 
 #===============================================================================================================
 
+data_to_send = None
 full_text = ""
 receiving_fragments = False
 live: Live = None
 times = {}
 end: bool = False
+args = None
 
 #===============================================================================================================
 
-def reset_state():
+async def reset_state():
     global full_text
     global receiving_fragments
     global live
@@ -47,7 +74,7 @@ def reset_state():
 
 #===============================================================================================================
 
-def print_times():
+async def print_times():
     #Print times
     #------------------------------------------------------------------------------
     mytimes = defaultdict(float, {k:round(v, 3) for k,v in times.items()})
@@ -75,99 +102,184 @@ def print_times():
 
 #===============================================================================================================
 
-def message_handler(msg: Message):
+@sio.on("time", namespace="/query")
+async def ev_time(data):
+    global times
+    times = {**times, **data}
+
+#---
+
+@sio.on("ansi_text", namespace="/query")
+async def ev_ansi_text(data):
+    print(data, end="")
+
+#---
+
+@sio.on("info", namespace="/query")
+async def ev_info(data):
+    console.print(f"[green]INFO:[/green] {data}\n")
+
+#---
+
+@sio.on("cosine_sim", namespace="/query")
+async def ev_cosine_sim(data):
+    panel_print([f"[green]{i:02}.[/green] Cluster [green]{cluster['id']}[/green] with score [cyan]{cluster['sim']:.3f}[/cyan]" for i, cluster in enumerate(data)], title="Retrieved clusters based on cosine similarity")
+
+#---
+
+@sio.on("cluster_stats", namespace="/query")
+async def ev_cluster_stats(data):
+    panel_print([Pretty(stats) for stats in data], title="Cluster Stats")
+
+#---
+
+@sio.on("cross_scores", namespace="/query")
+async def ev_cross_scores(data):
+    panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['cross_score']:.3f}[/cyan]" for cluster in data], title="Cross-encoder scores of the selected clusters")
+
+#---
+
+@sio.on("context_expansion_progress", namespace="/query")
+async def ev_context_expansion_progress(data):
+    if args.print:
+        console.print(Rule(title=f"Cluster {data}", align="center"))
+
+#---
+
+@sio.on("cross_scores_2", namespace="/query")
+async def ev_cross_scores_2(data):
+    panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['original_score']}[/cyan] -> [cyan]{cluster['new_score']:.3f}[/cyan] ([green]+{round(cluster['new_score'] - cluster['original_score'], 3):.3f}[/green])" for cluster in data], title="Cross-encoder scores of the selected clusters after context expansion")
+    panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['selected_score']:.3f}[/cyan]" for cluster in data], title="Cross-encoder scores (only selected candidates considered)")
+    
+#---
+
+@sio.on("fragment", namespace="/query")
+async def ev_fragment(data):
+    global full_text
     global receiving_fragments
     global live
+    if not receiving_fragments:
+        live = Live(panel_print(return_panel=True), refresh_per_second=10)
+        live.start()
+    receiving_fragments = True
+    full_text += data
+
+#---
+
+@sio.on("fragment_with_citation", namespace="/query")
+async def ev_fragment_with_citation(data):
     global full_text
-    global times
+    data = data
+    cite = data['citation']
+    temp = data['fragment']
+    temp = temp.replace("<citation>", f"[cyan]<{cite['doc']}_{cite['start']}-{cite['end']}>[/cyan]")
+    full_text += temp
+
+#---
+    
+@sio.on("end", namespace="/query")
+async def ev_end(data):
     global end
+    global live
+    if live is not None:
+        live.stop()
+    end = True
 
-    if msg is None:
-        return
+#---
 
-    match msg.type:
-        case 'time':
-            times = {**times, **msg.contents}
-        case 'ansi_text':
-            print(msg.contents, end="")
-        case 'info':
-            console.print(f"[green]INFO:[/green] {msg.contents}\n")
-        case 'cosine_sim':
-            panel_print([f"[green]{i:02}.[/green] Cluster [green]{cluster['id']}[/green] with score [cyan]{cluster['sim']:.3f}[/cyan]" for i, cluster in enumerate(msg.contents)], title="Retrieved clusters based on cosine similarity")
-        case 'cluster_stats':
-            panel_print([Pretty(stats) for stats in msg.contents], title="Cluster Stats")
-        case 'cross_scores':
-            panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['cross_score']:.3f}[/cyan]" for cluster in msg.contents], title="Cross-encoder scores of the selected clusters")
-        case 'context_expansion_progress':
-            if args.print:
-                console.print(Rule(title=f"Cluster {msg.contents}", align="center"))
-        case 'cross_scores_2':
-            panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['original_score']}[/cyan] -> [cyan]{cluster['new_score']:.3f}[/cyan] ([green]+{round(cluster['new_score'] - cluster['original_score'], 3):.3f}[/green])" for cluster in msg.contents], title="Cross-encoder scores of the selected clusters after context expansion")
-            panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['selected_score']:.3f}[/cyan]" for cluster in msg.contents], title="Cross-encoder scores (only selected candidates considered)")
-        case 'fragment':
-            if not receiving_fragments:
-                live = Live(panel_print(return_panel=True), refresh_per_second=10)
-                live.start()
-            receiving_fragments = True
-            full_text += msg.contents
-        case 'fragment_with_citation':
-            data = msg.contents
-            cite = data['citation']
-            temp = data['fragment']
-            temp = temp.replace("<citation>", f"[cyan]<{cite['doc']}_{cite['start']}-{cite['end']}>[/cyan]")
-            full_text += temp
-        case 'end':
-            if live is not None:
-                live.stop()
-            end = True
-        case 'error':
-            if live is not None:
-                live.stop()
-            console.print(f"[red]{msg.contents}[/red]\n")
-            raise Exception
+@sio.on("error", namespace="/query")
+async def ev_error(data):
+    global live
+    if live is not None:
+        live.stop()
+    console.print(f"[red]{data}[/red]\n")
+    raise Exception
+            
+
+#===============================================================================================================
+
+async def main_loop():
+    while True:
+        if receiving_fragments:
+            live.update(panel_print(full_text, return_panel=True))
+        if end:
+            await print_times()
+            print("Stopping...")
+            return
+        await asyncio.sleep(0.001) #my fucking head hurts
+
+#===============================================================================================================
+
+async def main():
+    global data_to_send
+    global live
+    global args
+
+    parser = argparse.ArgumentParser()
+    Arguments.setup_arguments(parser)
+    args = Arguments.from_argparse(parser.parse_args())
+    #live = Live(panel_print(return_panel=True), refresh_per_second=10)
+    #live.start()
+
+    query = "What are the primary behaviours and lifestyle factors that contribute to childhood obesity"
+    experiment_list = args.x.split(",")
+    
+    #For each specified experiment, send a request to the server
+    #At the end, we will compare the results
+    for experiment in experiment_list:
+        args.x = experiment
+        try:
+            data_to_send = {
+                'query': query,
+                'args': args.to_dict(ignore_defaults=True, ignore_client_args=True)
+            }
+
+            await sio.connect("http://localhost:1225", namespaces=["/query"])
+            sio.start_background_task(main_loop)
+            await sio.wait()
+
+        except (KeyboardInterrupt, asyncio.exceptions.CancelledError):
+            await sio.disconnect()
+        except socketio.exceptions.ConnectionError:
+            console.print("[red]Failed to connect to server[/red]")
 
 #===============================================================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    Arguments.setup_arguments(parser)
-    args = Arguments.from_argparse(parser.parse_args())
+    asyncio.run(main())
 
-    query = "What are the primary behaviours and lifestyle factors that contribute to childhood obesity"
-    experiment_list = args.x.split(",")
+    '''
+    try:    
 
-    #For each specified experiment, send a request to the server
-    #At the end, we will compare the results
-    for experiment in experiment_list:
-        try:
-            messages = sseclient.SSEClient('http://localhost:4625/query', params={
-                'q': query,
-                **args.get_dict(ignore_defaults=True),
-                'x': experiment
-            })
+        messages = sseclient.SSEClient('http://localhost:4625/query', params={
+            'q': query,
+            **args.get_dict(ignore_defaults=True),
+            'x': experiment
+        })
 
-            #Receiving messages
-            #---------------------------------------------------------------
-            message_stream = map(lambda event: Message.from_sse_event(event), messages)
+        #Receiving messages
+        #---------------------------------------------------------------
+        message_stream = map(lambda event: Message.from_sse_event(event), messages)
 
-            console.print(f"\n[green]Query:[/green] [#ffffff]\"{query}\"[/#ffffff]\n")
-            
-            for msg in message_stream:
-                message_handler(msg)
+        console.print(f"\n[green]Query:[/green] [#ffffff]\"{query}\"[/#ffffff]\n")
+        
+        for msg in message_stream:
+            message_handler(msg)
 
-                #What to do with the new state
-                if receiving_fragments:
-                    live.update(panel_print(full_text, return_panel=True))
-                if end:
-                    messages.resp.close()
-                    print_times()
-                    break
+            #What to do with the new state
+            if receiving_fragments:
+                live.update(panel_print(full_text, return_panel=True))
+            if end:
+                messages.resp.close()
+                print_times()
+                break
 
-            #Prepare for next experiment
-            if len(experiment_list) > 1:
-                reset_state()
+        #Prepare for next experiment
+        if len(experiment_list) > 1:
+            reset_state()
 
-        except (Exception, KeyboardInterrupt):
-            messages.resp.close()
-            print_times()
-            print("Stopping...")
+    except (Exception, KeyboardInterrupt):
+        messages.resp.close()
+        print_times()
+        print("Stopping...")
+    '''
