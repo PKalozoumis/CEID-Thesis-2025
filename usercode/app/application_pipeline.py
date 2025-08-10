@@ -8,6 +8,7 @@ from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
 from mypackage.llm import LLMSession
+from mypackage.storage import DatabaseSession, MongoSession, PickleSession
 
 from application_classes import Arguments
 
@@ -71,14 +72,14 @@ def encode_query(query: Query, *, query_str: str, args: Arguments = None, base_p
 
 #===============================================================================================================
 
-def retrieve_clusters(sess, returned_docs, query, *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def retrieve_clusters(sess, db, returned_docs, query, *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 3 of the pipeline
     '''
     message_sender('info', "Extracting relevant information...")
 
     times['cluster_retrieval'] = time.time()
-    selected_clusters = cluster_retrieval(sess, returned_docs, query, base_path=base_path, experiment=args.x)
+    selected_clusters = cluster_retrieval(sess, db, returned_docs, query, base_path=base_path, experiment=args.x)
     times['cluster_retrieval'] = time.time() - times['cluster_retrieval']
     
     message_sender('time', {'cluster_retrieval': times['cluster_retrieval']})
@@ -229,9 +230,16 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
 
     sess, query, returned_docs = retrieval_stage(**kwargs)
     encode_query(query, **kwargs)
-    selected_clusters = retrieve_clusters(sess, returned_docs, query, **kwargs)
+
+    db = PickleSession(f"{base_path}/experiments/{sess.index_name}/pickles", args.experiment)
+    selected_clusters = retrieve_clusters(sess, db, returned_docs, query, **kwargs)
+
     calculate_cross_scores(query, selected_clusters, **kwargs)
+
     if args.c != -1:
         selected_clusters = [selected_clusters[args.c]]
+
     expand_context(selected_clusters, **kwargs)
     summarization_stage(query, selected_clusters, stop_dict, **kwargs)
+
+    db.close()

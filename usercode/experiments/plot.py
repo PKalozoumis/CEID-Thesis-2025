@@ -17,7 +17,7 @@ if __name__ == "__main__":
         "centroids",
         "query"
     ], default="full")
-    parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=VALID_METRICS)
+    parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=["silhouette", "flat_silhouette"])
     parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
     parser.add_argument("--no-outliers", action="store_true", default=False, help="Removes outliers from the visualization")
 
@@ -31,7 +31,7 @@ from sentence_transformers import SentenceTransformer
 from mypackage.elastic import ElasticDocument, Session
 from mypackage.clustering import visualize_clustering
 from mypackage.clustering.metrics import clustering_metrics, VALID_METRICS
-from mypackage.storage.load import load_pickles, ProcessedDocument
+from mypackage.storage import ProcessedDocument, DatabaseSession, PickleSession, MongoSession
 from mypackage.helper import DEVICE_EXCEPTION
 import pickle
 from collections import namedtuple
@@ -47,7 +47,7 @@ from matplotlib import MatplotlibDeprecationWarning
 from matplotlib.lines import Line2D
 
 import numpy as np
-from helper import experiment_wrapper, CHOSEN_DOCS, document_index, experiment_names_from_dir
+from helper import experiment_wrapper, CHOSEN_DOCS, document_index
 import math
 import warnings
 
@@ -96,14 +96,14 @@ def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess:
 #=============================================================================================================
 
 
-def compare(experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
+def compare(db: PickleSession, experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
     '''
     Creates multiple figures.
     Each figure compares the clustering results of two or more experiments, on the same document
     '''
 
     for i, doc in enumerate(docs):
-        experiment_list = experiment_names_from_dir(os.path.join(sess.index_name, "pickles"), experiment_names)
+        experiment_list = db.available_experiments(experiment_names)
 
         #Determine grid size
         N = len(experiment_list)
@@ -127,12 +127,15 @@ def compare(experiment_names: str, imgpath, docs: list[int], sess: Session, *, m
             ax.set_yticks([])
 
         for ax, experiment_name in zip(axes, experiment_list):
-            pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), doc)
+            db.sub_path = experiment_name
+            pkl = db.load(sess, doc)
             visualize_clustering(pkl.chains, pkl.labels, ax=ax, return_legend=True, min_dista=pkl.params['min_dista'], no_outliers=no_outliers)
 
             #Load experiment to get its title
             score = f" ({clustering_metrics(pkl.clustering, print=False)[metric]['value']:.3f})" if metric is not None else ""
             ax.set_title(pkl.params['title'] + score)
+            
+            db.close()
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
         fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{document_index(sess.index_name, doc):02}_{doc}.png"))
@@ -235,6 +238,8 @@ if __name__ == "__main__":
 
     #---------------------------------------------------------------------------
 
+    db = PickleSession()
+
     #Run the selected visualization for each of the selected indexes...
     for index in indexes:
         console.print(f"\nRunning for index '{index}'")
@@ -260,6 +265,7 @@ if __name__ == "__main__":
         
         os.makedirs(imgpath, exist_ok=True)
         sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
+        db.base_path = os.path.join(sess.index_name, "pickles")
 
         #---------------------------------------------------------------------------
         if args.p == 'full':
@@ -268,18 +274,21 @@ if __name__ == "__main__":
 
             #Run for all the selected experiments...
             for experiment_name in args.x.split(","):
+                db.sub_path = experiment_name
                 console.print(f"Plotting experiment '{experiment_name}'")
-                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)
+                pkl = db.load(sess, docs_to_retrieve)
                 
                 full(pkl, imgpath, experiment_name, sess, args.no_outliers)
                 print()
+                db.close()
 
         #---------------------------------------------------------------------------
         elif args.p == 'compare':
             if args.x is None:
                 args.x = "all"
+                console.print("No experiment was specified, so all will be selected\n")
                 
-            compare(args.x, imgpath, docs_to_retrieve, sess, metric=args.metric, no_outliers=args.no_outliers)
+            compare(db, args.x, imgpath, docs_to_retrieve, sess, metric=args.metric, no_outliers=args.no_outliers)
 
         #---------------------------------------------------------------------------
         elif args.p in ['interdoc', 'interdoc2', 'centroids', 'query']:
@@ -291,7 +300,8 @@ if __name__ == "__main__":
             #Run for all the selected experiments...
             for experiment_name in args.x.split(","):
                 console.print(f"Plotting experiment '{experiment_name}'")
-                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment_name), docs_to_retrieve)
+                db.sub_path = experiment_name
+                pkl = db.load(sess, docs_to_retrieve)
                 
                 match args.p:
                     case "interdoc": interdoc(pkl, imgpath, sess, args.no_outliers)
@@ -303,3 +313,5 @@ if __name__ == "__main__":
                         query_vector = model.encode(query_text)
 
                         centroids(pkl, imgpath, sess, extra_vector=query_vector)
+
+                db.close()

@@ -25,9 +25,8 @@ if __name__ == "__main__":
 from rich.console import Console
 from mypackage.elastic import Session       
 from mypackage.helper import panel_print
-from helper import CHOSEN_DOCS, document_index, all_experiments, experiment_names_from_dir
-if args.mode == "read":
-    from mypackage.storage.load import load_pickles
+from helper import CHOSEN_DOCS, document_index, all_experiments
+from mypackage.storage import DatabaseSession, MongoSession, PickleSession
 from rich.pretty import Pretty
 from rich.rule import Rule
 import shutil
@@ -57,34 +56,32 @@ if __name__ == "__main__":
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
         sess = Session(index, use="cache", cache_dir="../cache")
+        db = PickleSession(os.path.join(index, "pickles"))
 
         #-------------------------------------------------------------------------------------------
 
         if args.mode == "read":
-            base_path = os.path.join(index, "pickles")
             
-            for THIS_NEXT_EXPERIMENT in experiment_names_from_dir(base_path, args.x):
+            for THIS_NEXT_EXPERIMENT in db.available_experiments(args.x):
+                db.sub_path = THIS_NEXT_EXPERIMENT
                 for i, doc in enumerate(docs_to_retrieve):
                     title = f"{index} -> {THIS_NEXT_EXPERIMENT} -> {document_index(index, doc, i):02}: Document {doc:04}"
-                    pkl = load_pickles(sess, os.path.join(index, "pickles", THIS_NEXT_EXPERIMENT), doc)
+                    pkl = db.load(sess, doc)
                     panel_print(Pretty(pkl.params), title)
 
         #-------------------------------------------------------------------------------------------
 
         elif args.mode in ["clear-unused", "clear-temp"]:
-            base_path = os.path.join(index, "pickles")
             experiment_names = set(all_experiments(names_only=True))
 
             removed = False
-            for dir in os.listdir(base_path):
-                exp_path = os.path.join(base_path, dir)
+            for dir in db.list_experiments():
+                db.sub_path = dir
                 if dir not in experiment_names:
-
-                    is_temp = os.path.exists(os.path.join(exp_path, ".temp"))
-
+                    is_temp = db.check_temp()
                     if (args.mode == "clear-unused" and not is_temp) or (args.mode == "clear-temp" and is_temp):
                         removed = True
-                        shutil.rmtree(exp_path)
+                        db.delete()
                         console.print(f"Removed {dir}")
                 
             if removed:
@@ -95,19 +92,19 @@ if __name__ == "__main__":
         #-------------------------------------------------------------------------------------------
 
         elif args.mode in ["list-unused", "list-temp"]:
-            base_path = os.path.join(index, "pickles")
             experiment_names = set(all_experiments(names_only=True))
 
             found = False
-            for dir in os.listdir(base_path):
-                exp_path = os.path.join(base_path, dir)
+            for dir in db.list_experiments():
+                db.sub_path = dir
                 if dir not in experiment_names:
-
-                    is_temp = os.path.exists(os.path.join(exp_path, ".temp"))
-
+                    is_temp = db.check_temp()
                     if (args.mode == "list-unused" and not is_temp) or (args.mode == "list-temp" and is_temp):
                         found = True
                         console.print(f"{dir}")
                 
             if not found:
                 console.print("NOTHING BUT SILENCE\n")
+
+
+        db.close()

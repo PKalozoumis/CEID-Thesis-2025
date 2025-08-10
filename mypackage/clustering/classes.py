@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from functools import cached_property
@@ -164,6 +164,7 @@ class ChainClustering():
     chains: list[SentenceChain]
     labels: list[int]
     clusters: dict[int, ChainCluster]
+    times: dict[str, float] = field(default=None)
 
     def __post_init__(self):
         for cluster in self.clusters.values():

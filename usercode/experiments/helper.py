@@ -21,6 +21,9 @@ def document_index(index_name: str, doc_id, fallback: int = None) -> int:
 #=============================================================================================================
 
 def load_experiments(experiment_names: str|list[str]|None = None, must_exist: bool = False) -> dict | list[dict]:
+    '''
+    Loads an experiment's parameters
+    '''
 
     if isinstance(experiment_names, list) and len(experiment_names) == 1:
         experiment_names = experiment_names[0]
@@ -47,6 +50,9 @@ def load_experiments(experiment_names: str|list[str]|None = None, must_exist: bo
 #=============================================================================================================
 
 def all_experiments(*,names_only=False):
+    '''
+    Return all experiments from the experiment file
+    '''
     with open("experiments.json", "r") as f:
         experiments = json.load(f)
 
@@ -61,6 +67,9 @@ def all_experiments(*,names_only=False):
 #=============================================================================================================
 
 def experiment_wrapper(experiment_names: str | list[str], must_exist: bool = False, strict_iterable: bool = True):
+    '''
+    Return the specified experiments from the experiment file. If "all" is provided, then all experiments are returned
+    '''
 
     if must_exist:
         with open("experiments.json", "r") as f:
@@ -85,17 +94,3 @@ def experiment_wrapper(experiment_names: str | list[str], must_exist: bool = Fal
             return xp
         else:
             return [xp]
-        
-#=============================================================================================================
-
-def experiment_names_from_dir(dir, requested_experiments: str) -> list[str]:
-    existing_names = os.listdir(dir)
-
-    if requested_experiments == "all":
-        requested_experiments = ",".join(existing_names)
-    else:
-        for name in requested_experiments.split(','):
-            if name not in existing_names:
-                raise DEVICE_EXCEPTION(f"YOU CALLED FOR '{name}', BUT NOBODY CAME")
-            
-    return [name for name in requested_experiments.split(",") if name in existing_names]

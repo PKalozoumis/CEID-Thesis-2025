@@ -14,11 +14,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the preprocessing step for the specified documents, and with the specified parameters (experiments)")
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs. Leave blank for a predefined set of test documents")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
-    parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
-    parser.add_argument("--temp", action="store_true", default=False, help="Recompile the default experiment into a new temporary experiment named by -x") #useful when wanting to test temp changes in code, instead of just parameters
+    
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
+    group.add_argument("-t", "--temp", nargs="?", action="store", type=str, default=None, help="Name of a temporary experiment that will be generated as a copy of another experiment") #useful when wanting to test temp changes in code, instead of just parameters
+    
+    parser.add_argument("--from", action="store", type=str, dest="temp_source", default="default", help="Used with -t. Experiment from which to create the temporary experiment")
     parser.add_argument("-c", action="store", type=str, default=None, help="An optional comment appended the created pickle files")
     parser.add_argument("--no-cache", action="store_true", default=False, help="Disable cache. Retrieve docs directly from Elasticsearch")
     parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes")
+    parser.add_argument("-dev", "--device", action="store", type=str, default="cpu", choices=["cpu", "gpu"], help="Device for the embedding model")
     args = parser.parse_args()
 
 #==============================================================================================
@@ -34,7 +39,7 @@ from mypackage.clustering import chain_clustering
 from mypackage.helper import DEVICE_EXCEPTION
 import pickle
 from collections import namedtuple
-#from multiprocessing import Process, Pool
+from multiprocessing import Process, Pool
 import torch.multiprocessing as mp
 import json
 
@@ -44,35 +49,47 @@ from matplotlib.axes import Axes
 
 from helper import experiment_wrapper, CHOSEN_DOCS, all_experiments
 from rich.rule import Rule
-from mypackage.storage.store import save_clusters
+from mypackage.storage import PickleSession
 
 import time
+import pandas as pd
 
 console = Console()
+
+db = None
 
 #==============================================================================================
 
 def initializer(p,i, cpu_model = None):
-    global params, index_name, model
+    global params, index_name, model, db
     params=p
     index_name=i
 
     if cpu_model is None:
+        #Initialize the model in each one of the pool's processes
+        #This is the only way to use model in GPU, as sharing is not allowed
         model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cuda')
     else:
         model = cpu_model
 
+    if db is None:
+        db = PickleSession()
+    db.base_path = os.path.join(index_name, "pickles")
+    db.sub_path = params['name']
+
+#==============================================================================================
 
 #The preprocessing steps
 def work(doc: ElasticDocument):
-    global params, index_name, model
+    global params, index_name, model, db
 
     record = {
         'doc': doc.id,
-        'exp': params['title'],
+        'exp': params['name'],
         'sent_t': None,
         'chain_t': None,
-        'cluster_t': None
+        'umap_t': None,
+        'hdbscan_t': None
     }
 
     record['sent_t'] = time.time()
@@ -94,7 +111,6 @@ def work(doc: ElasticDocument):
     record['chain_t'] = round(time.time() - record['chain_t'], 3)
 
     #Clustering parameters
-    record['cluster_t'] = time.time()
     console.print(f"Document {doc.id:02}: Clustering chains...")
     clustering = chain_clustering(
         merged,
@@ -106,11 +122,11 @@ def work(doc: ElasticDocument):
         normalize=params['cluster_normalize'],
         pooling_method=params['cluster_pooling_method']
     )
-    record['cluster_t'] = round(time.time() - record['cluster_t'], 3)
+    record['umap_t'] = clustering.times['umap_time']
+    record['hdbscan_t'] = clustering.times['cluster_time']
     
     #Save to database
-    path = os.path.join(index_name, "pickles", params['name'])
-    save_clusters(clustering, path, params=params)
+    db.store(clustering, params=params)
 
     return record
 
@@ -123,16 +139,16 @@ if __name__ == "__main__":
         if args.d is not None:
             raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN ALL, IT INVITES FRACTURE.")
 
-    if args.temp:
-        if args.x == "default":
-            raise DEVICE_EXCEPTION("PLEASE GIVE THE EXPERIMENT A NAME")
-        elif args.x in set(all_experiments(names_only=True)):
+    if args.temp is not None:
+        existing_experiments = set(all_experiments(names_only=True))
+
+        if args.temp in existing_experiments:
             raise DEVICE_EXCEPTION("DOES IT NOT SEEK AN IDENTITY OF ITS OWN?")
-        elif len(args.x.split(",")) > 1:
-            raise DEVICE_EXCEPTION("SPLIT IN NAME, AND IN PURPOSE")
-        
-        temp_name = args.x
-        args.x = "default"
+        if args.temp_source not in existing_experiments:
+             raise DEVICE_EXCEPTION("IT IS BARREN AND CANNOT BE COPIED")
+
+        #For temporary experiments, the experiment to be loaded becomes temp_source
+        args.x = args.temp_source
 
     #Run for each specified index
     #-------------------------------------------------------------------------------------------
@@ -150,15 +166,21 @@ if __name__ == "__main__":
 
         console.print("Session info:")
         console.print({'index_name': index, 'docs': docs_to_retrieve})
+        console.print(f"DEVICE: {args.device}")
         print()
+
+        time_records = []
 
         #Iterate over the requested experiments
         #For each experiment, we execute it on the requested documents and store the pickle files
         for THIS_NEXT_EXPERIMENT in experiment_wrapper(args.x.split(','), strict_iterable=True, must_exist=True):
-            if args.temp:
-                THIS_NEXT_EXPERIMENT['name'] = temp_name
-                THIS_NEXT_EXPERIMENT['title'] = temp_name
-            THIS_NEXT_EXPERIMENT['temp'] = args.temp
+            if args.temp is not None:
+                THIS_NEXT_EXPERIMENT['name'] = args.temp
+                THIS_NEXT_EXPERIMENT['title'] = args.temp
+                THIS_NEXT_EXPERIMENT['temp'] = True
+                THIS_NEXT_EXPERIMENT['temp_source'] = args.temp_source
+            else:
+                THIS_NEXT_EXPERIMENT['temp'] = False
 
             if args.c:
                 THIS_NEXT_EXPERIMENT['comment'] = args.c
@@ -167,8 +189,12 @@ if __name__ == "__main__":
             console.print(THIS_NEXT_EXPERIMENT)
 
             #Load sentence transformer and elastic session
-            
             sess = Session(index, base_path="..", cache_dir="../cache", use= ("client" if args.no_cache else "cache"))
+
+            cpu_model = None
+            if args.device == "cpu":
+                cpu_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
+
             docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
 
             #Path where the experiments will be stored
@@ -176,7 +202,7 @@ if __name__ == "__main__":
             os.makedirs(dir_path, exist_ok=True)
 
             #Mark experiment as temporary by creating a hidden file in the experiment directory
-            if args.temp: 
+            if args.temp is not None: 
                 open(os.path.join(dir_path, ".temp"), "w").close()
 
             procs = []
@@ -185,12 +211,24 @@ if __name__ == "__main__":
 
             t = time.time()
 
-            records = []
-            
-            mp.set_start_method('spawn', force=True)
-            with mp.Pool(processes=args.nprocs, initializer=initializer, initargs=(THIS_NEXT_EXPERIMENT, index)) as pool:
-                for res in pool.imap_unordered(work, docs):
-                    console.print(res)
-                    records.append(res)
+            '''
+            #Serial test
+            initializer(THIS_NEXT_EXPERIMENT, index, cpu_model)
+            for doc in docs:
+                console.print(work(doc))
+            '''
 
-            console.print(f"Total time: {round(time.time() - t, 3):.3f}s")
+            #mp.set_start_method('spawn', force=True)
+            with Pool(processes=args.nprocs, initializer=initializer, initargs=(THIS_NEXT_EXPERIMENT, index, cpu_model)) as pool:
+                for res in pool.imap_unordered(work, docs):
+                    #console.print(res)
+                    time_records.append(res)
+
+            console.print(f"\nTotal time: {round(time.time() - t, 3):.3f}s\n")
+
+        df = pd.DataFrame(time_records)
+        df.set_index(['doc', 'exp'], inplace=True)
+        print(df)
+        print()
+
+        

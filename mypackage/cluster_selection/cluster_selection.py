@@ -2,7 +2,7 @@
 from ..elastic import Session, ElasticDocument
 from ..query import Query
 from .classes import SelectedCluster
-from ..storage.load import load_pickles
+from ..storage import PickleSession, MongoSession, DatabaseSession
 from ..helper import panel_print
 from .helper import print_candidates
 
@@ -22,9 +22,9 @@ import textwrap
 
 #=====================================================================================================
     
-def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, method: str = "thres", base_path: str = ".", experiment: str = "default") -> list[SelectedCluster]:
+def cluster_retrieval(sess: Session, db: DatabaseSession, docs: list[ElasticDocument], query: Query, method: str = "thres", base_path: str = ".", experiment: str = "default") -> list[SelectedCluster]:
     #Load the clusters corresponding to the retrieved documents
-    pkl_list = load_pickles(sess, f"{base_path}/experiments/{sess.index_name}/pickles/{experiment}", docs = docs)
+    processed_docs = db.load(sess, docs)
 
     #Extract all the clusters from all the retrieved documents, into one container
     #Keep track which document each cluster came from
@@ -32,8 +32,8 @@ def cluster_retrieval(sess: Session, docs: list[ElasticDocument], query: Query, 
     clusters = []
     doc_labels = []
 
-    for doc_number, pkl in enumerate(pkl_list):
-        for cluster in pkl.clustering:
+    for doc_number, proc_doc in enumerate(processed_docs):
+        for cluster in proc_doc.clustering:
             if cluster.label > -1:
                 clusters.append(cluster)
                 doc_labels.append(doc_number)

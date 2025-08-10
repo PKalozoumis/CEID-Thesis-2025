@@ -3,6 +3,23 @@ import sys
 
 sys.path.append(os.path.abspath("../.."))
 
+import argparse
+
+#=================================================================================================================
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Evaluation of preprocessing results")
+    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
+    parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
+    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
+    parser.add_argument("mode", nargs="?", action="store", type=str, help="What to compare (e.g. doc means iterate over experiments, create separate tables for them, and for each experiment compare the docs)", choices=[
+        "doc", #Compare documents for each separate experiment
+        "exp"  #Compare experiments for each separate document
+    ], default="doc")
+    args = parser.parse_args()
+
+#=================================================================================================================
+
 from collections import namedtuple
 from mypackage.elastic import Session, ElasticDocument
 from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION
@@ -13,12 +30,11 @@ from mypackage.clustering import ChainClustering
 
 import numpy as np
 
-from helper import experiment_wrapper, CHOSEN_DOCS, document_index, experiment_names_from_dir
-from mypackage.storage.load import load_pickles, ProcessedDocument
+from helper import experiment_wrapper, CHOSEN_DOCS, document_index
+from mypackage.storage import PickleSession, MongoSession, DatabaseSession, ProcessedDocument
 
 import pickle
 from itertools import chain
-import argparse
 import json
 
 from rich.console import Console, Group
@@ -39,15 +55,6 @@ console = Console()
 #=================================================================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Evaluation of preprocessing results")
-    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
-    parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
-    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
-    parser.add_argument("mode", nargs="?", action="store", type=str, help="What to compare", choices=[
-        "doc", #Compare documents for each separate experiment
-        "exp"  #Compare experiments for each separate document
-    ], default="doc")
-    args = parser.parse_args()
 
     indexes = args.i.split(",")
 
@@ -56,6 +63,8 @@ if __name__ == "__main__":
             raise DEVICE_EXCEPTION("THE DOCUMENTS MUST CHOOSE... TO EXIST IN ALL, IT INVITES FRACTURE.")
 
     #-------------------------------------------------------------------------------------------
+
+    db = PickleSession()
 
     for index in indexes:
         console.print(f"\nRunning for index '{index}'")
@@ -69,6 +78,7 @@ if __name__ == "__main__":
         #-------------------------------------------------------------------------------------------
         os.makedirs(os.path.join(index, "stats"), exist_ok=True)
         sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
+        db.base_path = os.path.join(sess.index_name, "pickles")
 
         if args.mode == "doc":
             workbook = xlsxwriter.Workbook("documents.xlsx")
@@ -79,7 +89,9 @@ if __name__ == "__main__":
             #We iterate over all the experiments
             #For each experiment, we want to see how all documents behave
             #Only then do we move on the next experiment
-            for experiment in experiment_names_from_dir(os.path.join(sess.index_name, "pickles"), args.x):
+            for experiment in db.available_experiments(args.x):
+                db.sub_path = experiment
+
                 chain_rows = defaultdict(list)
                 cluster_rows = defaultdict(list)
                 stat_rows = defaultdict(list)
@@ -87,7 +99,7 @@ if __name__ == "__main__":
 
                 rich_group_items = []
 
-                pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", experiment), docs_to_retrieve)
+                pkl = db.load(sess, docs_to_retrieve)
                 out = []
 
                 #Iterate over the documents
@@ -141,7 +153,7 @@ if __name__ == "__main__":
         #==========================================================================================================================
 
         elif args.mode == "exp":
-            experiments = experiment_names_from_dir(os.path.join(sess.index_name, "pickles"), args.x)
+            experiments = db.available_experiments(args.x)
 
             #if len(experiments) < 2:
                 #raise Exception("I SEE, YOU INTEND FOR NO CORRELATION")
@@ -169,7 +181,8 @@ if __name__ == "__main__":
                     rich_group_items = []
 
                     #Open only one experiment
-                    pkl = load_pickles(sess, os.path.join(sess.index_name, "pickles", xp_name), doc)
+                    db.sub_path = xp_name
+                    pkl = db.load(sess, doc)
 
                     #Add new column (for new experiment) to the table data
                     #-----------------------------------------------------------------------
@@ -209,3 +222,5 @@ if __name__ == "__main__":
                 console.print(Padding(Panel(Group(*rich_group_items), title=f"{document_index(index, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
 
             workbook.close()
+            
+        db.close()

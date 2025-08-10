@@ -9,6 +9,8 @@ from matplotlib.axes import Axes
 from ..sentence import SentenceChain
 from .classes import ChainCluster, ChainClustering
 
+import time
+
 #===================================================================================================
 
 def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) -> dict[int, list[SentenceChain]]:
@@ -83,16 +85,22 @@ def chain_clustering(
         #Set them as rows of a new matrix
         matrix = np.array([chain.vector for chain in chains])
 
+        times = {}
+
+        times['umap_time'] = time.time()
         if n_components is not None:
             #Reduce dimensionality before clustering
             clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", output_metric="euclidean", random_state=42, min_dist=min_dista)
             reduced_matrix = clustering_reducer.fit_transform(matrix)
         else:
             reduced_matrix = matrix
+        times['umap_time'] = round(time.time() - times['umap_time'], 3)
 
         #Cluster
+        times['cluster_time'] = time.time()
         model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean")
         clustering = model.fit(reduced_matrix)
+        times['cluster_time'] = round(time.time() - times['cluster_time'], 3)
 
     clusters = group_chains_by_label(chains, clustering.labels_)
     clustered_chains = {}
@@ -101,7 +109,7 @@ def chain_clustering(
     for label, cluster in clusters.items():
         clustered_chains[label] = ChainCluster(cluster, label, pooling_method, normalize=normalize)
 
-    return ChainClustering(chains, list(clustering.labels_), clustered_chains)
+    return ChainClustering(chains, list(clustering.labels_), clustered_chains, times)
 
 #===================================================================================================
 
