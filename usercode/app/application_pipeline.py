@@ -2,37 +2,20 @@ import os
 import sys
 sys.path.append(os.path.abspath("../.."))
 
-from mypackage.elastic import Session, ElasticDocument, Document
+from mypackage.elastic import Session, ElasticDocument
 from mypackage.clustering.metrics import cluster_stats
-from mypackage.helper import panel_print, rich_console_text, NpEncoder
 from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
 from mypackage.llm import LLMSession
-from mypackage.sentence import doc_to_sentences
 
-from functools import partial
+from application_classes import Arguments
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
-import argparse
 from collections import defaultdict
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 import time
-from itertools import chain
-import traceback
-import json
-
-from rich.pretty import Pretty
-from rich.console import Console
-from rich.live import Live
-from rich.rule import Rule
-from rich.padding import Padding
-from rich.tree import Tree
-
-from classes import Message, Arguments
-
 from flask_socketio import SocketIO
+from rich.console import Console
 
 console = Console()
 message_sender = None
@@ -203,10 +186,6 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
         res = unit.pretty_print(show_added_context=True, show_chain_indices=True, return_text=True)
         message_sender("ansi_text", res)
 
-    #When an error occurs, we tell the summarizer to stop, so that the connection to the LLM terminates
-    #This prevents the LLM from generating more tokens
-    #stop_dict = {'force_stop': False, 'stopped': False}
-
     if args.summ:
         is_first_fragment = True
 
@@ -219,31 +198,22 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
 
         #Generate the fragments
         for fragment, citation in summarizer.summarize(unit, stop_dict, cache_prompt=True):
-            try:
-                if is_first_fragment:
-                    times['summary_response_time'] = time.time() - times['summary_response_time']
-                    message_sender('time', {'summary_response_time': times['summary_response_time']})
-                    is_first_fragment = False
-                if stop_dict['stopped']:
-                    break
+            
+            if is_first_fragment:
+                times['summary_response_time'] = time.time() - times['summary_response_time']
+                message_sender('time', {'summary_response_time': times['summary_response_time']})
+                message_sender("fragment", fragment)
+                is_first_fragment = False
+            else:
+                if citation is not None:
+                    message_sender("fragment_with_citation", {'fragment': fragment, 'citation': citation})
                 else:
-                    if citation is not None:
-                        message_sender("fragment_with_citation", {'fragment': fragment, 'citation': citation})
-                    else:
-                        message_sender("fragment", fragment)
-
-            except GeneratorExit:
-                stop_dict['force_stop'] = True
-                console.print("[red]Client disconnected[/red]")
-            except BrokenPipeError:
-                stop_dict['force_stop'] = True
-                console.print("[red]Client disconnected (broken pipe)[/red]")
+                    message_sender("fragment", fragment)
 
         times['summary_time'] = time.time() - times['summary_time']
         message_sender('time', {'summary_time': times['summary_time']})
     
-    if not stop_dict['force_stop']:
-        message_sender("end", 1)
+    message_sender("end", 1)
 
 #===============================================================================================================
 

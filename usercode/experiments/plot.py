@@ -2,6 +2,27 @@ import sys
 import os
 sys.path.append(os.path.abspath("../.."))
 
+import argparse
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", action="store", default=None)
+    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
+    parser.add_argument("-x", nargs="?", action="store", type=str, default=None, help="Experiment name. Name of subdir in pickle/, images/ and /params")
+    parser.add_argument("p", nargs="?", action="store", type=str, help="The type of plot to make", choices=[
+        "full",
+        "compare",
+        "interdoc",
+        "interdoc2",
+        "centroids",
+        "query"
+    ], default="full")
+    parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=VALID_METRICS)
+    parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
+    parser.add_argument("--no-outliers", action="store_true", default=False, help="Removes outliers from the visualization")
+
+    args = parser.parse_args()
+
 from rich.console import Console
 from functools import partial
 
@@ -10,12 +31,11 @@ from sentence_transformers import SentenceTransformer
 from mypackage.elastic import ElasticDocument, Session
 from mypackage.clustering import visualize_clustering
 from mypackage.clustering.metrics import clustering_metrics, VALID_METRICS
-from mypackage.storage import load_pickles, ProcessedDocument
+from mypackage.storage.load import load_pickles, ProcessedDocument
 from mypackage.helper import DEVICE_EXCEPTION
 import pickle
 from collections import namedtuple
 from multiprocessing import Process, set_start_method
-import argparse
 import json
 import shutil
 
@@ -28,7 +48,6 @@ from matplotlib.lines import Line2D
 
 import numpy as np
 from helper import experiment_wrapper, CHOSEN_DOCS, document_index, experiment_names_from_dir
-from mypackage.storage import load_pickles
 import math
 import warnings
 
@@ -205,23 +224,6 @@ def centroids(pkl_list: list[ProcessedDocument], imgpath, sess: Session, extra_v
 #=============================================================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", action="store", default=None)
-    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
-    parser.add_argument("-x", nargs="?", action="store", type=str, default=None, help="Experiment name. Name of subdir in pickle/, images/ and /params")
-    parser.add_argument("p", nargs="?", action="store", type=str, help="The type of plot to make", choices=[
-        "full",
-        "compare",
-        "interdoc",
-        "interdoc2",
-        "centroids",
-        "query"
-    ], default="full")
-    parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=VALID_METRICS)
-    parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
-    parser.add_argument("--no-outliers", action="store_true", default=False, help="Removes outliers from the visualization")
-
-    args = parser.parse_args()
 
     #---------------------------------------------------------------------------------------
 

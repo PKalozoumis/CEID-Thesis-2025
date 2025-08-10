@@ -14,7 +14,7 @@ from mypackage.clustering import ChainClustering
 import numpy as np
 
 from helper import experiment_wrapper, CHOSEN_DOCS, document_index, experiment_names_from_dir
-from mypackage.storage import load_pickles, ProcessedDocument
+from mypackage.storage.load import load_pickles, ProcessedDocument
 
 import pickle
 from itertools import chain

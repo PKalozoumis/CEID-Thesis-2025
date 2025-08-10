@@ -2,13 +2,14 @@ import os
 import sys
 sys.path.append(os.path.abspath("../.."))
 
-from flask import Flask, request, make_response, Response
-from flask_socketio import SocketIO, send
-from usercode.server.application_pipeline import pipeline
+from flask import Flask, request, jsonify
+from flask_socketio import SocketIO
 from rich.console import Console
-from classes import Arguments
 from mypackage.llm import LLMSession
 import argparse
+
+from application_pipeline import pipeline
+from application_classes import Arguments
 
 console = Console()
 app = Flask(__name__)
@@ -17,7 +18,7 @@ socketio = SocketIO(app)
 #==================================================================================
 
 cached_prompt = False
-stop_dict = {'force_stop': False, 'stopped': False}
+stop_dict = {'force_stop': False, 'stopped': False, 'conn': None}
 server_args = None
 
 @socketio.on("connect", namespace="/query")
@@ -35,8 +36,14 @@ def query(data):
 
 @socketio.on('disconnect', namespace="/query")
 def on_disconnect():
+    if stop_dict['conn'] is not None:
+        stop_dict['conn'].disconnect()
     stop_dict['force_stop'] = True
     console.print(f"[red]Client {request.sid} disconnected[/red]")
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
 
 #Main
 #Only if running from pure flask
@@ -45,9 +52,13 @@ def on_disconnect():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--llm-backend", action="store", type=str, choices=["llamacpp", "lmstudio"], default="lmstudio")
-    parser.add_argument("--host", action="store", type=str, choices=["llamacpp", "lmstudio"], default="localhost:8080")
+    parser.add_argument("--host", action="store", type=str, default="localhost:1234")
     parser.add_argument("-p", "--port", action="store", type=int, help="Server port", default=1225)
+    parser.add_argument("--no-cache", action="store_true", help="Disable system prompt caching", default=False)
     server_args = parser.parse_args()
 
-    #LLMSession.create(args.llm_backend).cache_system_prompt()
+    if not server_args.no_cache:
+        console.print("Caching system prompt...")
+        LLMSession.create(server_args.llm_backend).cache_system_prompt()
+    
     socketio.run(app, port=server_args.port)

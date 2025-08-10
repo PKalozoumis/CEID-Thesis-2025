@@ -8,7 +8,7 @@ import re
 
 from mypackage.elastic import Session, ElasticDocument
 from mypackage.helper import panel_print, DEVICE_EXCEPTION
-from mypackage.storage import load_pickles
+from mypackage.storage.load import load_pickles
 from mypackage.cluster_selection import RelevanceEvaluator, SummaryCandidate
 from mypackage.query import Query
 from sentence_transformers import CrossEncoder

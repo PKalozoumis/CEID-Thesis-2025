@@ -2,50 +2,25 @@ import os
 import sys
 sys.path.append(os.path.abspath("../.."))
 
+from mypackage.helper import panel_print
+
 import socketio
 import socketio.exceptions
 import asyncio
 import asyncio.exceptions
-
-from typing import Literal, get_origin, get_args, Any
-from dataclasses import fields
 import argparse
-import sseclient
-import json
+from collections import defaultdict
 
-from mypackage.helper import panel_print
+from application_classes import Arguments
 
 from rich.pretty import Pretty
 from rich.console import Console
 from rich.live import Live
 from rich.rule import Rule
-from rich.padding import Padding
 from rich.tree import Tree
-
-from classes import Message, Arguments
-from collections import defaultdict
-
-import time
 
 console = Console()
 sio = socketio.AsyncClient()
-
-
-@sio.event(namespace="/query")
-async def connect():
-    console.print("[green]Connected to server successfully[/green]\n")
-    #Send query and arguments to the server
-    await sio.emit('init_query', data_to_send, namespace="/query")
-
-@sio.event(namespace="/query")
-async def disconnect():
-    global end
-    console.print("Disconnecting from server...\n")
-    end = True
-
-@sio.event(namespace="/query")
-async def message(data):
-    console.print(f"[cyan][MESSAGE][/cyan]: {data}")
 
 #===============================================================================================================
 
@@ -99,6 +74,24 @@ async def print_times():
 
     console.print(tree)
     print()
+
+#===============================================================================================================
+
+@sio.event(namespace="/query")
+async def connect():
+    console.print("[green]Connected to server successfully[/green]\n")
+    #Send query and arguments to the server
+    await sio.emit('init_query', data_to_send, namespace="/query")
+
+@sio.event(namespace="/query")
+async def disconnect():
+    global end
+    console.print("Disconnecting from server...\n")
+    end = True
+
+@sio.event(namespace="/query")
+async def message(data):
+    console.print(f"[cyan][MESSAGE][/cyan]: {data}")
 
 #===============================================================================================================
 
@@ -206,20 +199,17 @@ async def main_loop():
             await print_times()
             print("Stopping...")
             return
-        await asyncio.sleep(0.001) #my fucking head hurts
+        await asyncio.sleep(0.001)
 
 #===============================================================================================================
 
 async def main():
     global data_to_send
-    global live
     global args
 
     parser = argparse.ArgumentParser()
     Arguments.setup_arguments(parser)
     args = Arguments.from_argparse(parser.parse_args())
-    #live = Live(panel_print(return_panel=True), refresh_per_second=10)
-    #live.start()
 
     query = "What are the primary behaviours and lifestyle factors that contribute to childhood obesity"
     experiment_list = args.x.split(",")
@@ -247,39 +237,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-    '''
-    try:    
-
-        messages = sseclient.SSEClient('http://localhost:4625/query', params={
-            'q': query,
-            **args.get_dict(ignore_defaults=True),
-            'x': experiment
-        })
-
-        #Receiving messages
-        #---------------------------------------------------------------
-        message_stream = map(lambda event: Message.from_sse_event(event), messages)
-
-        console.print(f"\n[green]Query:[/green] [#ffffff]\"{query}\"[/#ffffff]\n")
-        
-        for msg in message_stream:
-            message_handler(msg)
-
-            #What to do with the new state
-            if receiving_fragments:
-                live.update(panel_print(full_text, return_panel=True))
-            if end:
-                messages.resp.close()
-                print_times()
-                break
-
-        #Prepare for next experiment
-        if len(experiment_list) > 1:
-            reset_state()
-
-    except (Exception, KeyboardInterrupt):
-        messages.resp.close()
-        print_times()
-        print("Stopping...")
-    '''

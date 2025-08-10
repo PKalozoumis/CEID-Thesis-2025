@@ -1,8 +1,5 @@
-from mypackage.helper import NpEncoder
-
 from dataclasses import dataclass, field, fields
-from typing import Literal, get_origin, get_args, Any
-import json
+from typing import Literal, get_origin, get_args
 import argparse
 
 #========================================================================================================================
@@ -121,30 +118,3 @@ class Arguments():
 
     def __rich__(self):
         return self.to_dict()
-
-#========================================================================================================================
-
-@dataclass
-class Message():
-    type: str
-    contents: Any = field(default=None)
-
-    @classmethod
-    def from_sse_event(cls, event):
-        try:
-            obj = json.loads(event.data)
-            return cls(obj['type'], obj['contents'])
-        except:
-            print(event)
-
-    def to_json(self, string=False) -> dict:
-        data = {'type': self.type, 'contents': self.contents}
-        if string:
-            return json.dumps(data, cls=NpEncoder, ensure_ascii=False)
-        return data
-
-    def to_sse(self):
-        return f"data: {self.to_json(string=True)}\n\n".encode("utf-8")
-    
-    
-#========================================================================================================================

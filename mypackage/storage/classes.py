@@ -1,12 +1,14 @@
-from ..elastic import Document
-from ..clustering import ChainCluster, ChainClustering
-from ..sentence import Sentence, SentenceChain
+from __future__ import annotations
 
-from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..elastic import Document
+    from ..clustering import ChainCluster, ChainClustering
+    from ..sentence import Sentence, SentenceChain
 
 #==========================================================================================================
 
-@dataclass
 class ProcessedDocument():
     '''
     The preprocessing result (embeddings, chains and clusters) for a specific document.
@@ -15,7 +17,13 @@ class ProcessedDocument():
     doc: Document
     clustering: ChainClustering
     sentences: list[Sentence]
-    params: dict = field(default=None)
+    params: dict
+
+    def __init__(self, doc: Document, clustering: ChainClustering, sentences: list[Sentence], params: dict = None):
+        self.doc = doc
+        self.clustering = clustering
+        self.sentences = sentences
+        self.params = params
 
     @property
     def chains(self) -> list[SentenceChain]:

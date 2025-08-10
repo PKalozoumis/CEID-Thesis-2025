@@ -2,12 +2,32 @@ import sys
 import os
 sys.path.append(os.path.abspath("../.."))
 
-from rich.console import Console
-from mypackage.elastic import Session
 import argparse
+
+#ARGUMENT PARSING
+#=============================================================================================================
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", action="store", type=str, help="Operation to perform", choices = [
+        "read", #Reads the parameters (experiment) used for a specific pickle file
+        "clear-unused", #Removes unused experiments from the specified index
+        "clear-temp", #Removes temporary experiments from the specified index
+        "list-unused",
+        "list-temp"
+    ])
+    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
+    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
+    parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
+    args = parser.parse_args()
+
+#IMPORTS
+#=============================================================================================================
+from rich.console import Console
+from mypackage.elastic import Session       
 from mypackage.helper import panel_print
 from helper import CHOSEN_DOCS, document_index, all_experiments, experiment_names_from_dir
-from mypackage.storage import load_pickles
+if args.mode == "read":
+    from mypackage.storage.load import load_pickles
 from rich.pretty import Pretty
 from rich.rule import Rule
 import shutil
@@ -18,19 +38,6 @@ console = Console()
 #=============================================================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("mode", action="store", type=str, help="Operation to perform", choices = [
-        "read", #Reads the parameters (experiment) used for a specific pickle file
-        "clear", #Removes unused experiments from the specified index
-        "clear-temp", #Removes temporary experiments from the specified index
-        "list-unused",
-        "list-temp"
-    ])
-    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
-    parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
-    parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
-    args = parser.parse_args()
-
     indexes = args.i.split(",")
 
     if len(indexes) > 1:
@@ -64,7 +71,7 @@ if __name__ == "__main__":
 
         #-------------------------------------------------------------------------------------------
 
-        elif args.mode in ["clear", "clear-temp"]:
+        elif args.mode in ["clear-unused", "clear-temp"]:
             base_path = os.path.join(index, "pickles")
             experiment_names = set(all_experiments(names_only=True))
 
@@ -75,7 +82,7 @@ if __name__ == "__main__":
 
                     is_temp = os.path.exists(os.path.join(exp_path, ".temp"))
 
-                    if (args.mode == "clear" and not is_temp) or (args.mode == "clear-temp" and is_temp):
+                    if (args.mode == "clear-unused" and not is_temp) or (args.mode == "clear-temp" and is_temp):
                         removed = True
                         shutil.rmtree(exp_path)
                         console.print(f"Removed {dir}")

@@ -3,17 +3,13 @@ from __future__ import annotations
 import requests
 import json
 from abc import ABC, abstractmethod
-
 import lmstudio as lms
-from lmstudio import LMStudioClientError, LlmPredictionConfig
+from lmstudio import LlmPredictionConfig
 import platform
 import netifaces
 import re
 
-
-from typing import TYPE_CHECKING, Literal
-if TYPE_CHECKING:
-    from .summarization.classes import SummarySegment
+from typing import Literal, Any
 
 #================================================================================================
 
@@ -21,6 +17,7 @@ class LLMSession(ABC):
     model_name: str
     api_host: str
     cache_prompt: bool
+    connection_obj: Any
 
     system_prompt = f'''You are a summarization expert. Given a query and a series of facts, you write a detailed, comprehensive summary that fully answers the query using only information from the facts.
 
@@ -65,7 +62,11 @@ The Amazon rainforest contains over 390 billion trees, yet deforestation has inc
         pass
 
     @abstractmethod
-    def cache_system_prompt(cls):
+    def cache_system_prompt(self):
+        pass
+
+    @abstractmethod
+    def disconnect(self):
         pass
 
     @classmethod
@@ -96,7 +97,14 @@ class LlamaCppSession(LLMSession):
 
     #-------------------------------------------------------------------------------------------------
 
+    def disconnect(self):
+        self.connection_obj.close()
+
+    #-------------------------------------------------------------------------------------------------
+
     def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+        stop_dict['conn'] = self
+        
         stream = requests.post(f"http://{self.api_host}/chat/completions", stream=True, headers={'Content-Type': 'application/json'}, json={
             'model': "llama",
             'messages': [
@@ -106,37 +114,21 @@ class LlamaCppSession(LLMSession):
             'stream': True,
         })
 
-        try:
-            if stop_dict['force_stop']:
-                stop_dict['stopped'] = True
-                stream.close()
-                yield "."
+        self.connection_obj = stream
+            
+        for line in stream.iter_lines():
+            if line:
+                decoded = line.decode("utf-8")
+                if decoded.startswith("data: "):
+                    data_str = decoded[len("data: "):]
+                    if data_str == "[DONE]":
+                        break
 
-            for line in stream.iter_lines():
-                #Stop on client request
-                #This ensures that the LLM no longer generates tokens
-                if stop_dict['force_stop']:
-                    stop_dict['stopped'] = True
-                    stream.close()
-                    yield "."
-                    break
-                else:
-                    if line:
-                        decoded = line.decode("utf-8")
-                        if decoded.startswith("data: "):
-                            data_str = decoded[len("data: "):]
-                            if data_str == "[DONE]":
-                                break
-
-                            #Extract content from SSE message
-                            event = json.loads(data_str)
-                            content = event['choices'][0]['delta'].get('content', None)
-                            if content is not None:
-                                yield str(content)
-        except KeyboardInterrupt:
-            stream.close()
-            yield "."
-            raise KeyboardInterrupt
+                    #Extract content from SSE message
+                    event = json.loads(data_str)
+                    content = event['choices'][0]['delta'].get('content', None)
+                    if content is not None:
+                        yield str(content)
         
 
 #================================================================================================
@@ -175,16 +167,19 @@ class LMStudioSession(LLMSession):
 
     #-------------------------------------------------------------------------------------------------
 
+    def disconnect(self):
+        self.connection_obj.cancel()
+        self.connection_obj.close()
+
+    #-------------------------------------------------------------------------------------------------
+
     def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+        stop_dict['conn'] = self
+
         chat = lms.Chat()
         chat.add_user_message(self.prompt(query, text))
         stream = self.model.respond_stream(chat)
+        self.connection_obj = stream
 
         for fragment in stream:
-            if stop_dict['force_stop']:
-                stream.cancel()
-                stream.close()
-                stop_dict['stopped'] = True
-                yield "."
-            else:
-                yield fragment.content
+            yield fragment.content

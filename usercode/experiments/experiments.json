@@ -4,7 +4,7 @@
         "chaining_method": "iterative",
         "threshold": 0.6,
         "round_limit": null,
-        "pooling_method": "average",
+        "chain_pooling_method": "average",
         "n_components": 25,
         "min_dista": 0.1,
         "remove_duplicates": true,
@@ -45,7 +45,12 @@
     },
     "most_similar_pooling":{
         "title": "Most similar vector becomes representative",
-        "pooling_method": "most_similar",
-        "cluster_pooling_method": "most_similar"
+        "chain_pooling_method": "most_similar",
+        "clustering_pooling_method": "most_similar"
+    },
+    "average_pooling": {
+        "title": "Average vector becomes representative",
+        "chain_pooling_method": "average",
+        "cluster_pooling_method": "average"
     }
 }

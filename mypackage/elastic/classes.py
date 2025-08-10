@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from elasticsearch import Elasticsearch
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import os
 import json
 from elastic_transport import ObjectApiResponse
@@ -12,7 +12,9 @@ from rich.console import Console
 
 from .elastic import elasticsearch_client
 from ..helper import overrides
-from ..sentence import Sentence
+
+if TYPE_CHECKING:
+    from ..sentence import Sentence
 
 console = Console()
 
