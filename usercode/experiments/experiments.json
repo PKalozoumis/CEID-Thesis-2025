@@ -1,20 +1,4 @@
 {
-    "default": {
-        "title": "Default",
-        "chaining_method": "iterative",
-        "threshold": 0.6,
-        "round_limit": null,
-        "chain_pooling_method": "average",
-        "n_components": 25,
-        "min_dista": 0.1,
-        "remove_duplicates": true,
-        "normalize": true,
-        "min_cluster_size": 3,
-        "min_samples": 5,
-        "n_neighbors": 15,
-        "cluster_pooling_method": "average",
-        "cluster_normalize":true
-    },
     "nochain": {
         "title": "No chaining",
         "chaining_method": "none"

@@ -16,6 +16,7 @@ if __name__ == "__main__":
         "doc", #Compare documents for each separate experiment
         "exp"  #Compare experiments for each separate document
     ], default="doc")
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     args = parser.parse_args()
 
 #=================================================================================================================
@@ -30,7 +31,7 @@ from mypackage.clustering import ChainClustering
 
 import numpy as np
 
-from helper import experiment_wrapper, CHOSEN_DOCS, document_index
+from mypackage.experiments import ExperimentManager
 from mypackage.storage import PickleSession, MongoSession, DatabaseSession, ProcessedDocument
 
 import pickle
@@ -56,6 +57,7 @@ console = Console()
 
 if __name__ == "__main__":
 
+    exp_manager = ExperimentManager("experiments.json")
     indexes = args.i.split(",")
 
     if len(indexes) > 1:
@@ -64,21 +66,24 @@ if __name__ == "__main__":
 
     #-------------------------------------------------------------------------------------------
 
-    db = PickleSession()
+    if args.db == "pickle":
+        db = PickleSession()
+    else:
+        db = MongoSession()
 
     for index in indexes:
         console.print(f"\nRunning for index '{index}'")
         console.print(Rule())
 
         if not args.d:
-            docs_to_retrieve = CHOSEN_DOCS.get(index, list(range(10)))
+            docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
         #-------------------------------------------------------------------------------------------
         os.makedirs(os.path.join(index, "stats"), exist_ok=True)
         sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
-        db.base_path = os.path.join(sess.index_name, "pickles")
+        db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
 
         if args.mode == "doc":
             workbook = xlsxwriter.Workbook("documents.xlsx")
@@ -200,7 +205,7 @@ if __name__ == "__main__":
                 #Write to excel file
                 #-----------------------------------------------------------------------
                 #Creates new tab
-                worksheet = workbook.add_worksheet(f"{document_index(index, doc, i):02}. Doc {doc:04}")
+                worksheet = workbook.add_worksheet(f"{exp_manager.document_index(index, doc, i):02}. Doc {doc:04}")
 
                 #Populate the tab with data
                 table_offset = 0
@@ -219,7 +224,7 @@ if __name__ == "__main__":
                 rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
                 rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
 
-                console.print(Padding(Panel(Group(*rich_group_items), title=f"{document_index(index, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
+                console.print(Padding(Panel(Group(*rich_group_items), title=f"{exp_manager.document_index(index, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
 
             workbook.close()
             

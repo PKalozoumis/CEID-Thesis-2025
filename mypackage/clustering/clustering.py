@@ -107,9 +107,9 @@ def chain_clustering(
 
     #Create cluster objects
     for label, cluster in clusters.items():
-        clustered_chains[label] = ChainCluster(cluster, label, pooling_method, normalize=normalize)
+        clustered_chains[label] = ChainCluster(cluster, int(label), pooling_method, normalize=normalize)
 
-    return ChainClustering(chains, list(clustering.labels_), clustered_chains, times)
+    return ChainClustering(chains, [int(l) for l in clustering.labels_], clustered_chains, times)
 
 #===================================================================================================
 

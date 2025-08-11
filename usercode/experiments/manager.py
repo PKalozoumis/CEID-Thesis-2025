@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     args = parser.parse_args()
 
 #IMPORTS
@@ -25,7 +26,7 @@ if __name__ == "__main__":
 from rich.console import Console
 from mypackage.elastic import Session       
 from mypackage.helper import panel_print
-from helper import CHOSEN_DOCS, document_index, all_experiments
+from mypackage.experiments import ExperimentManager
 from mypackage.storage import DatabaseSession, MongoSession, PickleSession
 from rich.pretty import Pretty
 from rich.rule import Rule
@@ -38,6 +39,7 @@ console = Console()
 
 if __name__ == "__main__":
     indexes = args.i.split(",")
+    exp_manager = ExperimentManager("experiments.json")
 
     if len(indexes) > 1:
         if args.d is not None:
@@ -51,12 +53,16 @@ if __name__ == "__main__":
         console.print(Rule())
 
         if not args.d:
-            docs_to_retrieve = CHOSEN_DOCS.get(index, list(range(10)))
+            docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
         sess = Session(index, use="cache", cache_dir="../cache")
-        db = PickleSession(os.path.join(index, "pickles"))
+
+        if args.db == "pickle":
+            db = PickleSession(os.path.join(index, "pickles"))
+        else:
+            db = MongoSession(db_name=f"experiments_{index}")
 
         #-------------------------------------------------------------------------------------------
 
@@ -65,20 +71,20 @@ if __name__ == "__main__":
             for THIS_NEXT_EXPERIMENT in db.available_experiments(args.x):
                 db.sub_path = THIS_NEXT_EXPERIMENT
                 for i, doc in enumerate(docs_to_retrieve):
-                    title = f"{index} -> {THIS_NEXT_EXPERIMENT} -> {document_index(index, doc, i):02}: Document {doc:04}"
+                    title = f"{index} -> {THIS_NEXT_EXPERIMENT} -> {exp_manager.document_index(index, doc, i):02}: Document {doc:04}"
                     pkl = db.load(sess, doc)
                     panel_print(Pretty(pkl.params), title)
 
         #-------------------------------------------------------------------------------------------
 
         elif args.mode in ["clear-unused", "clear-temp"]:
-            experiment_names = set(all_experiments(names_only=True))
+            experiment_names = exp_manager.experiment_names()
 
             removed = False
             for dir in db.list_experiments():
                 db.sub_path = dir
                 if dir not in experiment_names:
-                    is_temp = db.check_temp()
+                    is_temp = db.is_temp()
                     if (args.mode == "clear-unused" and not is_temp) or (args.mode == "clear-temp" and is_temp):
                         removed = True
                         db.delete()
@@ -92,13 +98,13 @@ if __name__ == "__main__":
         #-------------------------------------------------------------------------------------------
 
         elif args.mode in ["list-unused", "list-temp"]:
-            experiment_names = set(all_experiments(names_only=True))
+            experiment_names = exp_manager.experiment_names()
 
             found = False
             for dir in db.list_experiments():
                 db.sub_path = dir
                 if dir not in experiment_names:
-                    is_temp = db.check_temp()
+                    is_temp = db.is_temp()
                     if (args.mode == "list-unused" and not is_temp) or (args.mode == "list-temp" and is_temp):
                         found = True
                         console.print(f"{dir}")

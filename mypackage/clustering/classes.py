@@ -135,7 +135,7 @@ class ChainCluster:
         return {
             'id': self.doc.id,
             'label': self.label,
-            'centroid': self.centroid,
+            'centroid': self.centroid.tolist() if self.centroid is not None else None, #It's None for outliers
             'pooling_method': self.pooling_method,
             'chains': [
                 c.data() for c in self.chains
@@ -170,7 +170,7 @@ class ChainClustering():
         for cluster in self.clusters.values():
             cluster.clustering_context = self
 
-    def data(self) -> int:
+    def data(self) -> list[dict]:
         return [c.data() for c in self.clusters.values()]
     
     def __iter__(self):

@@ -231,7 +231,11 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
     sess, query, returned_docs = retrieval_stage(**kwargs)
     encode_query(query, **kwargs)
 
-    db = PickleSession(f"{base_path}/experiments/{sess.index_name}/pickles", args.experiment)
+    if server_args.db == "pickle":
+        db = PickleSession(f"{base_path}/experiments/{sess.index_name}/pickles", args.experiment)
+    else:
+        db = MongoSession(db_name=f"experiments_{sess.index_name}", collection=args.experiment)
+
     selected_clusters = retrieve_clusters(sess, db, returned_docs, query, **kwargs)
 
     calculate_cross_scores(query, selected_clusters, **kwargs)

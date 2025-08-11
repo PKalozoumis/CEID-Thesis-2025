@@ -455,11 +455,11 @@ class SentenceChain(SentenceLike):
 
     def data(self) -> dict:
         return {
-            'vector': self.vector,
+            'vector': self.vector.tolist(),
             'offset': self.first_index,
             'pooling_method': self.pooling_method,
             'index': self.chain_index,
-            'sentences': [s.vector for s in self.sentences]
+            'sentences': [s.vector.tolist() for s in self.sentences]
         }
     
     @classmethod

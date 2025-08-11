@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=["silhouette", "flat_silhouette"])
     parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
     parser.add_argument("--no-outliers", action="store_true", default=False, help="Removes outliers from the visualization")
-
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     args = parser.parse_args()
 
 from rich.console import Console
@@ -47,7 +47,7 @@ from matplotlib import MatplotlibDeprecationWarning
 from matplotlib.lines import Line2D
 
 import numpy as np
-from helper import experiment_wrapper, CHOSEN_DOCS, document_index
+from mypackage.experiments import ExperimentManager
 import math
 import warnings
 
@@ -96,7 +96,7 @@ def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess:
 #=============================================================================================================
 
 
-def compare(db: PickleSession, experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
+def compare(db: PickleSession, exp_manager: ExperimentManager, experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
     '''
     Creates multiple figures.
     Each figure compares the clustering results of two or more experiments, on the same document
@@ -138,7 +138,7 @@ def compare(db: PickleSession, experiment_names: str, imgpath, docs: list[int], 
             db.close()
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
-        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{document_index(sess.index_name, doc):02}_{doc}.png"))
+        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc):02}_{doc}.png"))
         plt.close(fig)
 
 #=============================================================================================================
@@ -228,8 +228,7 @@ def centroids(pkl_list: list[ProcessedDocument], imgpath, sess: Session, extra_v
 
 if __name__ == "__main__":
 
-    #---------------------------------------------------------------------------------------
-
+    exp_manager = ExperimentManager("experiments.json")
     indexes = args.i.split(",")
 
     if len(indexes) > 1:
@@ -238,7 +237,10 @@ if __name__ == "__main__":
 
     #---------------------------------------------------------------------------
 
-    db = PickleSession()
+    if args.db == "pickle":
+        db = PickleSession()
+    else:
+        db = MongoSession()
 
     #Run the selected visualization for each of the selected indexes...
     for index in indexes:
@@ -248,7 +250,7 @@ if __name__ == "__main__":
         console.print(f"Making plot: '{args.p}'")
 
         if not args.d:
-            docs_to_retrieve = CHOSEN_DOCS.get(index, list(range(10)))
+            docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
@@ -265,7 +267,8 @@ if __name__ == "__main__":
         
         os.makedirs(imgpath, exist_ok=True)
         sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
-        db.base_path = os.path.join(sess.index_name, "pickles")
+
+        db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
 
         #---------------------------------------------------------------------------
         if args.p == 'full':
@@ -288,7 +291,7 @@ if __name__ == "__main__":
                 args.x = "all"
                 console.print("No experiment was specified, so all will be selected\n")
                 
-            compare(db, args.x, imgpath, docs_to_retrieve, sess, metric=args.metric, no_outliers=args.no_outliers)
+            compare(db, exp_manager, args.x, imgpath, docs_to_retrieve, sess, metric=args.metric, no_outliers=args.no_outliers)
 
         #---------------------------------------------------------------------------
         elif args.p in ['interdoc', 'interdoc2', 'centroids', 'query']:

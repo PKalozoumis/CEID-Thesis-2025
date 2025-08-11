@@ -9,7 +9,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read the sentences and chains of a specific document")
     parser.add_argument("-i", action="store", type=str, help="The index name", default="pubmed")
     parser.add_argument("-d", action="store", type=str, help="Comma-separated list of document IDs")
-    parser.add_argument("-x", action="store", type=str, help="Experiment")
+    parser.add_argument("-x", action="store", type=str, help="Experiment", default="default")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--cache", action="store_true", help="Use the cache")
     group.add_argument("--store", action="store_true", help="Store to cache")
@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", action="store", dest="sentences", default="", type=str)
     parser.add_argument("--compare-sentence-embeddings", help="View sentence for the same document, but different experiments. For debugging")
     parser.add_argument("--list-chains", help="Show chains for the same document, but many different experiments")
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     args = parser.parse_args()
 
 #===============================================================================================================
@@ -49,7 +50,11 @@ if __name__ == "__main__":
 
     os.makedirs("cache", exist_ok=True)
     sess = Session(args.i, cache_dir=("cache" if args.cache else None), use="cache" if args.cache else "client")
-    db = PickleSession(os.path.join("experiments", sess.index_name, "pickles"), args.x)
+
+    if args.db == "pickle":
+        db = PickleSession(os.path.join("experiments", sess.index_name, "pickles"), args.x)
+    else:
+        db = MongoSession(db_name=f"experiments_{sess.index_name}", collection=args.x)
 
     if args.d is None:
         raise DEVICE_EXCEPTION("BUT, THERE WAS NOTHING TO READ")
@@ -59,6 +64,7 @@ if __name__ == "__main__":
         evaluator = RelevanceEvaluator(query, CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2'))
     
     docs = [ElasticDocument(sess, id=id, text_path="article") for id in args.d.split(",")]
+    #print(f"{db.base_path}/{db.sub_path}")
     processed = db.load(sess, docs)
 
     #--------------------------------------------------------------------------------------
