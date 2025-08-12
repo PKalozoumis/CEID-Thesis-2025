@@ -52,7 +52,7 @@ class SimilarityPair:
     #----------------------------------------------------------------------------------------------
 
     @classmethod
-    def from_sentences(cls, s1: SentenceLike, s2: SentenceLike):
+    def from_sentence_like(cls, s1: SentenceLike, s2: SentenceLike):
         return cls(s1, s2, s1.similarity(s2))
     
     #----------------------------------------------------------------------------------------------
@@ -159,7 +159,7 @@ class SentenceChain(SentenceLike):
     sentences: list[Sentence]
     pooling_method: str
     parent_cluster: ChainCluster
-    chain_index: int #Chain order inside the document
+    index: int #Chain order inside the document
 
     VALID_METHODS = ["average", "max", "most_similar", "k_most_similar"]
     EXEMPLAR_BASED_METHODS = ["most_similar", "k_most_similar"]
@@ -184,7 +184,7 @@ class SentenceChain(SentenceLike):
         chain_index: int, optional
             The chain's index in the global list of chains for the document
         '''
-        self.chain_index = chain_index
+        self.index = chain_index
         self.parent_cluster = None
 
         if pooling_method not in SentenceChain.VALID_METHODS:
@@ -402,7 +402,7 @@ class SentenceChain(SentenceLike):
             A list with the next ```n``` chains. If ```n == 1```, then only one ```SentenceChain``` is returned,
             unless ```force_list==True```
         '''
-        res = self.parent_cluster.clustering_context.chains[(self.chain_index + 1) : (self.chain_index + 1 + n)]
+        res = self.parent_cluster.clustering_context.chains[(self.index + 1) : (self.index + 1 + n)]
         if force_list:
             return res
         return res if n > 1 else res[0] 
@@ -428,7 +428,7 @@ class SentenceChain(SentenceLike):
             A list with the previous ```n``` chains. If ```n == 1```, then only one ```SentenceChain``` is returned,
             unless ```force_list==True```
         '''
-        res = self.parent_cluster.clustering_context.chains[self.chain_index - n : self.chain_index]
+        res = self.parent_cluster.clustering_context.chains[self.index - n : self.index]
         if force_list:
             return res
         return res if n > 1 else res[0] 
@@ -436,8 +436,14 @@ class SentenceChain(SentenceLike):
     #--------------------------------------------------------------------------------------------------------------------------
 
     def __str__(self):
-        return f"SentenceChain(index={self.chain_index}, start_offset={self.first_index}, size={self.__len__()}, end_offset={self.first_index + self.__len__() - 1})"
+        return f"SentenceChain(index={self.index}, start_offset={self.first_index}, size={self.__len__()}, end_offset={self.first_index + self.__len__() - 1})"
     
+    def __repr__(self):
+        return f"SentenceChain(i={self.index}, {self.first_index}-{self.first_index + self.__len__() - 1}, size={self.__len__()})"
+
+    #def __rich__(self):
+        #return f"SentenceChain(i={self.chain_index}, {self.first_index}-{self.first_index + self.__len__() - 1}, size={self.__len__()})"
+
     def __iter__(self):
         return iter(self.sentences)
     
@@ -458,7 +464,7 @@ class SentenceChain(SentenceLike):
             'vector': self.vector.tolist(),
             'offset': self.first_index,
             'pooling_method': self.pooling_method,
-            'index': self.chain_index,
+            'index': self.index,
             'sentences': [s.vector.tolist() for s in self.sentences]
         }
     
@@ -468,7 +474,7 @@ class SentenceChain(SentenceLike):
         obj._vector = data['vector']
         obj.pooling_method = data['pooling_method']
         obj.parent_cluster = parent
-        obj.chain_index = data.get('index', None)
+        obj.index = data.get('index', None)
 
         offset = data['offset']
         text = split_to_sentences(doc.text)

@@ -28,9 +28,9 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
                     break
 
             if not big_chain_in_column:
-                temp = f"[{col}]{state.chains[0].chain_index:03}[/{col}]"
+                temp = f"[{col}]{state.chains[0].index:03}[/{col}]"
             else:   
-                temp = f"[{col}]{state.chains[0].chain_index:03}[/{col}]".rjust(19).ljust(23 if c.expandable else 19) if len(state) == 1 else f"[{col}]{state.id}[/{col}]"
+                temp = f"[{col}]{state.chains[0].index:03}[/{col}]".rjust(19).ljust(23 if c.expandable else 19) if len(state) == 1 else f"[{col}]{state.id}[/{col}]"
 
             history_text = f"Chain {temp}" if len(state) == 1 else f"Chains {temp}"
             history_text += f" with score " + f"[cyan]{state.score:.3f}[/cyan]".rjust(20)
@@ -51,7 +51,7 @@ def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = F
         ]
         panel_lines.append(f"Cluster score: " + " [red]->[/red] ".join(cluster_scores))
 
-    panel = panel_print(panel_lines, title= title or f"For cluster {focused_cluster.id}", expand=False, return_panel=return_text)
+    panel = panel_print(panel_lines, title= title or f"For cluster {focused_cluster.id if focused_cluster is not None else None}", expand=False, return_panel=return_text)
     
     if return_text:
         return rich_console_text(panel)

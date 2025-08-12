@@ -122,7 +122,7 @@ def work(doc: ElasticDocument):
 
     #Assign index to each chain
     for i,c in enumerate(merged):
-        c.chain_index = i
+        c.index = i
 
     console.print(f"Document {doc.id:02}: Created {len(merged)} chains")
     record['chain_t'] = round(time.time() - record['chain_t'], 3)

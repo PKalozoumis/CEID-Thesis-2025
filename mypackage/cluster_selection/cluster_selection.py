@@ -97,12 +97,12 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
 
             if not candidate.expandable:
                 for c in candidate.context.chains:
-                    seen_chains.add(c.chain_index)
-                    current_round_forbids[c.chain_index] = pos
+                    seen_chains.add(c.index)
+                    current_round_forbids[c.index] = pos
                 continue
 
             #If I myself am forbidden, I just have to kill myself. It's that simple
-            if candidate.chain.chain_index in seen_chains:
+            if candidate.chain.index in seen_chains:
                 marked_for_deletion[pos] = True
                 continue
 
@@ -129,17 +129,17 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
 
             #Check if the new state is forbidden
             while True:
-                forbidden_chains = [c for c in candidate.context.chains if c.chain_index in seen_chains]
+                forbidden_chains = [c for c in candidate.context.chains if c.index in seen_chains]
 
                 if len(forbidden_chains) == 0:
                     break
                 if len(forbidden_chains) == 1:
                     #Because someone better than us restricted us, that someone has actually already been scored
                     #Let's see if that candidate that restricted us is still better
-                    other_candidate = cluster.candidates[current_round_forbids[forbidden_chains[0].chain_index]]
+                    other_candidate = cluster.candidates[current_round_forbids[forbidden_chains[0].index]]
                     if candidate.score > other_candidate.score:
-                        marked_for_deletion[current_round_forbids[forbidden_chains[0].chain_index]] = True
-                        current_round_forbids[forbidden_chains[0].chain_index] = pos
+                        marked_for_deletion[current_round_forbids[forbidden_chains[0].index]] = True
+                        current_round_forbids[forbidden_chains[0].index] = pos
                         break
                     else:
                         #If this extra chain was forbidden, then I need to delete this state from the history
@@ -156,14 +156,14 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
                     #This is a more serious case
                     #We need to beat both of the candidates that restrict us
                     #Only then is it beneficial for the current candidate to exist
-                    other1 = cluster.candidates[current_round_forbids[forbidden_chains[0].chain_index]]
-                    other2 = cluster.candidates[current_round_forbids[forbidden_chains[1].chain_index]]
+                    other1 = cluster.candidates[current_round_forbids[forbidden_chains[0].index]]
+                    other2 = cluster.candidates[current_round_forbids[forbidden_chains[1].index]]
 
                     if candidate.score > other1.score and candidate.score > other2.score:
-                        marked_for_deletion[current_round_forbids[forbidden_chains[0].chain_index]] = True
-                        marked_for_deletion[current_round_forbids[forbidden_chains[1].chain_index]] = True
-                        current_round_forbids[forbidden_chains[0].chain_index] = pos
-                        current_round_forbids[forbidden_chains[1].chain_index] = pos
+                        marked_for_deletion[current_round_forbids[forbidden_chains[0].index]] = True
+                        marked_for_deletion[current_round_forbids[forbidden_chains[1].index]] = True
+                        current_round_forbids[forbidden_chains[0].index] = pos
+                        current_round_forbids[forbidden_chains[1].index] = pos
                         break
                     else:
                         #The only state we can return to is the initial state
@@ -179,9 +179,9 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
             #I either forbade them already myself, or someone else forbade them
             #The remaining chains, I have to forbid myself
             for c in candidate.context.chains:
-                if c.chain_index not in seen_chains:
-                    seen_chains.add(c.chain_index)
-                    current_round_forbids[c.chain_index] = pos
+                if c.index not in seen_chains:
+                    seen_chains.add(c.index)
+                    current_round_forbids[c.index] = pos
 
             #After checking if my current chains are forbidden, I now have a final set of chains (that I have also forbidden)
             #...I now need to check if anyone below me acquired these chains in the previous round
@@ -189,7 +189,7 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
             #(which are also their only choices, they have not reached the current round yet)
             if prev_round_forbids is not None:
                 for ch in candidate.context.chains:
-                    if pos_to_forbid := prev_round_forbids.get(ch.chain_index, None):
+                    if pos_to_forbid := prev_round_forbids.get(ch.index, None):
                         if pos_to_forbid > pos:
                             pos_to_forbid: int
                             bad = cluster.candidates[pos_to_forbid]
@@ -213,7 +213,7 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
         prev_round_forbids = {}
         for pos, candidate in enumerate(cluster.candidates):
             for ch in candidate.context.chains:
-                prev_round_forbids[ch.chain_index] = pos
+                prev_round_forbids[ch.index] = pos
 
         if not expanded:
             break

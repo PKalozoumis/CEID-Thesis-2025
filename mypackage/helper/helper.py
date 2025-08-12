@@ -198,9 +198,9 @@ def write_to_excel_tab(worksheet, title: str, row_data: dict[str, list], column_
 
 #===================================================================================
 
-def rich_console_text(obj) -> str:
+def rich_console_text(obj, console_width=None) -> str:
     buffer = StringIO()
-    console = Console(file=buffer, force_terminal=True, color_system="truecolor")
+    console = Console(file=buffer, force_terminal=True, color_system="truecolor", width=console_width)
     console.print(obj) #doesn't actually show anything
     return buffer.getvalue()
 

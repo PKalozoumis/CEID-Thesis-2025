@@ -155,7 +155,11 @@ def iterative_merge(
         return [SentenceChain(s, index=i) for i, s in enumerate(sentences)] 
     
     #We check the sentences in pairs to see if their similarity is above the threshold
-    pairs = [SimilarityPair.from_sentences(s1, s2) for s1, s2 in pairwise(sentences)]
+    #Here, it doesn't matter if ```sentences``` is a list of sentences or chains
+    #Either way, the SimilarityPair uses the ```vector``` property which they both have
+    #This means that starting from the second round, we compare chains the same way we compared sentence in the first round
+    #...but using the representative as the vector instead
+    pairs = [SimilarityPair.from_sentence_like(s1, s2) for s1, s2 in pairwise(sentences)]
 
     #No more merging can happen, since all pairs are below the threshold
     #-------------------------------------------------------------------------------------
@@ -201,7 +205,7 @@ def iterative_merge(
         return iterative_merge(result, threshold=threshold, round_limit=round_limit-1, pooling_method=pooling_method, normalize=normalize)
     else: #round_limit == 1
         for i,s in enumerate(result):
-            s.chain_index = i
+            s.index = i
         return result
 
 #============================================================================================

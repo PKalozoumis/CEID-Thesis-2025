@@ -42,10 +42,14 @@ def connect():
 
 @socketio.on("init_query", namespace="/query")
 def query(data):
-    query = data['query']
-    args = Arguments(**data['args'])
-    console.print(args)
-    pipeline(query, stop_dict, socket=socketio, args=args, server_args=server_args)
+    try:
+        query = data['query']
+        args = Arguments(**data['args'])
+        console.print(args)
+        pipeline(query, stop_dict, socket=socketio, args=args, server_args=server_args, console_width=data.get('console_width', None))
+    except:
+        socketio.emit('end', {'status': -1, 'msg': "Internal server error"}, namespace='/query')
+        raise
 
 @socketio.on('disconnect', namespace="/query")
 def on_disconnect():

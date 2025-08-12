@@ -22,6 +22,8 @@ from rich.tree import Tree
 console = Console()
 sio = socketio.AsyncClient()
 
+import shutil
+
 #===============================================================================================================
 
 data_to_send = None
@@ -172,11 +174,12 @@ async def ev_fragment_with_citation(data):
     
 @sio.on("end", namespace="/query")
 async def ev_end(data):
-    global end
-    global live
+    global end, live
+    if data['status'] < 0:
+        console.print(f"[red]{data['msg']}[/red]")
     if live is not None:
         live.stop()
-    end = True
+    await sio.disconnect()
 
 #---
 
@@ -221,7 +224,8 @@ async def main():
         try:
             data_to_send = {
                 'query': query,
-                'args': args.to_dict(ignore_defaults=True, ignore_client_args=True)
+                'args': args.to_dict(ignore_defaults=True, ignore_client_args=True),
+                'console_width': shutil.get_terminal_size().columns
             }
 
             await sio.connect("http://localhost:1225", namespaces=["/query"])

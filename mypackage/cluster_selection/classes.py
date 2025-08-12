@@ -5,6 +5,7 @@ import pickle
 import os
 import numpy as np
 from sentence_transformers import CrossEncoder
+from itertools import chain
 
 from rich.rule import Rule
 from rich.padding import Padding
@@ -16,6 +17,7 @@ from ..query import Query
 from ..clustering import ChainCluster, ChainClustering
 from ..helper import panel_print
 from ..sentence import SentenceLike
+from ..elastic import Document
 
 console = Console()
 
@@ -50,8 +52,10 @@ class RelevanceEvaluator():
 
 class SummaryCandidate():
     '''
-    Represents a list of one or more consecutive chains whose text may be used as input to the summarization model,
-    depending on their relevance to the query. The relevance score of the full span is calculated with a cross-encoder
+    Represents a central chain on which we apply context expansion.
+    It is the input and output of the context expansion process.
+    It is a list of one or more consecutive chains whose text may be used as input to the summarization model.
+    The relevance score of the full span is calculated with a cross-encoder.
     '''
     chain: SentenceChain #The central chain around which we build the context
     selected_state: int #The optimal state from the history
@@ -101,22 +105,22 @@ class SummaryCandidate():
         
         @property
         def id(self) -> str:
-            return f"{self.chains[0].chain_index:03}-{self.chains[-1].chain_index:03}" if len(self.chains) > 1 else f"{self.chains[0].chain_index:03}"
+            return f"{self.chains[0].index:03}-{self.chains[-1].index:03}" if len(self.chains) > 1 else f"{self.chains[0].index:03}"
         
         @property
         def index_range(self) -> range:
             '''
             The range is inclusive
             '''
-            return range(self.chains[0].chain_index, self.chains[-1].chain_index + 1)
+            return range(self.chains[0].index, self.chains[-1].index + 1)
         
         @property
         def first_index(self) -> int:
-            return self.chains[0].chain_index
+            return self.chains[0].index
         
         @property
         def last_index(self) -> int:
-            return self.chains[-1].chain_index
+            return self.chains[-1].index
         
         @property
         def first_sentence_index(self) -> int:
@@ -167,8 +171,8 @@ class SummaryCandidate():
     
     def pretty_text(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False):
 
-        thing1 = lambda c: f"[cyan][{c.chain_index}" + (f" ({len(c)} sentences)" if show_chain_sizes else "") + "]: [/cyan]"
-        thing2 = lambda c: c.text if c.chain_index == self.chain.chain_index else f"[green]{c.text}[/green]"
+        thing1 = lambda c: f"[cyan][{c.index}" + (f" ({len(c)} sentences)" if show_chain_sizes else "") + "]: [/cyan]"
+        thing2 = lambda c: c.text if c.index == self.chain.index else f"[green]{c.text}[/green]"
 
         return "".join([
             (thing1(c) if show_chain_indices else "") +
@@ -227,7 +231,7 @@ class SummaryCandidate():
 
         if constraints is not None:
             #Only keep states that don't have chains in the constraints list
-            temp =  [i for i in temp if not any(it.chain_index in constraints for it in self.history[i].chains)]
+            temp =  [i for i in temp if not any(it.index in constraints for it in self.history[i].chains)]
 
         #This sets the current state as the bare minimum
         #If no one else is above the threshold, we default to the current state
@@ -359,7 +363,7 @@ class SummaryCandidate():
             text.append(Rule())
 
         text = text[:-1]
-        panel_print(text, title=f"For candidate {self.chain.chain_index:03}")
+        panel_print(text, title=f"For candidate {self.chain.index:03}")
 
     #---------------------------------------------------------------------------------------------------
 
@@ -410,10 +414,10 @@ class SummaryCandidate():
     #---------------------------------------------------------------------------------------------------
 
     def __str__(self) -> str:
-        return f"SummaryCandidate(range=[{self.context.chains[0].chain_index}, {self.context.chains[-1].chain_index}], score={self.score:.3f})"
+        return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
     
     def __repr__(self) -> str:
-        return f"SummaryCandidate(range=[{self.context.chains[0].chain_index}, {self.context.chains[-1].chain_index}], score={self.score:.3f})"
+        return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
 
 
 #==========================================================================================================
@@ -436,7 +440,7 @@ class SelectedCluster():
     def store_scores(self, base_path:str) -> dict:
         res = {}
         for candidate in self.candidates:
-            res[candidate.chain.chain_index] = candidate.score
+            res[candidate.chain.index] = candidate.score
 
         with open(os.path.join(base_path, f"{self.id}.pkl"), "wb") as f:
             pickle.dump(res, f)
@@ -445,7 +449,7 @@ class SelectedCluster():
         with open(os.path.join(base_path, f"{self.id}.pkl"), "rb") as f:
             data = pickle.load(f)
 
-        temp = [(data[chain.chain_index], chain) for chain in self.cluster.chains]
+        temp = [(data[chain.index], chain) for chain in self.cluster.chains]
 
         self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(temp, reverse=True)]
 
@@ -477,13 +481,17 @@ class SelectedCluster():
     
     @property
     def id(self) -> str:
-        return self.cluster.id
+        return self.cluster.id if self.cluster is not None else None
     
     @property
     def text(self) -> str:
         #Sort by start
         temp = sorted(self.selected_candidates(), key=lambda x: x.first_index, reverse=False)
         return "\n\n".join([t.text for t in temp])
+    
+    @property
+    def doc(self) -> Document:
+        return self.cluster.doc
     
     @property
     def pretty_text(self) -> str:
@@ -538,7 +546,7 @@ class SelectedCluster():
         '''
         Sort candidates in decreasing order of score
         '''
-        self.candidates = sorted(self.candidates, key=lambda x: (x.score, 6666 - x.chain.chain_index), reverse=True)
+        self.candidates = sorted(self.candidates, key=lambda x: (x.score, 6666 - x.chain.index), reverse=True)
         return self
 
     #---------------------------------------------------------------------------
@@ -599,11 +607,14 @@ class SelectedCluster():
         
     #---------------------------------------------------------------------------
         
-    def context_chains(self) -> list[list[SentenceChain]]:
+    def context_chains(self, flat: bool = False) -> list[SentenceChain] | list[list[SentenceChain]]:
         '''
         List of the releavance-sorted context chains in descending order
         '''
-        return [c.context_chains for c in self.candidates]
+        if not flat:
+            return [c.context.chains for c in self.candidates]
+        else:
+            return list(chain.from_iterable(c.context.chains for c in self.candidates))
     
     #---------------------------------------------------------------------------
     

@@ -116,7 +116,7 @@ class SummaryUnit():
     
     #------------------------------------------------------------------------------------
 
-    def pretty_print(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False, return_text = True):
+    def pretty_print(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False, return_text = True, console_width=None):
 
         if len(self.sorted_candidates) == 0:
             panel = panel_print("But, there was nothing to print", title="Summarization input text (formatted)", return_panel=return_text)
@@ -141,7 +141,7 @@ class SummaryUnit():
         #----------------------------------
         
         if return_text:
-            return rich_console_text(panel)
+            return rich_console_text(panel, console_width=console_width)
 
     #------------------------------------------------------------------------------------
 

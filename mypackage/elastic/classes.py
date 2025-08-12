@@ -14,7 +14,7 @@ from .elastic import elasticsearch_client
 from ..helper import overrides
 
 if TYPE_CHECKING:
-    from ..sentence import Sentence
+    from ..sentence import Sentence, SentenceChain
 
 console = Console()
 
@@ -164,6 +164,12 @@ class Document():
         if type(self.id) is str and self.id.isdigit():
             self.id = int(self.id)
     
+    #--------------------------------------------------------------------------------
+
+    @property
+    def chains(self) -> list[SentenceChain]:
+        return self.sentences[0].parent_chain.parent_cluster.clustering_context.chains
+
     #--------------------------------------------------------------------------------
 
     @classmethod

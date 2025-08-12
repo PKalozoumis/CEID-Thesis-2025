@@ -63,7 +63,7 @@ class DatabaseSession(ABC):
     def load(self, sess: Session, docs: list[int]|list[ElasticDocument]) -> list[ProcessedDocument]: ...
 
     @abstractmethod
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]):
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]) -> ProcessedDocument|list[ProcessedDocument]:
         pass
 
     @abstractmethod
@@ -181,7 +181,13 @@ class PickleSession(DatabaseSession):
 
     #----------------------------------------------------
 
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]):
+    @overload
+    def load(self, sess: Session, docs: int|ElasticDocument) -> ProcessedDocument: ...
+
+    @overload
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument]) -> list[ProcessedDocument]: ...
+
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]) -> ProcessedDocument|list[ProcessedDocument]:
         out = []
 
         for doc in always_iterable(docs):
@@ -323,7 +329,13 @@ class MongoSession(DatabaseSession):
 
     #----------------------------------------------------
 
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]):
+    @overload
+    def load(self, sess: Session, docs: int|ElasticDocument) -> ProcessedDocument: ...
+
+    @overload
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument]) -> list[ProcessedDocument]: ...
+
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]) -> ProcessedDocument|list[ProcessedDocument]:
         out = []
 
         doc_objects = []
