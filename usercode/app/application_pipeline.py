@@ -158,10 +158,11 @@ def expand_context(selected_clusters: list[SelectedCluster], *, query_str: str, 
             context_expansion(focused_cluster, threshold=args.cet)
 
         #Keep candidates that are above a threshold
-        focused_cluster.filter_candidates().merge_candidates()
+        #focused_cluster.filter_candidates().merge_candidates()
+        focused_cluster.filter_and_merge_candidates()
 
         #Send final result of expansion to client
-        res = print_candidates(focused_cluster, title=f"Merged candidates for cluster {focused_cluster.id}", return_text=True)
+        res = print_candidates(focused_cluster, title=f"Merged candidates for cluster {focused_cluster.id}", return_text=True, current_state_only=True)
         if args.print:
             message_sender("ansi_text", res)
 
@@ -259,7 +260,7 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
     #Evaluation
     #--------------------------------------------------------------------------
     doc = returned_docs[0]
-    single_document_cross_score(doc, [sc for sc in selected_clusters if sc.doc.id == doc.id], evaluator)
+    #single_document_cross_score(doc, [sc for sc in selected_clusters if sc.doc.id == doc.id], evaluator)
 
     #Summarization
     #--------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 from .classes import RelevanceEvaluator
 from ..elastic import Document
-from ..cluster_selection import SelectedCluster, SummaryCandidate, context_expansion_generator, print_candidates
+from ..cluster_selection import SelectedCluster, SummaryCandidate, context_expansion_generator, print_candidates, context_expansion
 
 from rich.console import Console
 from rich.rule import Rule
@@ -30,9 +30,9 @@ def single_document_cross_score(doc: Document, selected_clusters: list[SelectedC
     positive_scores = [scores[c.index] for c in positive_chains]
     console.print(f"Positive only: {np.round(np.sum(positive_scores), 3):.3f}")
 
-    console.print(Rule("Document Chains"))
-    for c in positive_chains:
-        console.print(f"[cyan][{c.index}][/cyan] [#FF64DC]({round(scores[c.index], 3):.3f})[/#FF64DC]: [green]{c.text}[/green]\n")
+    #console.print(Rule("Document Chains"))
+    #for c in positive_chains:
+        #console.print(f"[cyan][{c.index}][/cyan] [#FF64DC]({round(scores[c.index], 3):.3f})[/#FF64DC]: [green]{c.text}[/green]\n")
 
     retrieved_chains = sc.context_chains(flat=True)
 
@@ -41,14 +41,15 @@ def single_document_cross_score(doc: Document, selected_clusters: list[SelectedC
 
     fake_selected_cluster = SelectedCluster(None, None, candidates=[SummaryCandidate(c, scores[c.index], evaluator=evaluator) for c in positive_chains])
 
-    for text in context_expansion_generator(fake_selected_cluster):
-        print(text, end="")
-        #message_sender("ansi_text", text)
+    context_expansion(fake_selected_cluster)
+    #for text in context_expansion_generator(fake_selected_cluster):
+        #print(text, end="")
+
     #Keep candidates that are above a threshold
     fake_selected_cluster.filter_candidates()
 
     #Send final result of expansion to client
-    res = print_candidates(fake_selected_cluster, title=f"Merged candidates")
+    #res = print_candidates(fake_selected_cluster, title=f"Filtered candidates")
 
     #for c in retrieved_chains:
         #console.print(f"[cyan][{c.index}][/cyan] [#FF64DC]({round(scores[c.index], 3):.3f})[/#FF64DC]: [green]{c.text}[/green]\n")

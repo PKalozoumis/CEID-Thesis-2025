@@ -18,6 +18,9 @@ from ..clustering import ChainCluster, ChainClustering
 from ..helper import panel_print
 from ..sentence import SentenceLike
 from ..elastic import Document
+from .helper import print_candidates, print_candidate_states
+
+import time
 
 console = Console()
 
@@ -551,41 +554,77 @@ class SelectedCluster():
 
     #---------------------------------------------------------------------------
 
-    def filter_candidates(self, threshold: float = -5) -> SelectedCluster:
+    def filter_candidates(self, negative_threshold: float = -5) -> SelectedCluster:
         '''
         Only keeps candidates that have a cross-score above the threshold
         '''
-        self.candidates = list(filter(lambda x: x.score > threshold, self.candidates))
+        self.candidates = list(filter(lambda x: x.score > negative_threshold, self.candidates))
         return self
     
     #---------------------------------------------------------------------------
-    
-    def merge_candidates(self, threshold: float = 2) -> SelectedCluster:
+
+    def filter_and_merge_candidates(self, negative_threshold: float = -2, good_candidate_threshold: float = 3, max_bridge_distance: int = 2) -> SelectedCluster:
         '''
+        Only keeps candidates that have a cross-score above the threshold
+        '''
+        filtered_candidates = [c for c in self.candidates if c.score > negative_threshold]
+        good_candidates = [c for c in filtered_candidates if c.score >= good_candidate_threshold]
+        bad_candidates = [c for c in filtered_candidates if c.score < good_candidate_threshold]
+
+        #For every good candidate, try to find a bad candidate that is within bridging distance
+        for gc in good_candidates:
+            for bc in bad_candidates:
+                forward_dista = bc.first_index - gc.last_index 
+                backward_dista = gc.first_index - bc.last_index
+
+                #Candidates can be bridged (forward)
+                if 0 <= forward_dista <= max_bridge_distance:
+                    #Try out the following scenarios:
+                    gc.expandable = True
+                    for i in range(len(bc.context)):
+                        gc.add_right_context(forward_dista + i)
+                    
+                    #Select the best scenario
+                    print_candidate_states(gc)
+                    gc.optimize()
+                    print_candidate_states(gc)
+                    gc.clear_history()
+                    gc.expandable = False
+
+        #After this, reject all the bad candidates
+        self.candidates = good_candidates
+
+        #Merge remaining candidates
+        if len(good_candidates) > 0:
+            return self.merge_candidates()
+        return self
+    #---------------------------------------------------------------------------
+    
+    def merge_candidates(self) -> SelectedCluster:
+        '''
+        Merges neighboring chains into one
+
         Merges candidates that contain overlapping chains. A merge only happens between candidates whose scores
         have the same sign (both positive or negative)
 
         NOTE: Maybe this won't be necessary, since the context expansion no longer generates overlapping chains
         '''
+        
         self.candidates = sorted(self.candidates, key=lambda x: x.first_index, reverse=False)
 
         prev = self.candidates[0]
         keep = []
         for candidate in self.candidates[1:]:
-            #We only merge candidates with same sign of relevance score
-            if (prev.score - threshold)*(candidate.score - threshold) >= 0:
-                #There is overlap
-                if candidate.index_range.start in prev.index_range:
-                    print("Overlap detected")
-                    #How many chains do we need to add?
-                    extra_chains = candidate.index_range.stop - prev.index_range.stop
-                    prev.context.chains += candidate.context.chains[len(candidate.context.chains)-extra_chains:]
-                #Neighbors
-                elif candidate.index_range.start == prev.index_range.stop:
-                    prev.context.chains += candidate.context.chains
-                else:
-                    keep.append(prev)
-                    prev = candidate
+            #There is overlap
+            #I don't think this can happen anymore...
+            if candidate.index_range.start in prev.index_range:
+                print("Overlap detected")
+                #How many chains do we need to add?
+                extra_chains = candidate.index_range.stop - prev.index_range.stop
+                prev.context.chains += candidate.context.chains[len(candidate.context.chains)-extra_chains:]
+            #Neighbors
+            elif candidate.index_range.start == prev.index_range.stop:
+                prev.context.chains += candidate.context.chains
             else:
                 keep.append(prev)
                 prev = candidate
