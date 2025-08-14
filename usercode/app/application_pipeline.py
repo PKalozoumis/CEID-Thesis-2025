@@ -58,14 +58,19 @@ def retrieval_stage(sess, query, *, query_str: str, args: Arguments = None, base
 
 #===============================================================================================================
 
-def encode_query(query: Query, *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def encode_query(query: Query, db: DatabaseSession, *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 2 of the pipeline
     '''
     message_sender('info', "Encoding query...")
 
     times['query_encode'] = time.time()
-    sentence_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
+
+    #Find out what model was used for this experiment
+    params = db.get_experiment_params()
+    model_name = params['sentence_model']
+
+    sentence_model = SentenceTransformer(model_name, device='cpu')
     query.encode(sentence_model)
     times['query_encode'] = time.time() - times['query_encode']
 
@@ -176,8 +181,7 @@ def expand_context(selected_clusters: list[SelectedCluster], *, query_str: str, 
             {
                 'id': cluster.id,
                 'original_score': float(cross_scores[i]),
-                'new_score': float(cluster.cross_score),
-                'selected_score': float(cluster.selected_candidate_cross_score)
+                'new_score': float(cluster.cross_score)
             }
             for i, cluster in enumerate(selected_clusters)
         ])
@@ -252,7 +256,7 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
     #Pipeline stages pre-summarization
     #--------------------------------------------------------------------------
     returned_docs = retrieval_stage(sess, query, **kwargs)
-    encode_query(query, **kwargs)
+    encode_query(query, db, **kwargs)
     selected_clusters = retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
     evaluator = calculate_cross_scores(query, selected_clusters, **kwargs)
     expand_context(selected_clusters, **kwargs)

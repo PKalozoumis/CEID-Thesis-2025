@@ -8,6 +8,7 @@ import pickle
 import shutil
 from pymongo import MongoClient, collection, database
 from collections import defaultdict
+import re
 
 from ..clustering import ChainCluster, ChainClustering
 from ..elastic import Document, Session, ElasticDocument
@@ -87,6 +88,10 @@ class DatabaseSession(ABC):
         pass
 
     @abstractmethod
+    def get_experiment_params(self) -> dict:
+        pass
+
+    @abstractmethod
     def is_temp(self) -> bool:
         pass
 
@@ -94,16 +99,10 @@ class DatabaseSession(ABC):
     def set_temp(self):
         pass
 
-    def _restore_clusters(self, doc: Document, data: dict) -> ProcessedDocument:
+    def _restore_clusters(self, doc: Document, data: dict, params: dict = None) -> ProcessedDocument:
         '''
         Recreates all cluster objects for a specific document using the retrieved data
         '''
-        
-        if 'params' in data:
-            params = data['params']
-            data = data['data']
-        else:
-            params = None
 
         #Recreate the cluster dictionary, by mapping each label to its ChainCluster,
         #the same way the clusters are returned from chain_clustering
@@ -203,7 +202,13 @@ class PickleSession(DatabaseSession):
             with open(os.path.join(self.full_path, f"{doc_obj.id}.pkl"), "rb") as f:
                 data = pickle.load(f)
 
-            out.append(self._restore_clusters(doc_obj, data))
+            if 'params' in data:
+                params = data['params']
+                data = data['data']
+            else:
+                params = None
+
+            out.append(self._restore_clusters(doc_obj, data, params))
 
         if isinstance(docs, list):
             return out
@@ -262,6 +267,22 @@ class PickleSession(DatabaseSession):
     
     def list_experiments(self) -> list[str]:
         return os.listdir(self._base_path)
+    
+    #----------------------------------------------------
+
+    def get_experiment_params(self) -> dict:
+        found = None
+        for filename in os.listdir(self.full_path):
+            if filename.endswith(".pkl"):
+                found = os.path.join(self.full_path, filename)
+
+        with open(found, "rb") as f:
+            data = pickle.load(f)
+
+        if 'params' in data:
+            return data['params']
+        else:
+            return None
     
     #----------------------------------------------------
     
@@ -359,10 +380,13 @@ class MongoSession(DatabaseSession):
         cursor = self.collection.find({'id': {'$in': doc_ids}})
         for data in cursor:
             doc_to_clusters[data['id']].append(data)
+
+        #Retrieve params
+        params = self.database['metadata'].find_one({'collection': self.sub_path})['params']
     
         #Create clusters
         for doc_obj in doc_objects:
-           out.append(self._restore_clusters(doc_obj, doc_to_clusters[doc_obj.id]))
+           out.append(self._restore_clusters(doc_obj, doc_to_clusters[doc_obj.id], params))
 
         #Return results
         if isinstance(docs, list):
@@ -389,6 +413,13 @@ class MongoSession(DatabaseSession):
         out = clustering.data()
         self.collection.insert_many(out)
 
+        #Insert metadata
+        self.database['metadata'].update_one(
+            {"collection": self.sub_path},
+            {"$set": {"params": params}},
+            upsert=True
+        )
+
     #----------------------------------------------------
 
     def close(self):
@@ -399,7 +430,7 @@ class MongoSession(DatabaseSession):
     def delete(self):
         self.collection.drop()
         #Delete the respective entry in the temp collection, if exists
-        self.database['temp'].delete_many({self.sub_path: 1})
+        self.database['metadata'].delete_many({'collection': self.sub_path})
 
     #----------------------------------------------------
 
@@ -423,27 +454,32 @@ class MongoSession(DatabaseSession):
     #----------------------------------------------------
     
     def list_experiments(self) -> list[str]:
-        return [name for name in self.database.list_collection_names() if name != "temp"]
+        return [name for name in self.database.list_collection_names() if name != "metadata"]
     
+    #----------------------------------------------------
+
+    def get_experiment_params(self) -> dict:
+        metadata_dict = self.database['metadata'].find_one({"collection": self.sub_path})
+        return metadata_dict['params']
+
     #----------------------------------------------------
     
     def is_temp(self) -> bool:
         current_collection = self.sub_path
-        self.sub_path = "temp"
-        temp_dict = self.collection.find_one({current_collection: 1})
+        self.sub_path = "metadata"
+        metadata_dict = self.collection.find_one({"collection": current_collection})
         self.sub_path = current_collection
-        return temp_dict is not None
+        return metadata_dict is not None and metadata_dict.get('temp', False)
     
     #----------------------------------------------------
 
     def set_temp(self):
         current_collection = self.sub_path
-        self.sub_path = "temp"
+        self.sub_path = "metadata"
 
-        #dummy document
         self.collection.update_one(
-            { current_collection: 1 },
-            { '$setOnInsert': { current_collection: 1 }},
+            {"collection": current_collection},
+            {"$set": {"temp": True}},
             upsert=True
         )
 

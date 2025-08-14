@@ -14,6 +14,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the preprocessing step for the specified documents, and with the specified parameters (experiments)")
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs. Leave blank for a predefined set of test documents")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
+    parser.add_argument("-m", "--model", action="store", type=str, default='sentence-transformers/all-MiniLM-L6-v2', help="Name or alias of the sentence embedding model to use")
     
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
@@ -25,6 +26,8 @@ if __name__ == "__main__":
     parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes")
     parser.add_argument("-dev", "--device", action="store", type=str, default="cpu", choices=["cpu", "gpu"], help="Device for the embedding model")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("--spawn", action="store_true", default=False, help="Set process start method to 'spawn'")
+    
     args = parser.parse_args()
 
 #==============================================================================================
@@ -35,7 +38,7 @@ from functools import partial
 from sentence_transformers import SentenceTransformer
 
 from mypackage.elastic import ElasticDocument, Session
-from mypackage.sentence import doc_to_sentences, chaining
+from mypackage.sentence import doc_to_sentences, chaining, sentence_transformer_from_alias
 from mypackage.clustering import chain_clustering
 from mypackage.helper import DEVICE_EXCEPTION
 import pickle
@@ -61,31 +64,31 @@ db = None
 
 #==============================================================================================
 
-def initializer(p,i,t,db_type,cpu_model = None,):
-    global params, index_name, model, db, is_temp
+def initializer(p,i,_args,cpu_model = None,):
+    global params, index_name, model, args, db
     params=p
     index_name=i
-    is_temp = t
+    args = _args
 
     if cpu_model is None:
         #Initialize the model in each one of the pool's processes
         #This is the only way to use model in GPU, as sharing is not allowed
-        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cuda')
+        model = SentenceTransformer(params['sentence_model'], device='cuda')
     else:
         model = cpu_model
 
     if db is None:
-        if db_type == "pickle":
+        if args.db == "pickle":
             db = PickleSession(os.path.join("..", "experiments", index_name, "pickles"))
             db.sub_path = params['name']
 
-        elif db_type == "mongo":
+        elif args.db == "mongo":
             db = MongoSession(db_name=f"experiments_{index_name}")
             db.sub_path = params['name']
             db.delete() #Drop the collection if it exists
 
     #Mark experiment as temporary by creating a hidden file in the experiment directory
-    if is_temp: 
+    if args.temp is not None: 
         db.set_temp()
         db.is_temp()
 
@@ -93,7 +96,7 @@ def initializer(p,i,t,db_type,cpu_model = None,):
 
 #The preprocessing steps
 def work(doc: ElasticDocument):
-    global params, index_name, model, db, is_temp
+    global params, index_name, model, db, args
 
     record = {
         'doc': doc.id,
@@ -117,7 +120,8 @@ def work(doc: ElasticDocument):
         threshold=params['threshold'],
         round_limit=params['round_limit'],
         pooling_method=params['chain_pooling_method'],
-        normalize=params['normalize']
+        normalize=params['normalize'],
+        min_chains=params['min_chains']
     )
 
     #Assign index to each chain
@@ -210,30 +214,36 @@ if __name__ == "__main__":
             #Load sentence transformer and elastic session
             sess = Session(index, base_path="..", cache_dir="../cache", use= ("client" if args.no_cache else "cache"))
 
+            #Check existence and resolve the model's true name
+            THIS_NEXT_EXPERIMENT['sentence_model'] = sentence_transformer_from_alias(THIS_NEXT_EXPERIMENT['sentence_model'], "../model_aliases.json")
+
             cpu_model = None
             if args.device == "cpu":
-                cpu_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')
+                cpu_model = SentenceTransformer(THIS_NEXT_EXPERIMENT['sentence_model'], device='cpu')
 
             docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
 
             procs = []
 
-            console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
-
             t = time.time()
-
-            '''
-            #Serial test
-            initializer(THIS_NEXT_EXPERIMENT, index, cpu_model)
-            for doc in docs:
-                console.print(work(doc))
-            '''
-
-            #mp.set_start_method('spawn', force=True)
-            with Pool(processes=args.nprocs, initializer=initializer, initargs=(THIS_NEXT_EXPERIMENT, index, args.temp is not None, args.db, cpu_model)) as pool:
-                for res in pool.imap_unordered(work, docs):
-                    #console.print(res)
-                    time_records.append(res)
+            
+            if args.nprocs == 1:
+                console.print("Serial execution")
+                initializer(THIS_NEXT_EXPERIMENT, index, args, cpu_model)
+                for doc in docs:
+                    time_records.append(work(doc))
+            else:
+                console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
+                if args.spawn:
+                    mp.set_start_method('spawn', force=True)
+                with Pool(processes=args.nprocs, initializer=initializer, initargs=(THIS_NEXT_EXPERIMENT, index, args, cpu_model)) as pool:
+                    try:
+                        for res in pool.imap_unordered(work, docs):
+                            time_records.append(res)
+                    except Exception as e:
+                        pool.terminate()
+                        pool.join()
+                        raise e
 
             console.print(f"\nTotal time: {round(time.time() - t, 3):.3f}s\n")
 

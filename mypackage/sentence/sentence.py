@@ -5,6 +5,8 @@ from sentence_transformers import SentenceTransformer
 from itertools import pairwise, starmap
 import re
 from nltk.tokenize import sent_tokenize
+import numpy as np
+import warnings
 
 from rich.table import Table
 from rich.console import Console
@@ -46,36 +48,16 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_
     '''
     sentences = split_to_sentences(doc.text, sep=sep)
 
-    if remove_duplicates:
-        #Deduplicate sentences
-        #Some documents accidentally have the same sentences multiple times BECAUSE THE CREATORS ARE CLOWNS 😬😬😬
-        #Goofy ahh dataset bro istg
-
-        #Btw, ideally this should happen during indexing, but I've already cached these docs...
-
-        seen_sentences = set()
-        deduplicated = []
-
-        for sentence in sentences:
-            if len(sentence.split()) > 7:
-                if sentence in seen_sentences:
-                    #console.print(f"{doc.id}: {sentence}")
-                    print("IMPOSTOR DETECTED 🗣")
-                    pass
-                else:
-                    deduplicated.append(sentence)
-                    seen_sentences.add(sentence)
-    else:
-        deduplicated = sentences
-
     if remove_empty:
-        deduplicated = [txt for txt in deduplicated if not re.match(r"^\s*$", txt)]
+        sentences = [txt for txt in sentences if not re.match(r"^\s*$", txt)]
 
-    embeddings = transformer.encode(deduplicated)
+    embeddings = transformer.encode(sentences)
+
+    #console.print(np.linalg.norm(embeddings, axis=1))
 
     result = []
     result: list[Sentence]
-    for offset, (sentence, embedding) in enumerate(zip(deduplicated, embeddings)):
+    for offset, (sentence, embedding) in enumerate(zip(sentences, embeddings)):
         result.append(Sentence(sentence, embedding, doc, offset))
 
     doc.sentences = result
@@ -111,6 +93,7 @@ def iterative_merge(
         threshold: float = 0.6,
         round_limit: int | None = 1,
         pooling_method: str = "average",
+        min_chains: int = 28,
         normalize: bool = True
     ) -> list[SentenceChain]:
     '''
@@ -138,6 +121,10 @@ def iterative_merge(
         The method we use to generate the new chain vector from the partial ```SentenceLike``` objects' embeddings.
         By default it's ```average```
 
+    min_chains: int
+        Lower bound for the number of chains. If during at iteration the number of chains drops below the min, we fallback to the
+        previous round's results
+
     normalize: bool
         Normalize the representative after pooling. Defaults to ```True```
 
@@ -164,10 +151,10 @@ def iterative_merge(
     #No more merging can happen, since all pairs are below the threshold
     #-------------------------------------------------------------------------------------
     if not any(filter(lambda x: x.sim >= threshold, pairs)):
-        #Very rare. Failure on the first round
+        #Very rare. Failure on the first round, because no pair is above the threshold
         if isinstance(sentences[0], Sentence):
-            print("If you're reading this, there might be a problem")
-            return [SentenceChain(s, index=i) for i, s in enumerate(sentences)] 
+            warnings.warn("No pair of sentences was above the similarity threshold in the first round")
+            return [SentenceChain(s, chain_index=i) for i, s in enumerate(sentences)] 
         
         for i,s in enumerate(sentences):
             s.index = i
@@ -197,16 +184,20 @@ def iterative_merge(
 
     #-------------------------------------------------------------------------------------
 
-    result = [SentenceChain(c, pooling_method, normalize=normalize) for c in chains]
+    if len(chains) < min_chains:
+        warnings.warn(f"Created {len(chains)} chains, which is below the minimum threshold of {min_chains}. Using {len(sentences)} chains of the previous round")
+        return sentences
+    else:
+        result = [SentenceChain(c, pooling_method, normalize=normalize) for c in chains]
     
-    if round_limit is None:
-        return iterative_merge(result, threshold=threshold, round_limit=None, pooling_method=pooling_method, normalize=normalize)
-    elif round_limit > 1:
-        return iterative_merge(result, threshold=threshold, round_limit=round_limit-1, pooling_method=pooling_method, normalize=normalize)
-    else: #round_limit == 1
-        for i,s in enumerate(result):
-            s.index = i
-        return result
+        if round_limit is None:
+            return iterative_merge(result, threshold=threshold, round_limit=None, pooling_method=pooling_method, normalize=normalize, min_chains=min_chains)
+        elif round_limit > 1:
+            return iterative_merge(result, threshold=threshold, round_limit=round_limit-1, pooling_method=pooling_method, normalize=normalize, min_chains=min_chains)
+        else: #round_limit == 1
+            for i,s in enumerate(result):
+                s.index = i
+            return result
 
 #============================================================================================
 

@@ -134,8 +134,6 @@ def compare(db: PickleSession, exp_manager: ExperimentManager, experiment_names:
             #Load experiment to get its title
             score = f" ({clustering_metrics(pkl.clustering, print=False)[metric]['value']:.3f})" if metric is not None else ""
             ax.set_title(pkl.params['title'] + score)
-            
-            db.close()
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
         fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc):02}_{doc}.png"))
@@ -283,7 +281,6 @@ if __name__ == "__main__":
                 
                 full(pkl, imgpath, experiment_name, sess, args.no_outliers)
                 print()
-                db.close()
 
         #---------------------------------------------------------------------------
         elif args.p == 'compare':
@@ -317,4 +314,4 @@ if __name__ == "__main__":
 
                         centroids(pkl, imgpath, sess, extra_vector=query_vector)
 
-                db.close()
+    db.close()

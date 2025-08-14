@@ -144,7 +144,6 @@ async def ev_context_expansion_progress(data):
 @sio.on("cross_scores_2", namespace="/query")
 async def ev_cross_scores_2(data):
     panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['original_score']}[/cyan] -> [cyan]{cluster['new_score']:.3f}[/cyan] ([green]+{round(cluster['new_score'] - cluster['original_score'], 3):.3f}[/green])" for cluster in data], title="Cross-encoder scores of the selected clusters after context expansion")
-    panel_print([f"Cluster [green]{cluster['id']}[/green] score: [cyan]{cluster['selected_score']:.3f}[/cyan]" for cluster in data], title="Cross-encoder scores (only selected candidates considered)")
     
 #---
 

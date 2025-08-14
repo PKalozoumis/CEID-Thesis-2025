@@ -1,0 +1,5 @@
+{
+    "minilm": "sentence-transformers/all-MiniLM-L6-v2",
+    "mpnet": "sentence-transformers/all-mpnet-base-v2",
+    "e5": "embaas/sentence-transformers-e5-large-v2"
+}

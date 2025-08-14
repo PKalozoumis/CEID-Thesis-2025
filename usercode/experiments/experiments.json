@@ -30,11 +30,26 @@
     "most_similar_pooling":{
         "title": "Most similar vector becomes representative",
         "chain_pooling_method": "most_similar",
-        "clustering_pooling_method": "most_similar"
+        "cluster_pooling_method": "most_similar"
     },
     "average_pooling": {
         "title": "Average vector becomes representative",
         "chain_pooling_method": "average",
         "cluster_pooling_method": "average"
+    },
+    "e5": {
+        "title": "Using the e5 sentence embedding model",
+        "sentence_model": "e5",
+        "threshold": 0.9
+    },
+    "mpnet": {
+        "title": "Using the mpnet sentence embedding model",
+        "sentence_model": "sentence-transformers/all-mpnet-base-v2"
+    },
+    "mpnet_most_similar": {
+        "title": "mpnet embeddings w/ most similar pooling",
+        "sentence_model": "sentence-transformers/all-mpnet-base-v2",
+        "chain_pooling_method": "most_similar",
+        "cluster_pooling_method": "most_similar"
     }
 }

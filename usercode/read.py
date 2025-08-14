@@ -1,5 +1,6 @@
 '''
 Print entire document
+See a cluster's text contents
 List specific sentences or chains, alongside their scores
 Dynamically test the effects of chaining and context expansion
 '''
@@ -27,15 +28,17 @@ if __name__ == "__main__":
     parser.add_argument("--compare-sentence-embeddings", action="store_true", default=False, help="View sentence for the same document, but different experiments. For debugging")
     parser.add_argument("--compare-chains", action="store_true", default=False, help="Show chains for the same document, but many different experiments")
 
-    parser.add_argument("-s", action="store", dest="sentences", default="", type=str)
+    parser.add_argument("-s", "--sentences", action="store", dest="sentences", default="", type=str)
     parser.add_argument("--score-sentences", action="store_true", default=False, help="Enable sentence evaluation")
     parser.add_argument("--print-sentences", action="store_true", default=True, dest="print_sentences", help="Print sentence text alongside its score")
     parser.add_argument("--no-print-sentences", action="store_false", default=True, dest="print_sentences", help="Print sentence text alongside its score")
 
-    parser.add_argument("-c", action="store", dest="chains", default="", type=str, help="Comma-separated list of chains to read")
+    parser.add_argument("-c", "--chains", action="store", dest="chains", default="", type=str, help="Comma-separated list of chains to read")
     parser.add_argument("--score-chains", action="store_true", default=False, help="Enable chain evaluation")
     parser.add_argument("--print-chains", action="store_true", default=True, dest="print_chains", help="Print chain text alongside its score")
-    parser.add_argument("--no-print-chains", action="store_false", default=True, dest="print_chains", help="Print chain text alongside its score")    
+    parser.add_argument("--no-print-chains", action="store_false", default=True, dest="print_chains", help="Print chain text alongside its score") 
+
+    parser.add_argument("-cl", "--clusters", action="store", type=str, help="Comma-separated list of clusters to read")   
     
     args = parser.parse_args()
 
@@ -96,6 +99,21 @@ if __name__ == "__main__":
         if args.list_chains:
             console.print(doc.doc.chains)
             sys.exit()
+
+        #==================================================================================================================
+
+        if args.clusters:
+            to_print = []
+            for cluster_idx in args.clusters.split(","):
+                cluster = doc.clusters[int(cluster_idx)]
+                to_print.append(Rule(f"[green]Cluster {cluster.id}[/green]"))
+                for c in cluster.chains:
+                    temp = f"[green]Chain {c.index} (size {len(c)})[/green] [red]->[/red] "
+                    for s in c.sentences:
+                        temp += f"[cyan][{s.index}][/cyan]: {s.text}"
+                    to_print.append(temp + "\n")
+            panel_print(to_print)
+                    
 
         #==================================================================================================================
 

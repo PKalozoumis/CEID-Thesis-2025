@@ -71,16 +71,16 @@ class SummaryUnit():
             clusters_per_doc: list[list[SelectedCluster]]
 
             #Sort document lists by the sum of cluster scores
-            clusters_per_doc.sort(key=lambda cluster_list: sum(c.selected_candidate_cross_score for c in cluster_list), reverse=True)
+            clusters_per_doc.sort(key=lambda cluster_list: sum(c.cross_score for c in cluster_list), reverse=True)
 
             #From each cluster, extract selected candidates and sort them by either relevance or appearance
             self.sorted_candidates = [
                 sorted(
-                    chain.from_iterable([c.selected_candidates() for c in cluster_list]),
+                    chain.from_iterable([c.candidates for c in cluster_list]),
                     key=lambda candidate: candidate.score,
                     reverse=True
                 ) if 'relevance' in self.sorting_method else sorted (
-                    chain.from_iterable([c.selected_candidates() for c in cluster_list]),
+                    chain.from_iterable([c.candidates for c in cluster_list]),
                     key=lambda candidate: candidate.first_index,
                     reverse=False
                 )
@@ -91,16 +91,16 @@ class SummaryUnit():
 
         elif self.sorting_method.startswith("cluster"):
             #Sort clusters by their selected candidate cross-score
-            sorted_clusters = sorted(clusters, key=lambda c: c.selected_candidate_cross_score, reverse=True)
+            sorted_clusters = sorted(clusters, key=lambda c: c.cross_score, reverse=True)
 
             #From each cluster, extract selected candidates and sort them by either relevance or appearance
             self.sorted_candidates = [
                 sorted(
-                    cluster.selected_candidates(),
+                    cluster.candidates,
                     key=lambda candidate: candidate.score,
                     reverse=True
                 ) if 'relevance' in self.sorting_method else sorted (
-                    cluster.selected_candidates(),
+                    cluster.candidates,
                     key=lambda candidate: candidate.first_index,
                     reverse=False
                 )
@@ -109,7 +109,7 @@ class SummaryUnit():
 
         #------------------------------------------------------------------------------------
         elif self.sorting_method == "flat_relevance":
-            self.sorted_candidates = [sorted(chain.from_iterable([cluster.selected_candidates() for cluster in clusters]), key=lambda candidate: candidate.score, reverse=True)]
+            self.sorted_candidates = [sorted(chain.from_iterable([cluster.candidates for cluster in clusters]), key=lambda candidate: candidate.score, reverse=True)]
 
 
         self.sorted_candidates = list(filter(lambda x: len(x) > 0, self.sorted_candidates))
@@ -129,6 +129,8 @@ class SummaryUnit():
             if self.sorting_method == "flat_relevance":
                 for candidate in self.sorted_candidates[0]:
                     id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
+                    #FF6A00 -> orange
+                    #FF64DC -> pink
                     to_print += [f"[#FF6A00]{id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
             else:
                 for candidate_list in self.sorted_candidates:

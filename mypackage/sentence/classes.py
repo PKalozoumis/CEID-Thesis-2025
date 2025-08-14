@@ -63,6 +63,8 @@ class SimilarityPair:
         
         if not isinstance(self.s2, SentenceLike):
             raise ValueError("s2 must be a Sentence or SentenceChain")
+        
+        #print(self.sim)
     
 #============================================================================================
 

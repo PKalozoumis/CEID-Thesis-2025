@@ -471,25 +471,13 @@ class SelectedCluster():
     #---------------------------------------------------------------------------
     
     @property
-    def selected_candidate_cross_score(self) -> float:
-        '''
-        A relevance score for only the best candidates of the cluster, by summing up their individual cross-encoder scores
-        '''
-        if self.candidates is None:
-            return None
-
-        return np.round(sum([c.score for c in self.selected_candidates()]), decimals=3)
-    
-    #---------------------------------------------------------------------------
-    
-    @property
     def id(self) -> str:
         return self.cluster.id if self.cluster is not None else None
     
     @property
     def text(self) -> str:
         #Sort by start
-        temp = sorted(self.selected_candidates(), key=lambda x: x.first_index, reverse=False)
+        temp = sorted(self.candidates, key=lambda x: x.first_index, reverse=False)
         return "\n\n".join([t.text for t in temp])
     
     @property
@@ -499,7 +487,7 @@ class SelectedCluster():
     @property
     def pretty_text(self) -> str:
         #Sort by start
-        temp = sorted(self.selected_candidates(), key=lambda x: x.first_index, reverse=False)
+        temp = sorted(self.candidates, key=lambda x: x.first_index, reverse=False)
         return "\n\n".join([t.text for t in temp])
     
     @property
@@ -563,7 +551,7 @@ class SelectedCluster():
     
     #---------------------------------------------------------------------------
 
-    def filter_and_merge_candidates(self, negative_threshold: float = -2, good_candidate_threshold: float = 3, max_bridge_distance: int = 2) -> SelectedCluster:
+    def filter_and_merge_candidates(self, negative_threshold: float = -2, good_candidate_threshold: float = 3, max_bridge_size: int = 1) -> SelectedCluster:
         '''
         Only keeps candidates that have a cross-score above the threshold
         '''
@@ -578,18 +566,29 @@ class SelectedCluster():
                 backward_dista = gc.first_index - bc.last_index
 
                 #Candidates can be bridged (forward)
-                if 0 <= forward_dista <= max_bridge_distance:
+                if 0 <= forward_dista <= max_bridge_size + 1:
+                    console.print(f"Forward bridging: candidate {gc.id} can be bridged with {bc.id}")
                     #Try out the following scenarios:
                     gc.expandable = True
                     for i in range(len(bc.context)):
                         gc.add_right_context(forward_dista + i)
+                    print_candidate_states(gc)
+
+                #Candidates can be bridged (backward)
+                elif 0 <= backward_dista <= max_bridge_size + 1:
+                    console.print(f"Backward bridging: candidate {gc.id} can be bridged with {bc.id}")
+                    #Try out the following scenarios:
+                    gc.expandable = True
+                    for i in range(len(bc.context)):
+                        gc.add_left_context(backward_dista + i)
+                    print_candidate_states(gc)
                     
-                    #Select the best scenario
-                    print_candidate_states(gc)
-                    gc.optimize()
-                    print_candidate_states(gc)
-                    gc.clear_history()
-                    gc.expandable = False
+                #Select the best scenario
+                #print_candidate_states(gc)
+                gc.optimize()
+                #print_candidate_states(gc)
+                gc.clear_history()
+                gc.expandable = False
 
         #After this, reject all the bad candidates
         self.candidates = good_candidates
@@ -674,28 +673,6 @@ class SelectedCluster():
             return None
 
         return np.round(sum([c.history[i].score for c in self.candidates]), decimals=3)
-
-    #---------------------------------------------------------------------------
-    
-    def selected_candidates(self, *, cluster_threshold: float = 10, candidate_threshold: float = 2) -> list[SummaryCandidate]:
-        '''
-        Returns the best candidates from this cluster that should be considered relevant to the query
-        
-        Arguments
-        ---
-        cluster_threshold: float
-            A cluster is considered good if it's cross-score is above the cluster threshold.
-            When a cluster is good, we use all its candidates for summarization.
-            If it's below the threshold, we only use its good candidates. Defaults to ```10```
-        candidate_threshold: float
-            A candidate is considered good if its cross-score is above the candidate threshold. Defaults to ```2```
-        '''
-        if self.cross_score > cluster_threshold:
-            #We take all the candidates    
-            return self.candidates
-        else:
-            #We only keep good candidates
-            return [c for c in self.candidates if c.score > candidate_threshold]
         
     #---------------------------------------------------------------------------
 

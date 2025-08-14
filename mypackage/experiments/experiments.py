@@ -14,10 +14,12 @@ class ExperimentManager():
 
     DEFAULT_EXPERIMENT = {
         "title": "Default",
+        "sentence_model": "sentence-transformers/all-MiniLM-L6-v2",
         "chaining_method": "iterative",
         "threshold": 0.6,
         "round_limit": None,
         "chain_pooling_method": "average",
+        "min_chains": 28,
         "n_components": 25,
         "min_dista": 0.1,
         "remove_duplicates": True,

@@ -66,6 +66,7 @@ if __name__ == "__main__":
 
         #-------------------------------------------------------------------------------------------
 
+        #Read experiment parameters
         if args.mode == "read":
             
             for THIS_NEXT_EXPERIMENT in db.available_experiments(args.x):
