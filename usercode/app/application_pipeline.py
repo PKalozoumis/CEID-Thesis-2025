@@ -7,7 +7,7 @@ from mypackage.clustering.metrics import cluster_stats
 from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
-from mypackage.cluster_selection.metrics import single_document_cross_score
+from mypackage.cluster_selection.metrics import document_cross_score, document_cross_score_at_k
 from mypackage.llm import LLMSession
 from mypackage.storage import DatabaseSession, MongoSession, PickleSession
 
@@ -257,14 +257,28 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
     #--------------------------------------------------------------------------
     returned_docs = retrieval_stage(sess, query, **kwargs)
     encode_query(query, db, **kwargs)
-    selected_clusters = retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
+    selected_clusters= retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
     evaluator = calculate_cross_scores(query, selected_clusters, **kwargs)
     expand_context(selected_clusters, **kwargs)
 
     #Evaluation
     #--------------------------------------------------------------------------
-    doc = returned_docs[0]
-    #single_document_cross_score(doc, [sc for sc in selected_clusters if sc.doc.id == doc.id], evaluator)
+    if args.eval:
+        t = time.time()
+        score1 = document_cross_score(returned_docs, selected_clusters, evaluator, verbose=server_args.verbose, vector=True, keep_all_docs=False)
+        console.print(score1)
+        console.print(f"Score (filtered docs): {round(sum(score1)/len(score1), 3):.3f}")
+        console.print(f"Evaluation time: {round(time.time() - t, 3):.3f}s\n")
+
+        t = time.time()
+        score2 = document_cross_score(returned_docs, selected_clusters, evaluator, verbose=server_args.verbose, vector=True, keep_all_docs=True)
+        console.print(score2)
+        x1 = sum(x for x, _ in score2)
+        x2 = sum(x for _, x in score2)
+        console.print(f"Score (all retrieved docs): {round(x1/x2, 3):.3f}")
+        console.print(f"Evaluation time: {round(time.time() - t, 3):.3f}s")
+
+        document_cross_score_at_k(score2)
 
     #Summarization
     #--------------------------------------------------------------------------

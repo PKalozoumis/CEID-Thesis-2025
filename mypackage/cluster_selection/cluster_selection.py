@@ -55,7 +55,7 @@ def cluster_retrieval(sess: Session, db: DatabaseSession, docs: list[ElasticDocu
             console.print((sorted_clusters[i][1].doc.id, sorted_clusters[i][0]))
             selected_clusters.append(SelectedCluster(sorted_clusters[i][1], sorted_clusters[i][0]))
     elif method == "thres":
-        thres = 0.5
+        thres = 0.55
         for cluster in sorted_clusters:
             if cluster[0] > thres:
                 cluster[2] = 11 #marks the cluster as selected. debug only

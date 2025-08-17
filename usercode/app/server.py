@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--port", action="store", type=int, help="Server port", default=1225)
     parser.add_argument("--no-cache", action="store_true", help="Disable system prompt caching", default=False)
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("-v", "--verbose", action="store_true", default=False)
     server_args = parser.parse_args()
 
 #==================================================================================

@@ -22,6 +22,7 @@ class Arguments():
     summ: bool = field(default=True, metadata={"help": "Summarize"})
     context_expansion_threshold: float = field(default=0.01, metadata={"help": "Context expansion threshold", "short": "cet"})
     candidate_sorting_method: str = field(default="flat_relevance", metadata={"help": "Candidate sorting method", "short": "csm"})
+    eval: bool = field(default=False, metadata={"help": "Enable evaluation mode"})
 
     test: int = field(default=0, metadata={'help': 'Test', 'client_only': True})
 

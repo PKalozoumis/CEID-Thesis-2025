@@ -539,15 +539,6 @@ class SelectedCluster():
         '''
         self.candidates = sorted(self.candidates, key=lambda x: (x.score, 6666 - x.chain.index), reverse=True)
         return self
-
-    #---------------------------------------------------------------------------
-
-    def filter_candidates(self, negative_threshold: float = -5) -> SelectedCluster:
-        '''
-        Only keeps candidates that have a cross-score above the threshold
-        '''
-        self.candidates = list(filter(lambda x: x.score > negative_threshold, self.candidates))
-        return self
     
     #---------------------------------------------------------------------------
 
@@ -567,26 +558,24 @@ class SelectedCluster():
 
                 #Candidates can be bridged (forward)
                 if 0 <= forward_dista <= max_bridge_size + 1:
-                    console.print(f"Forward bridging: candidate {gc.id} can be bridged with {bc.id}")
+                    #console.print(f"Forward bridging: candidate {gc.id} can be bridged with {bc.id}")
                     #Try out the following scenarios:
                     gc.expandable = True
                     for i in range(len(bc.context)):
                         gc.add_right_context(forward_dista + i)
-                    print_candidate_states(gc)
+                    #print_candidate_states(gc)
 
                 #Candidates can be bridged (backward)
                 elif 0 <= backward_dista <= max_bridge_size + 1:
-                    console.print(f"Backward bridging: candidate {gc.id} can be bridged with {bc.id}")
+                    #console.print(f"Backward bridging: candidate {gc.id} can be bridged with {bc.id}")
                     #Try out the following scenarios:
                     gc.expandable = True
                     for i in range(len(bc.context)):
                         gc.add_left_context(backward_dista + i)
-                    print_candidate_states(gc)
+                    #print_candidate_states(gc)
                     
                 #Select the best scenario
-                #print_candidate_states(gc)
                 gc.optimize()
-                #print_candidate_states(gc)
                 gc.clear_history()
                 gc.expandable = False
 
@@ -595,11 +584,11 @@ class SelectedCluster():
 
         #Merge remaining candidates
         if len(good_candidates) > 0:
-            return self.merge_candidates()
+            return self._merge_candidates()
         return self
     #---------------------------------------------------------------------------
     
-    def merge_candidates(self) -> SelectedCluster:
+    def _merge_candidates(self) -> SelectedCluster:
         '''
         Merges neighboring chains into one
 
