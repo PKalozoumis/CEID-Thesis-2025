@@ -16,7 +16,7 @@ console = Console()
 
 #===============================================================================================================
 
-def single_document_cross_score(doc: Document, selected_clusters: list[SelectedCluster], evaluator: RelevanceEvaluator, *, verbose: bool = False) -> float:
+def single_document_cross_score(doc: Document, evaluator: RelevanceEvaluator, *, verbose: bool = False) -> float:
     '''
     Identifies all the chains of a specific document that are relevant to a query and sums up their scores.
 
@@ -103,7 +103,7 @@ def document_cross_score(docs: list[Document], selected_clusters: list[SelectedC
     #Calculate the objective scores for the docs
     doc_scores = []
     for doc in docs:
-        doc_scores.append(single_document_cross_score(doc, clusters_per_doc[doc], evaluator, verbose=verbose))
+        doc_scores.append(single_document_cross_score(doc, evaluator, verbose=verbose))
 
     if keep_all_docs:
         real_scores = [0.0 if len(clusters_per_doc[doc]) == 0 else sum(sc.cross_score for sc in clusters_per_doc[doc]) for doc in docs]

@@ -6,6 +6,7 @@ from mypackage.elastic import Session, ElasticDocument
 from mypackage.clustering.metrics import cluster_stats
 from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
+from mypackage.summarization.metrics import bert_score, rouge_score
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
 from mypackage.cluster_selection.metrics import document_cross_score, document_cross_score_at_k
 from mypackage.llm import LLMSession
@@ -226,6 +227,8 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
         times['summary_time'] = time.time() - times['summary_time']
         message_sender('time', {'summary_time': times['summary_time']})
 
+    return unit
+
 #===============================================================================================================
 
 def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, base_path: str = "..", socket: SocketIO, console_width: int):
@@ -264,6 +267,8 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
     #Evaluation
     #--------------------------------------------------------------------------
     if args.eval:
+        pass
+        '''
         t = time.time()
         score1 = document_cross_score(returned_docs, selected_clusters, evaluator, verbose=server_args.verbose, vector=True, keep_all_docs=False)
         console.print(score1)
@@ -279,10 +284,15 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
         console.print(f"Evaluation time: {round(time.time() - t, 3):.3f}s")
 
         document_cross_score_at_k(score2)
+        '''
 
     #Summarization
     #--------------------------------------------------------------------------
-    summarization_stage(query, selected_clusters, stop_dict, **kwargs)
+    summary_unit = summarization_stage(query, selected_clusters, stop_dict, **kwargs)
+
+    if args.eval:
+        bert_score(summary_unit)
+        rouge_score(summary_unit)
 
     message_sender("end", {'status': 0})
     db.close()

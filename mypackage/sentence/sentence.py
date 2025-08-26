@@ -24,7 +24,7 @@ console = Console()
 
 #============================================================================================
 
-def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_duplicates: bool = False, remove_empty: bool =True, sep: str | None = "\n") -> list[Sentence]:
+def doc_to_sentences(doc: Document, transformer: SentenceTransformer | None, *, remove_empty: bool = True, sep: str | None = None) -> list[Sentence]:
     '''
     Breaks down a document into sentences. For the entire set of sentences, the embeddings are calculated
 
@@ -33,13 +33,12 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_
     doc: Document
         The document to extract sentences from
     transformer: SentenceTransformer
-        The model that will generate the embeddings
-    remove_duplicates: bool
-        Removes duplicate sentences (my dataset was goofy, and I've already indexed and cached the docs)
+        The model that will generate the embeddings. Set ```None``` to break the document into sentences without calculating embeddings
     remove_empty: bool
         Removes empty sentences. Defaults to ```True```
-    sep: str
-        The delimiter for splitting the document into sentences. Defaults to newline
+    sep: str | None
+        The separator used for splitting. Defaults to ```None```, meaning that ```nltk.tokenize.sent_tokenize``` is
+        used to automatically detect sentence boundaries
         
     Returns
     ---
@@ -51,14 +50,15 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer, *, remove_
     if remove_empty:
         sentences = [txt for txt in sentences if not re.match(r"^\s*$", txt)]
 
-    embeddings = transformer.encode(sentences)
-
-    #console.print(np.linalg.norm(embeddings, axis=1))
-
     result = []
-    result: list[Sentence]
-    for offset, (sentence, embedding) in enumerate(zip(sentences, embeddings)):
-        result.append(Sentence(sentence, embedding, doc, offset))
+
+    if transformer is not None:
+        embeddings = transformer.encode(sentences)
+        for offset, (sentence, embedding) in enumerate(zip(sentences, embeddings)):
+            result.append(Sentence(sentence, embedding, doc, offset))
+    else:
+        for offset, sentence in enumerate(sentences):
+            result.append(Sentence(sentence, None, doc, offset))
 
     doc.sentences = result
     return result
@@ -186,6 +186,9 @@ def iterative_merge(
 
     if len(chains) < min_chains:
         warnings.warn(f"Created {len(chains)} chains, which is below the minimum threshold of {min_chains}. Using {len(sentences)} chains of the previous round")
+        if isinstance(sentences[0], Sentence):
+            #Failure on the first round. Sentences must become chains
+            return [SentenceChain(s, chain_index=i) for i, s in enumerate(sentences)] 
         return sentences
     else:
         result = [SentenceChain(c, pooling_method, normalize=normalize) for c in chains]

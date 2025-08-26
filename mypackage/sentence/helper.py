@@ -1,11 +1,31 @@
 import json
 import os
 from huggingface_hub import try_to_load_from_cache
+from nltk.tokenize import sent_tokenize
 
-def split_to_sentences(text: str, *, sep: str | None = "\n") -> list[str]:
-    sentences = text.split(sep)
-    if sentences[-1] == '':
-        sentences = sentences[:-1]
+def split_to_sentences(text: str, *, sep: str | None = None) -> list[str]:
+    '''
+    Splits a piece of text into sentences
+
+    Arguments
+    ---
+    text: str
+        The piece of text to split
+    sep: str | None
+        The separator used for splitting. Defaults to ```None```, meaning that ```nltk.tokenize.sent_tokenize``` is
+        used to automatically detect sentence boundaries
+
+    Returns
+    ---
+    sentences: list[str]
+        A list of the text's sentences
+    '''
+    if sep is None:
+        sentences = sent_tokenize(text)
+    else:
+        sentences = text.split(sep)
+        if sentences[-1] == '':
+            sentences = sentences[:-1]
 
     return sentences
 

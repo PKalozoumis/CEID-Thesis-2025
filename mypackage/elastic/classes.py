@@ -29,8 +29,6 @@ class Session():
     index_name: str
     cache_dir: str
     use: str
-    processed_docs_source: str
-    pickle_path: str
 
     def __init__(
             self,
@@ -42,15 +40,12 @@ class Session():
             base_path: str = None,
             credentials_path: str = "credentials.json",
             cert_path: str = "http_ca.crt",
-            use: str = "client",
-            processed_docs_source: str = "pickle",
-            pickle_path: str = None
+            use: str = "client"
         ):
         '''
         Represents a method for retrieving documents from a specific index.
         Retrieval method is typically an Elasticsearch client, but it can also be a cache directory.
         Groups information about the client, the index and the authentication methods.
-        Also contains information about the source of the processed documents (clusters)
 
         Arguments
         ---
@@ -83,14 +78,6 @@ class Session():
         use: str
             Which method to use to retrieve documents.
             Possible values are ```client```, ```cache``` and ```both```. Defaults to ```client```
-
-        processed_docs_source: str
-            Which method to use to retrieve processed documents (clusters).
-            This is used by the functions in ```mypackage.storage```.
-            Possible values are ```pickle``` and ```db```
-
-        pickle_path: str
-            If ```processed_docs_source == pickle```, then pickle path points to a folder where documents can be retrieved. 
         '''
         self.client = client
         self.cache_dir = cache_dir
@@ -282,6 +269,11 @@ class ElasticDocument(Document):
     
     #--------------------------------------------------------------------------------
 
+    def to_simple_document(self) -> Document:
+        return Document(self.doc, self.id, self.text_path, self.sentences)
+    
+    #--------------------------------------------------------------------------------
+
     @overrides(Document)
     def get(self):
         '''
@@ -333,6 +325,7 @@ class ScrollingCorpus:
     scroll_time: str
     fields_to_keep: list[str]
     doc_field: str
+    limit: int
 
     def __init__(self,   
             session: Session,
@@ -340,7 +333,8 @@ class ScrollingCorpus:
             batch_size: int = 10,
             scroll_time: str="5s",
             doc_field: str,
-            fields_to_keep: list[str] = []
+            fields_to_keep: list[str] = [],
+            limit: int|None = None
         ):
         '''
         Receives batches of documents from Elasticsearch.
@@ -357,14 +351,17 @@ class ScrollingCorpus:
             but it may need to be increased if the documents take a long time to return
         doc_field:str
             Specifies the field in ```_source``` where the document's text is located
-        fields_to_keep: str:
-            List of extra fields (besides ```doc_field```) to retrieve
+        fields_to_keep: str
+            List of extra fields (besides ```doc_field```) inside _source to retrieve
+        limit: int|None
+            The maximum number of documents to return. Defaults to ```None```, meaning no limit
         '''
         self.session = session
         self.batch_size = batch_size
         self.scroll_time = scroll_time
         self.fields_to_keep = fields_to_keep
         self.doc_field = doc_field
+        self.limit = limit
 
         if self.doc_field:
             self.fields_to_keep.append(self.doc_field)
@@ -378,6 +375,8 @@ class ScrollingCorpus:
             "query":{"match_all": {}}
         })
 
+        num_docs = 0
+
         while True:
             if 'error' in res:
                 print(res['error']['root_cause'])
@@ -389,8 +388,13 @@ class ScrollingCorpus:
             if docs:
                 #Send entire batch before asking for the next one
                 for doc in docs:
+                    if self.limit and num_docs == self.limit: return
+
                     doc_obj = Document(doc['_source'][self.doc_field], doc['_id'])
+                    num_docs += 1
                     yield doc_obj
+
+                if self.limit and num_docs == self.limit: return
 
                 res = self.session.client.scroll(scroll_id = scroll_id, scroll = self.scroll_time)
             else:

@@ -12,7 +12,7 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the preprocessing step for the specified documents, and with the specified parameters (experiments)")
-    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs. Leave blank for a predefined set of test documents")
+    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs or document range. Leave blank for a predefined set of test documents. -1 for all")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-m", "--model", action="store", type=str, default='sentence-transformers/all-MiniLM-L6-v2', help="Name or alias of the sentence embedding model to use")
     
@@ -22,11 +22,18 @@ if __name__ == "__main__":
     
     parser.add_argument("--from", action="store", type=str, dest="temp_source", default="default", help="Used with -t. Experiment from which to create the temporary experiment")
     parser.add_argument("-c", action="store", type=str, default=None, help="An optional comment appended the created pickle files")
-    parser.add_argument("--no-cache", action="store_true", default=False, help="Disable cache. Retrieve docs directly from Elasticsearch")
+    parser.add_argument("--cache", action="store_true", default=False, help="Retrieve from cache instead of elasticsearch")
     parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes")
     parser.add_argument("-dev", "--device", action="store", type=str, default="cpu", choices=["cpu", "gpu"], help="Device for the embedding model")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     parser.add_argument("--spawn", action="store_true", default=False, help="Set process start method to 'spawn'")
+    parser.add_argument("-l", "--limit", action="store", type=int, default=None, help="Document limit for scrolling corpus")
+    parser.add_argument("-b", "--batch-size", action="store", type=int, default=2000, help="Batch size for scrolling corpus")
+    parser.add_argument("-st", "--scroll-time", action="store", type=str, default="1000s", help="Scroll time for scrolling corpus")
+    parser.add_argument("-v", "--verbose", action="store_true", default=False)
+    parser.add_argument("-w", "--warnings", action="store_true", default=False, help="Show warnings")
+
+    parser.add_argument("-a", "--append", action="store_true", default=False, help="Insert document into database without deleting previous results")
     
     args = parser.parse_args()
 
@@ -35,12 +42,14 @@ if __name__ == "__main__":
 from rich.console import Console
 from functools import partial
 
+import traceback
+import warnings
 from sentence_transformers import SentenceTransformer
 
-from mypackage.elastic import ElasticDocument, Session
+from mypackage.elastic import ElasticDocument, Session, ScrollingCorpus
 from mypackage.sentence import doc_to_sentences, chaining, sentence_transformer_from_alias
 from mypackage.clustering import chain_clustering
-from mypackage.helper import DEVICE_EXCEPTION
+from mypackage.helper import DEVICE_EXCEPTION, batched
 import pickle
 from collections import namedtuple
 from multiprocessing import Process, Pool
@@ -53,10 +62,14 @@ from matplotlib.axes import Axes
 
 from mypackage.experiments import ExperimentManager
 from rich.rule import Rule
+from rich.progress import track, Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 from mypackage.storage import PickleSession, DatabaseSession, MongoSession
-
+import re
 import time
 import pandas as pd
+
+if not args.warnings:
+    warnings.filterwarnings("ignore")
 
 console = Console()
 
@@ -85,7 +98,8 @@ def initializer(p,i,_args,cpu_model = None,):
         elif args.db == "mongo":
             db = MongoSession(db_name=f"experiments_{index_name}")
             db.sub_path = params['name']
-            db.delete() #Drop the collection if it exists
+            if not args.append:
+                db.delete() #Drop the collection if it exists
 
     #Mark experiment as temporary by creating a hidden file in the experiment directory
     if args.temp is not None: 
@@ -108,13 +122,14 @@ def work(doc: ElasticDocument):
     }
 
     record['sent_t'] = time.time()
-    console.print(f"Document {doc.id:02}: Creating sentences...")
-    sentences = doc_to_sentences(doc, model, remove_duplicates=params['remove_duplicates'])
+    if args.verbose: console.print(f"Document {doc.id:02}: Creating sentences...")
+    sentences = doc_to_sentences(doc, model, sep="\n")
     record['sent_t'] = round(time.time() - record['sent_t'], 3)
+    if args.verbose: console.print(f"Document {doc.id:02}: Created {len(sentences)} sentences")
     
     #Chaining parameters
     record['chain_t'] = time.time()
-    console.print(f"Document {doc.id:02}: Creating chains...")
+    if args.verbose: console.print(f"Document {doc.id:02}: Creating chains...")
     merged = chaining(params['chaining_method'])(
         sentences,
         threshold=params['threshold'],
@@ -128,14 +143,14 @@ def work(doc: ElasticDocument):
     for i,c in enumerate(merged):
         c.index = i
 
-    console.print(f"Document {doc.id:02}: Created {len(merged)} chains")
+    if args.verbose: console.print(f"Document {doc.id:02}: Created {len(merged)} chains")
     record['chain_t'] = round(time.time() - record['chain_t'], 3)
 
     #Clustering parameters
-    console.print(f"Document {doc.id:02}: Clustering chains...")
+    if args.verbose: console.print(f"Document {doc.id:02}: Clustering chains...")
     clustering = chain_clustering(
         merged,
-        n_components=params['n_components'],
+        n_components=min(params['n_components'], len(merged)-2),
         min_dista=params['min_dista'],
         min_cluster_size=params['min_cluster_size'],
         min_samples=params['min_samples'],
@@ -179,16 +194,26 @@ if __name__ == "__main__":
         console.print(f"\nRunning for index '{index}'")
         console.print(Rule())
 
+        sess = Session(index, base_path="../../auth", cache_dir="../cache", use= ("cache" if args.cache else "client"))
+
         #If docs are not specified, then a predefined set of docs is selected
         if not args.d:
             docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
+            docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
+        elif args.d == "-1":
+            docs = ScrollingCorpus(sess, batch_size=args.batch_size, limit=args.limit, scroll_time=args.scroll_time, doc_field="article")
         else:
-            docs_to_retrieve = [int(x) for x in args.d.split(",")]
+            if res := re.match(r"^(?P<start>\d+)-(?P<end>\d+)$", args.d):
+                docs_to_retrieve = list(range(int(res.group('start')), int(res.group('end'))+1))
+            else:
+                docs_to_retrieve = [int(x) for x in args.d.split(",")]
+            
+            docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
 
         #-------------------------------------------------------------------------------------------
 
         console.print("Session info:")
-        console.print({'index_name': index, 'docs': docs_to_retrieve})
+        #console.print({'index_name': index, 'docs': docs_to_retrieve})
         console.print(f"DEVICE: {args.device}")
         print()
 
@@ -211,9 +236,6 @@ if __name__ == "__main__":
             console.print(f"Running experiment '{THIS_NEXT_EXPERIMENT['name']}' in '{index}'")
             console.print(THIS_NEXT_EXPERIMENT)
 
-            #Load sentence transformer and elastic session
-            sess = Session(index, base_path="..", cache_dir="../cache", use= ("client" if args.no_cache else "cache"))
-
             #Check existence and resolve the model's true name
             THIS_NEXT_EXPERIMENT['sentence_model'] = sentence_transformer_from_alias(THIS_NEXT_EXPERIMENT['sentence_model'], "../model_aliases.json")
 
@@ -221,35 +243,79 @@ if __name__ == "__main__":
             if args.device == "cpu":
                 cpu_model = SentenceTransformer(THIS_NEXT_EXPERIMENT['sentence_model'], device='cpu')
 
-            docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
-
             procs = []
 
             t = time.time()
-            
-            if args.nprocs == 1:
-                console.print("Serial execution")
-                initializer(THIS_NEXT_EXPERIMENT, index, args, cpu_model)
-                for doc in docs:
-                    time_records.append(work(doc))
-            else:
-                console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
-                if args.spawn:
-                    mp.set_start_method('spawn', force=True)
-                with Pool(processes=args.nprocs, initializer=initializer, initargs=(THIS_NEXT_EXPERIMENT, index, args, cpu_model)) as pool:
-                    try:
-                        for res in pool.imap_unordered(work, docs):
-                            time_records.append(res)
-                    except Exception as e:
-                        pool.terminate()
-                        pool.join()
-                        raise e
 
-            console.print(f"\nTotal time: {round(time.time() - t, 3):.3f}s\n")
+            #If any exception occurs, we terminate execution for the current index, while keeping the times we've stored so far
+            #After the exception, times still get printed
+            try:
+                with Progress(
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TextColumn("[progress.percentage]{task.completed}/{task.total}"),
+                    TimeElapsedColumn(),
+                    TimeRemainingColumn()
+                ) as progress:
+                    
+                    batch_size = args.batch_size if args.d == "-1" else len(docs)
 
-        df = pd.DataFrame(time_records)
-        df.set_index(['doc', 'exp'], inplace=True)
-        print(df)
-        print()
+                    #Serial execution
+                    if args.nprocs == 1:
+                        console.print("Serial execution")
+                        initializer(THIS_NEXT_EXPERIMENT, index, args, cpu_model)
+
+                        for i, batch in enumerate(batched(docs, batch_size)):
+                            task = progress.add_task(f"Processing documents for batch {i}...", total=batch_size, start=True)
+
+                            for doc in batch:
+                                time_records.append(work(doc))
+                                progress.update(task, advance=1)
+
+                        
+                    #Parallel execution with pool
+                    else:
+                        console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
+                        if args.spawn:
+                            mp.set_start_method('spawn', force=True)
+                        try:
+                            with Pool(processes=args.nprocs, initializer=initializer, initargs=(THIS_NEXT_EXPERIMENT, index, args, cpu_model)) as pool:
+                                
+                                #Receive a batch of documents from Elasticsearch
+                                #Pass the workload to the pool
+                                #The workload should be higher than the pool size
+                                for i, batch in enumerate(batched(docs, args.batch_size)):
+                                    task = progress.add_task(f"Processing documents for batch {i}...", total=batch_size, start=True)
+                                    workload = []
+
+                                    #Retrieve documents and remove the unserializeable session object from them
+                                    for doc in batch:
+                                        doc.get()
+                                        doc.session = None
+                                        workload.append(doc)
+
+                                    #Distribute work
+                                    for res in pool.imap_unordered(work, workload):
+                                        time_records.append(res)
+                                        progress.update(task, advance=1)
+                        except BaseException as e:
+                            pool.terminate()
+                            pool.join()
+                            raise e
+            except Exception as e:
+                traceback.print_exc()
+            except KeyboardInterrupt:
+                pass
+            finally:
+                console.print(f"\nTotal time: {round(time.time() - t, 3):.3f}s\n")
+                continue
+
+        if len(time_records) > 0:
+            df = pd.DataFrame(time_records)
+            df.sort_values(by="doc", inplace=True, ascending=True)
+            df.set_index(['doc', 'exp'], inplace=True)
+            print(df)
+            print()
+            df.to_csv(f"preprocessing_results_{time.time()}.csv", index=True)
 
         

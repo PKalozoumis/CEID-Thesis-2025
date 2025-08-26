@@ -56,7 +56,7 @@ class Query():
 
     #------------------------------------------------------------------------------------------
 
-    def execute(self, sess: Session) -> list[ElasticDocument]:
+    def execute(self, sess: Session, size: int = 10) -> list[ElasticDocument]:
 
         '''
         search_body = {
@@ -74,7 +74,8 @@ class Query():
                     "query": self.text,
                     "fields": ["summary^1.5", "article"]
                 }
-            }
+            },
+            "size": size
         }
 
         results = sess.client.search(index=sess.index_name, body=search_body)
@@ -88,7 +89,8 @@ class Query():
             elastic_doc = ElasticDocument(sess, int(res['_id']), filter_path=filter_path, text_path=self.text_path)
             
             #Store to cache
-            sess.cache_store(res, elastic_doc.id)
+            if sess.cache_dir is not None:
+                sess.cache_store(res, elastic_doc.id)
             temp_doc = res
 
             if len(res['_source']) > 0:

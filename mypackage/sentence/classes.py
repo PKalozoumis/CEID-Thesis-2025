@@ -479,7 +479,7 @@ class SentenceChain(SentenceLike):
         obj.index = data.get('index', None)
 
         offset = data['offset']
-        text = split_to_sentences(doc.text)
+        text = split_to_sentences(doc.text, sep="\n")
         obj.sentences = [Sentence(text[offset + i], vec, doc, offset + i, parent_chain=obj) for i, vec in enumerate(data['sentences'])]
 
         return obj

@@ -151,10 +151,20 @@ class SummaryUnit():
     def text(self) -> str:
         txt = ""
         for candidate_list in self.sorted_candidates:
-            for candidate in self.sorted_candidates[0]:
+            for candidate in candidate_list:
                 txt += f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>: {candidate.text}\n\n"
         return txt
     
+    #------------------------------------------------------------------------------------
+
+    @property
+    def single_text(self) -> str:
+        txt = ""
+        for candidate_list in self.sorted_candidates:
+            for candidate in candidate_list:
+                txt += candidate.text
+        return txt
+
 #================================================================================================================
 
 class Summarizer():
