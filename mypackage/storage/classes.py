@@ -7,6 +7,7 @@ import os
 import pickle
 import shutil
 from pymongo import MongoClient, collection, database
+from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from collections import defaultdict
 import re
 
@@ -57,6 +58,10 @@ class DatabaseSession(ABC):
     def db_type(self) -> str:
         pass
 
+    @classmethod
+    @abstractmethod
+    def duplicate_session(cls, db: DatabaseSession) -> DatabaseSession: ...
+
     @overload
     def load(self, sess: Session, docs: int|ElasticDocument) -> ProcessedDocument: ...
 
@@ -103,6 +108,9 @@ class DatabaseSession(ABC):
         '''
         Recreates all cluster objects for a specific document using the retrieved data
         '''
+        #Ensure the document's text has been retrieved
+        #Otherwise, we cannot get the sentences
+        doc.get()
 
         #Recreate the cluster dictionary, by mapping each label to its ChainCluster,
         #the same way the clusters are returned from chain_clustering
@@ -151,6 +159,12 @@ class PickleSession(DatabaseSession):
     @property
     def db_type(self) -> str:
         return "pickle"
+    
+    #----------------------------------------------------
+
+    @classmethod
+    def duplicate_session(cls, db: PickleSession) -> PickleSession:
+        return cls(db._base_path, db._sub_path)
 
     #----------------------------------------------------
 
@@ -303,7 +317,25 @@ class MongoSession(DatabaseSession):
     _base_path: str
     _sub_path: str
     client: MongoClient
+    
+    #----------------------------------------------------
 
+    def __init__(self, *, host: str = "localhost:27017", db_name: str | None = None, collection: str | None = None):
+        self.host = host
+        self._base_path = db_name
+        self._sub_path = collection
+
+        max_retries = 5
+        for attempt in range(0, max_retries + 2):
+            try:
+                self.client = MongoClient(f"mongodb://{host}/", serverSelectionTimeoutMS=5000)
+                self.client.admin.command("ping")
+            except (ServerSelectionTimeoutError, ConnectionFailure) as e:
+                if attempt < max_retries:
+                    print(f"Could not connect to MongoDB database. Retrying... ({attempt+1}/{max_retries})")
+                else:
+                    raise e
+                
     #----------------------------------------------------
 
     @property
@@ -312,11 +344,9 @@ class MongoSession(DatabaseSession):
     
     #----------------------------------------------------
 
-    def __init__(self, *, host: str = "localhost:27017", db_name: str | None = None, collection: str | None = None):
-        self.host = host
-        self._base_path = db_name
-        self._sub_path = collection
-        self.client = MongoClient(f"mongodb://{host}/")
+    @classmethod
+    def duplicate_session(cls, db: MongoSession) -> MongoSession:
+        return cls(host=db.host, db_name=db._base_path, collection=db._sub_path)
 
     #----------------------------------------------------
 
@@ -439,6 +469,8 @@ class MongoSession(DatabaseSession):
         Returns the names of the available experiments
         '''
         existing_names = self.database.list_collection_names()
+        if 'metadata' in existing_names:
+            existing_names.remove('metadata')
 
         if requested_experiments == "all":
             requested_experiments = ",".join(existing_names)

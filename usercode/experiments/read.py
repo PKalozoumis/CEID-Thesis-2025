@@ -68,10 +68,10 @@ if __name__ == "__main__":
     #--------------------------------------------------------------------------------------
 
     os.makedirs("cache", exist_ok=True)
-    sess = Session(args.i, cache_dir=("cache" if args.cache else None), use="cache" if args.cache else "client")
+    sess = Session(args.i, cache_dir=("../cache" if args.cache else None), use="cache" if args.cache else "client")
 
     if args.db == "pickle":
-        db = PickleSession(os.path.join("experiments", sess.index_name, "pickles"), args.x)
+        db = PickleSession(os.path.join(sess.index_name, "pickles"), args.x)
     else:
         db = MongoSession(db_name=f"experiments_{sess.index_name}", collection=args.x)
 

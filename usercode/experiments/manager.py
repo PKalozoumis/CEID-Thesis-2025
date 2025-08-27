@@ -19,6 +19,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     args = parser.parse_args()
 
 #IMPORTS
@@ -39,7 +40,7 @@ console = Console()
 
 if __name__ == "__main__":
     indexes = args.i.split(",")
-    exp_manager = ExperimentManager("experiments.json")
+    exp_manager = ExperimentManager("../common/experiments.json")
 
     if len(indexes) > 1:
         if args.d is not None:
@@ -53,11 +54,11 @@ if __name__ == "__main__":
         console.print(Rule())
 
         if not args.d:
-            docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
+            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
-        sess = Session(index, use="cache", cache_dir="../cache")
+        sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
 
         if args.db == "pickle":
             db = PickleSession(os.path.join(index, "pickles"))

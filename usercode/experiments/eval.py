@@ -17,6 +17,7 @@ if __name__ == "__main__":
         "exp"  #Compare experiments for each separate document
     ], default="doc")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     args = parser.parse_args()
 
 #=================================================================================================================
@@ -57,7 +58,7 @@ console = Console()
 
 if __name__ == "__main__":
 
-    exp_manager = ExperimentManager("experiments.json")
+    exp_manager = ExperimentManager("../common/experiments.json")
     indexes = args.i.split(",")
 
     if len(indexes) > 1:
@@ -76,13 +77,13 @@ if __name__ == "__main__":
         console.print(Rule())
 
         if not args.d:
-            docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
+            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
         #-------------------------------------------------------------------------------------------
         os.makedirs(os.path.join(index, "stats"), exist_ok=True)
-        sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
+        sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
         db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
 
         if args.mode == "doc":

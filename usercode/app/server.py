@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--llm-backend", action="store", type=str, choices=["llamacpp", "lmstudio"], default="lmstudio")
     parser.add_argument("--host", action="store", type=str, default="localhost:1234")
     parser.add_argument("-p", "--port", action="store", type=int, help="Server port", default=1225)
-    parser.add_argument("--no-cache", action="store_true", help="Disable system prompt caching", default=False)
+    parser.add_argument("--no-prompt-cache", action="store_true", help="Disable system prompt caching", default=False)
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     server_args = parser.parse_args()
@@ -44,10 +44,10 @@ def connect():
 @socketio.on("init_query", namespace="/query")
 def query(data):
     try:
-        query = data['query']
+        query_data = data['query']
         args = Arguments(**data['args'])
         console.print(args)
-        pipeline(query, stop_dict, socket=socketio, args=args, server_args=server_args, console_width=data.get('console_width', None))
+        pipeline(query_data, stop_dict, socket=socketio, base_path="../common", args=args, server_args=server_args, console_width=data.get('console_width', None))
     except:
         socketio.emit('end', {'status': -1, 'msg': "Internal server error"}, namespace='/query')
         raise
@@ -69,7 +69,7 @@ def health():
 #==================================================================================
 if __name__ == "__main__":
 
-    if not server_args.no_cache:
+    if not server_args.no_prompt_cache:
         console.print("Caching system prompt...")
         LLMSession.create(server_args.llm_backend).cache_system_prompt()
     

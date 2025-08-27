@@ -1,16 +1,19 @@
 from ..helper import DEVICE_EXCEPTION
 import json
 from more_itertools import always_iterable
+ 
+from ..elastic import Session
+from ..query import Query
+
+import re
 
 class ExperimentManager():
     '''
-    A class for managing experiment templates
+    A class for managing experiment templates, as well as other preset values
     '''
-    experiments: dict
-
-    CHOSEN_DOCS = {
-        'pubmed': [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 1106]
-    }
+    experiments: dict[str, dict]
+    queries: list[dict]
+    index_defaults: dict[str, dict]
 
     DEFAULT_EXPERIMENT = {
         "title": "Default",
@@ -43,8 +46,59 @@ class ExperimentManager():
             Path to the ```json``` file containing the experiment descriptions
         '''
         with open(path, "r") as f:
-            self.experiments = json.load(f)
+            data = json.load(f)
+            self.experiments = data['experiments']
             self.experiments['default'] = self.DEFAULT_EXPERIMENT
+            self.index_defaults = data['index_defaults']
+            self.queries = data['queries']
+
+    #---------------------------------------------------------------------------
+
+    def get_docs_for_index(self, index_name: str, fallback = None) -> list[int]:
+        temp = self.index_defaults.get(index_name, None)
+        if temp is not None:
+            return temp['docs']
+        else:
+            return fallback
+
+    #---------------------------------------------------------------------------
+
+    def _get_queries_for_index(self, index_name: str) -> list[Query]:
+        return [
+            Query(
+                x['id'],
+                x['query'],
+                source = self.index_defaults[index_name]['source'],
+                text_path = self.index_defaults[index_name]['text_path']
+            )
+            for x in self.queries
+        ]
+    
+    #---------------------------------------------------------------------------
+
+    def get_queries(self, query: str | None, index_name: str) -> list[Query]:
+        #Get all queries
+        if query is None:
+            return self._get_queries_for_index(index_name)
+        else:
+            queries = {q.id: q for q in self._get_queries_for_index(index_name)}
+
+            #For single IDs, we check if they are a valid id. If so, proceed
+            #For multiple IDs, we check if it follows the regex, then we check each ID individually, potentially throwing error
+            #If the ID is not valid on it's own AND doesn't match the multi-id pattern, we assume the query is dynamic
+            if query in queries or re.match(r"^\d+(,\d+)+$", query):
+                res = []
+                for qid in query.split(","):
+                    if qid in queries:
+                        res.append(queries[qid])
+                    else:
+                        raise Exception(f"There is no query with ID '{qid}'")
+
+                return res
+            #Dynamic query
+            else:
+                index_defaults = self.index_defaults[index_name]
+                return [Query(-1, query, source=index_defaults['source'], text_path=index_defaults['text_path'])]
 
     #---------------------------------------------------------------------------
 
@@ -67,7 +121,7 @@ class ExperimentManager():
             The index of the requested test document, or ```fallback``` if the document is not a test document
         '''
         try:
-            return self.CHOSEN_DOCS.get(index_name, list(range(10))).index(doc_id)
+            return self.get_docs_for_index(index_name, list(range(10))).index(doc_id)
         except ValueError:
             return fallback
         

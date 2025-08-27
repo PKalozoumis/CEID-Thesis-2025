@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
     parser.add_argument("--no-outliers", action="store_true", default=False, help="Removes outliers from the visualization")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     args = parser.parse_args()
 
 from rich.console import Console
@@ -96,7 +97,7 @@ def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess:
 #=============================================================================================================
 
 
-def compare(db: PickleSession, exp_manager: ExperimentManager, experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
+def compare(db: DatabaseSession, exp_manager: ExperimentManager, experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
     '''
     Creates multiple figures.
     Each figure compares the clustering results of two or more experiments, on the same document
@@ -136,7 +137,7 @@ def compare(db: PickleSession, exp_manager: ExperimentManager, experiment_names:
             ax.set_title(pkl.params['title'] + score)
 
         fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
-        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc):02}_{doc}.png"))
+        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc, fallback=-1):02}_{doc}.png"))
         plt.close(fig)
 
 #=============================================================================================================
@@ -226,7 +227,7 @@ def centroids(pkl_list: list[ProcessedDocument], imgpath, sess: Session, extra_v
 
 if __name__ == "__main__":
 
-    exp_manager = ExperimentManager("experiments.json")
+    exp_manager = ExperimentManager("../common/experiments.json")
     indexes = args.i.split(",")
 
     if len(indexes) > 1:
@@ -248,7 +249,7 @@ if __name__ == "__main__":
         console.print(f"Making plot: '{args.p}'")
 
         if not args.d:
-            docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
+            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
         else:
             docs_to_retrieve = [int(x) for x in args.d.split(",")]
 
@@ -264,7 +265,7 @@ if __name__ == "__main__":
             shutil.rmtree(imgpath)
         
         os.makedirs(imgpath, exist_ok=True)
-        sess = Session(index, base_path="../..", cache_dir="../cache", use="cache")
+        sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
 
         db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
 

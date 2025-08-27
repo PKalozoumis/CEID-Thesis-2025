@@ -22,7 +22,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--from", action="store", type=str, dest="temp_source", default="default", help="Used with -t. Experiment from which to create the temporary experiment")
     parser.add_argument("-c", action="store", type=str, default=None, help="An optional comment appended the created pickle files")
-    parser.add_argument("--cache", action="store_true", default=False, help="Retrieve from cache instead of elasticsearch")
+    parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes")
     parser.add_argument("-dev", "--device", action="store", type=str, default="cpu", choices=["cpu", "gpu"], help="Device for the embedding model")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
@@ -170,7 +170,7 @@ def work(doc: ElasticDocument):
 
 if __name__ == "__main__":
 
-    exp_manager = ExperimentManager("../experiments/experiments.json")
+    exp_manager = ExperimentManager("../common/experiments.json")
 
     indexes = args.i.split(",")
     if len(indexes) > 1:
@@ -194,11 +194,11 @@ if __name__ == "__main__":
         console.print(f"\nRunning for index '{index}'")
         console.print(Rule())
 
-        sess = Session(index, base_path="../../auth", cache_dir="../cache", use= ("cache" if args.cache else "client"))
+        sess = Session(index, base_path="../common", cache_dir="../cache", use= ("cache" if args.cache else "client"))
 
         #If docs are not specified, then a predefined set of docs is selected
         if not args.d:
-            docs_to_retrieve = exp_manager.CHOSEN_DOCS.get(index, list(range(10)))
+            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
             docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
         elif args.d == "-1":
             docs = ScrollingCorpus(sess, batch_size=args.batch_size, limit=args.limit, scroll_time=args.scroll_time, doc_field="article")
@@ -237,7 +237,7 @@ if __name__ == "__main__":
             console.print(THIS_NEXT_EXPERIMENT)
 
             #Check existence and resolve the model's true name
-            THIS_NEXT_EXPERIMENT['sentence_model'] = sentence_transformer_from_alias(THIS_NEXT_EXPERIMENT['sentence_model'], "../model_aliases.json")
+            THIS_NEXT_EXPERIMENT['sentence_model'] = sentence_transformer_from_alias(THIS_NEXT_EXPERIMENT['sentence_model'], "../common/model_aliases.json")
 
             cpu_model = None
             if args.device == "cpu":

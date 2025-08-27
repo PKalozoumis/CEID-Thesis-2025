@@ -107,12 +107,12 @@ def precision(single_query_results: list[int], relevant: list[int], /, vector=Fa
             if res in relevant_set:
                 relevant_at_k += 1
 
-            ret.append(relevant_at_k/(k+1))
+            ret.append(round(relevant_at_k/(k+1), 3))
 
         return ret
     else:
         answer_set = set(single_query_results)
-        return len(relevant_set & answer_set) / len(answer_set)
+        return round(len(relevant_set & answer_set) / len(answer_set), 3)
     
 #==============================================================================================
     
@@ -130,12 +130,12 @@ def recall(single_query_results: list[int], relevant: list[int], /, vector=False
             if res in relevant_set:
                 relevant_at_k += 1
 
-            ret.append(relevant_at_k/len(relevant))
+            ret.append(round(relevant_at_k/len(relevant), 3))
 
         return ret
     else:
         answer_set = set(single_query_results)
-        return len(relevant_set & answer_set) / len(relevant_set)
+        return round(len(relevant_set & answer_set) / len(relevant_set), 3)
 
 #==============================================================================================
     
@@ -155,7 +155,7 @@ def fscore(single_query_results: list[int], relevant: list[int], /, vector=False
             if pak[k] + rak[k] != 0:
                 res = 2*pak[k]*rak[k]/(pak[k] + rak[k])
 
-            f.append(res)
+            f.append(round(res, 3))
 
         return f
     else:
@@ -165,7 +165,7 @@ def fscore(single_query_results: list[int], relevant: list[int], /, vector=False
         res = 0
 
         if p + r != 0:
-            res = 2*p*r/(p+r)
+            res = round(2*p*r/(p+r), 3)
 
         return res
 
@@ -178,7 +178,7 @@ def average_precision(single_query_results: list[int], relevant: list[int]):
     recall_gain = 1/len(relevant)
     rak = [(recall_gain if res in relevant else 0) for res in single_query_results]
 
-    return sum([a*b for a,b in zip(pak, rak)])
+    return round(sum([a*b for a,b in zip(pak, rak)]), 3)
 
 #==============================================================================================
 
@@ -189,7 +189,7 @@ def mean_average_precision(multiple_query_results: list[list[int]], queries_data
     for i, single_query_results in enumerate(multiple_query_results):
         res += average_precision(single_query_results, queries_dataset[i].docs)
 
-    return res/len(multiple_query_results)
+    return round(res/len(multiple_query_results), 3)
 
 #==============================================================================================
 
@@ -198,22 +198,22 @@ def precision_at_k(single_query_results: list[int], relevant: list[int], k: int)
 
     top_k_results = single_query_results[:k]
 
-    return len(top_k_results & relevant_set) / k
+    return round(len(top_k_results & relevant_set) / k, 3)
 
 #==============================================================================================
 
-def mean_reciprocal_rank(multiple_query_results: list[list[int]], queries_dataset: list[Query]):
+def mean_reciprocal_rank(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]]):
 
     res = 0
 
     for i, single_query_results in enumerate(multiple_query_results):
-        relevant = queries_dataset[i].docs
+        relevant = multiple_relevant[i]
 
         for rank, result in enumerate(single_query_results):
             if result in relevant:
                 res += 1/(rank + 1)
                 break
 
-    return res/len(multiple_query_results)
+    return round(res/len(multiple_query_results), 3)
 
 #==============================================================================================

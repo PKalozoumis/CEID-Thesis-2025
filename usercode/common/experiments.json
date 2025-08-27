@@ -1,0 +1,76 @@
+{
+    "index_defaults": {
+        "pubmed": {
+            "docs": [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 1106],
+            "source": ["summary", "article"],
+            "text_path": "article"
+        }
+    },
+
+    "queries": [
+        {
+            "id": "1",
+            "query": "What are the primary behaviours and lifestyle factors that contribute to childhood obesity"
+        },
+        {
+            "id": "2",
+            "query": "who is dista1"
+        }
+    ],
+
+    "experiments": {
+        "nochain": {
+            "title": "No chaining",
+            "chaining_method": "none"
+        },
+        "thres_55": {
+            "title": "Threshold 0.55",
+            "threshold": 0.55
+        },
+        "thres_65": {
+            "title": "Threshold 0.65",
+            "threshold": 0.65
+        },
+        "thres_7": {
+            "title": "Threshold 0.7",
+            "threshold": 0.7
+        },
+        "dup": {
+            "title": "Keep duplicates",
+            "remove_duplicates": false
+        },
+        "no_norm":{
+            "title": "No normalization of representatives",
+            "normalize": false
+        },
+        "cluster_no_norm":{
+            "title": "No normalization of cluster representatives",
+            "cluster_normalize": false
+        },
+        "most_similar_pooling":{
+            "title": "Most similar vector becomes representative",
+            "chain_pooling_method": "most_similar",
+            "cluster_pooling_method": "most_similar"
+        },
+        "average_pooling": {
+            "title": "Average vector becomes representative",
+            "chain_pooling_method": "average",
+            "cluster_pooling_method": "average"
+        },
+        "e5": {
+            "title": "Using the e5 sentence embedding model",
+            "sentence_model": "e5",
+            "threshold": 0.9
+        },
+        "mpnet": {
+            "title": "Using the mpnet sentence embedding model",
+            "sentence_model": "sentence-transformers/all-mpnet-base-v2"
+        },
+        "mpnet_most_similar": {
+            "title": "mpnet embeddings w/ most similar pooling",
+            "sentence_model": "sentence-transformers/all-mpnet-base-v2",
+            "chain_pooling_method": "most_similar",
+            "cluster_pooling_method": "most_similar"
+        }
+    }
+}

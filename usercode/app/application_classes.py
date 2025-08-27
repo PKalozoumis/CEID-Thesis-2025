@@ -23,8 +23,10 @@ class Arguments():
     context_expansion_threshold: float = field(default=0.01, metadata={"help": "Context expansion threshold", "short": "cet"})
     candidate_sorting_method: str = field(default="flat_relevance", metadata={"help": "Candidate sorting method", "short": "csm"})
     eval: bool = field(default=False, metadata={"help": "Enable evaluation mode"})
+    index: str = field(default="pubmed", metadata={"help": "Index name", "short": "i"})
+    eval_relevance_threshold: float = field(default=5.5, metadata={"help": "Relevant doc threshold"})
 
-    test: int = field(default=0, metadata={'help': 'Test', 'client_only': True})
+    query: str = field(default=None, metadata={"help": "Numeric query ID or query string", "short": "q", "client_only": True})
 
     #-------------------------------------------------------------------------------------
 

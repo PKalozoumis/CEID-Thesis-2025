@@ -6,9 +6,7 @@ from mypackage.elastic import Session, ElasticDocument
 from mypackage.clustering.metrics import cluster_stats
 from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
-from mypackage.summarization.metrics import bert_score, rouge_score
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
-from mypackage.cluster_selection.metrics import document_cross_score, document_cross_score_at_k
 from mypackage.llm import LLMSession
 from mypackage.storage import DatabaseSession, MongoSession, PickleSession
 
@@ -20,6 +18,8 @@ import time
 from flask_socketio import SocketIO
 from rich.console import Console
 
+from evaluation_pipeline import evaluation_pipeline
+
 console = Console()
 message_sender = None
 
@@ -27,22 +27,20 @@ _console_width = None
 
 #===============================================================================================================
 
-def retrieval_stage(sess, query, *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def retrieval_stage(sess, query, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 1 of the pipeline
     '''
-    
     message_sender("info", "Retrieving documents...")
 
     times['elastic'] = time.time()
-    #res = query.execute(sess)
+    res = query.execute(sess)
     times['elastic'] = time.time() - times['elastic']
 
     message_sender("time", {'elastic': times['elastic']})
 
-    #console.print(f"\n[green]Query:[/green] {query.text}\n")
-
-    returned_docs = [
+    '''
+    res = [
         ElasticDocument(sess, id=1923, text_path="article"),
         ElasticDocument(sess, id=4355, text_path="article"),
         ElasticDocument(sess, id=4166, text_path="article"),
@@ -54,16 +52,19 @@ def retrieval_stage(sess, query, *, query_str: str, args: Arguments = None, base
         ElasticDocument(sess, id=372, text_path="article"),
         ElasticDocument(sess, id=1106, text_path="article")
     ]
+    '''
 
-    return returned_docs
+    message_sender("docs", [doc.id for doc in res])
+
+    return res
 
 #===============================================================================================================
 
-def encode_query(query: Query, db: DatabaseSession, *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def encode_query(query: Query, db: DatabaseSession, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 2 of the pipeline
     '''
-    message_sender('info', "Encoding query...")
+    message_sender('info', "Encoding query...\n")
 
     times['query_encode'] = time.time()
 
@@ -79,11 +80,11 @@ def encode_query(query: Query, db: DatabaseSession, *, query_str: str, args: Arg
 
 #===============================================================================================================
 
-def retrieve_clusters(sess, db, returned_docs, query, *, keep_cluster: int, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def retrieve_clusters(sess, db, returned_docs, query, *, keep_cluster: int, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 3 of the pipeline
     '''
-    message_sender('info', "Extracting relevant information...")
+    message_sender('info', "Extracting relevant information...\n")
 
     times['cluster_retrieval'] = time.time()
     selected_clusters = cluster_retrieval(sess, db, returned_docs, query, base_path=base_path, experiment=args.x)
@@ -107,7 +108,7 @@ def retrieve_clusters(sess, db, returned_docs, query, *, keep_cluster: int, quer
 
 #===============================================================================================================
 
-def calculate_cross_scores(query, selected_clusters: list[SelectedCluster], *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def calculate_cross_scores(query, selected_clusters: list[SelectedCluster], *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 4 of the pipeline
     '''
@@ -131,13 +132,13 @@ def calculate_cross_scores(query, selected_clusters: list[SelectedCluster], *, q
 
 #===============================================================================================================
 
-def expand_context(selected_clusters: list[SelectedCluster], *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def expand_context(selected_clusters: list[SelectedCluster], *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 5 of the pipeline
     '''
     cross_scores = []
 
-    message_sender("info", "Expanding relevant information...")
+    message_sender("info", "Expanding relevant information...\n")
 
     for focused_cluster in selected_clusters:
         focused_cluster: SelectedCluster
@@ -189,7 +190,7 @@ def expand_context(selected_clusters: list[SelectedCluster], *, query_str: str, 
 
 #===============================================================================================================
 
-def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], stop_dict, *, query_str: str, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], stop_dict, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 6 of the pipeline
     '''
@@ -203,7 +204,7 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
     if args.summ:
         is_first_fragment = True
 
-        message_sender("info", "Summarizing...")
+        message_sender("info", "Summarizing...\n")
         llm = LLMSession.create(server_args.llm_backend, "meta-llama-3.1-8b-instruct", api_host=server_args.host)
 
         summarizer = Summarizer(query, llm=llm)
@@ -231,7 +232,7 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
 
 #===============================================================================================================
 
-def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, base_path: str = "..", socket: SocketIO, console_width: int):
+def pipeline(query_data: dict, stop_dict, *, args: Arguments = None, server_args, base_path: str = ".", socket: SocketIO, console_width: int):
 
     global message_sender, _console_width
 
@@ -241,14 +242,14 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
     #Create a sender function that is bound to specific namespace. Saves time
     message_sender = lambda event, data: socket.emit(event, data, namespace="/query")
 
-    _console_width = console_width
+    _console_width = console_width #Match the client's console width
     times = defaultdict(float)
-    kwargs = {'query_str': query_str, 'args': args, 'base_path': base_path, 'times': times, 'server_args': server_args}
+    kwargs = {'args': args, 'base_path': base_path, 'times': times, 'server_args': server_args}
 
     #Session initialization
     #--------------------------------------------------------------------------
-    sess = Session("pubmed", base_path=base_path, use="cache", cache_dir=f"{base_path}/cache")
-    query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article")
+    sess = Session(args.index, base_path=base_path, use="client")
+    query  = Query.from_data(query_data)
     
     #Select database
     if server_args.db == "pickle":
@@ -256,18 +257,25 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
     else:
         db = MongoSession(db_name=f"experiments_{sess.index_name}", collection=args.experiment)
 
-    #Pipeline stages pre-summarization
+    #Pipeline stages
     #--------------------------------------------------------------------------
     returned_docs = retrieval_stage(sess, query, **kwargs)
     encode_query(query, db, **kwargs)
     selected_clusters= retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
     evaluator = calculate_cross_scores(query, selected_clusters, **kwargs)
     expand_context(selected_clusters, **kwargs)
+    summary_unit = summarization_stage(query, selected_clusters, stop_dict, **kwargs)
+
+    #Terminate
+    #--------------------------------------------------------------------------
+    message_sender("end", {'status': 0})
+    db.close()
 
     #Evaluation
     #--------------------------------------------------------------------------
     if args.eval:
-        pass
+        evaluation_pipeline(sess, query, returned_docs, db, args.eval_relevance_threshold)
+
         '''
         t = time.time()
         score1 = document_cross_score(returned_docs, selected_clusters, evaluator, verbose=server_args.verbose, vector=True, keep_all_docs=False)
@@ -286,13 +294,6 @@ def pipeline(query_str: str, stop_dict, *, args: Arguments = None, server_args, 
         document_cross_score_at_k(score2)
         '''
 
-    #Summarization
-    #--------------------------------------------------------------------------
-    summary_unit = summarization_stage(query, selected_clusters, stop_dict, **kwargs)
 
-    if args.eval:
-        bert_score(summary_unit)
-        rouge_score(summary_unit)
-
-    message_sender("end", {'status': 0})
-    db.close()
+        #bert_score(summary_unit)
+        #rouge_score(summary_unit)

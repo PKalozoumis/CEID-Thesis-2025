@@ -10,6 +10,7 @@ from itertools import chain
 from typing import TYPE_CHECKING, Union
 from nltk.tokenize import sent_tokenize
 from sklearn.metrics.pairwise import cosine_similarity
+import warnings
 
 import inspect
 
@@ -478,8 +479,14 @@ class SentenceChain(SentenceLike):
         obj.parent_cluster = parent
         obj.index = data.get('index', None)
 
+        #Ensure the document's text has been retrieved
+        #Otherwise, we cannot get the sentences
+        doc.get()
+
         offset = data['offset']
         text = split_to_sentences(doc.text, sep="\n")
+        if len(text) == 0:
+            warnings.warn(f"Document {doc.id} has no sentences")
         obj.sentences = [Sentence(text[offset + i], vec, doc, offset + i, parent_chain=obj) for i, vec in enumerate(data['sentences'])]
 
         return obj

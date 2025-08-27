@@ -3,6 +3,7 @@ import sys
 sys.path.append(os.path.abspath("../.."))
 
 from mypackage.helper import panel_print
+from mypackage.experiments import ExperimentManager
 
 import socketio
 import socketio.exceptions
@@ -11,7 +12,7 @@ import asyncio.exceptions
 import argparse
 from collections import defaultdict
 
-from application_classes import Arguments
+from application_classes import Arguments #Client command-line arguments
 
 from rich.pretty import Pretty
 from rich.console import Console
@@ -19,10 +20,13 @@ from rich.live import Live
 from rich.rule import Rule
 from rich.tree import Tree
 
+import warnings
+import shutil
+
 console = Console()
 sio = socketio.AsyncClient()
 
-import shutil
+
 
 #===============================================================================================================
 
@@ -82,6 +86,7 @@ async def print_times():
 @sio.event(namespace="/query")
 async def connect():
     console.print("[green]Connected to server successfully[/green]\n")
+    console.print(f"[white]Query: [green]\"{data_to_send['query']['text']}\"[/green]\n")
     #Send query and arguments to the server
     await sio.emit('init_query', data_to_send, namespace="/query")
 
@@ -112,7 +117,13 @@ async def ev_ansi_text(data):
 
 @sio.on("info", namespace="/query")
 async def ev_info(data):
-    console.print(f"[green]INFO:[/green] {data}\n")
+    console.print(f"[green]INFO:[/green] {data}")
+
+#---
+
+@sio.on("docs", namespace="/query")
+async def ev_docs(data):
+    console.print(f"Returned docs: {data}\n")
 
 #---
 
@@ -213,7 +224,12 @@ async def main():
     Arguments.setup_arguments(parser)
     args = Arguments.from_argparse(parser.parse_args())
 
-    query = "What are the primary behaviours and lifestyle factors that contribute to childhood obesity"
+    #Determine query
+    queries = ExperimentManager("../common/experiments.json").get_queries(args.query, args.index)
+    if len(queries) > 1:
+        warnings.warn("Specified more than one query. Only the first one will be used.")
+    query = queries[0]
+
     experiment_list = args.x.split(",")
     
     #For each specified experiment, send a request to the server
@@ -222,11 +238,12 @@ async def main():
         args.x = experiment
         try:
             data_to_send = {
-                'query': query,
+                'query': query.data(),
                 'args': args.to_dict(ignore_defaults=True, ignore_client_args=True),
                 'console_width': shutil.get_terminal_size().columns
             }
 
+            #Connect and send data
             await sio.connect("http://localhost:1225", namespaces=["/query"])
             sio.start_background_task(main_loop)
             await sio.wait()

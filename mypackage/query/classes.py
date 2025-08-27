@@ -1,5 +1,9 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
+    
 import numpy as np
-from sentence_transformers import SentenceTransformer
 import os
 from typing import NamedTuple
 
@@ -19,22 +23,21 @@ class Query():
     '''
     A class representing an Elasticsearch query.
     '''
-    id: int #Query ID
+    id: str #Query ID
     text: str #The actual query
-    match_field: str 
     source: list[str]
     text_path: str
     vector: np.ndarray
 
     #------------------------------------------------------------------------------------------
 
-    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None):
+    def __init__(self, id: str, text: str, *, source: list[str] = [], text_path: str | None = None):
         '''
         A class representing an Elasticsearch query.
         
         Arguments
         ---
-        id: int
+        id: str
             The query ID
 
         text: str
@@ -49,7 +52,6 @@ class Query():
         '''
         self.id = id
         self.text = text
-        self.match_field = match_field
         self.source = source
         self.text_path = text_path
         self.vector = None
@@ -110,17 +112,27 @@ class Query():
     def encode(self, sentence_transformer: SentenceTransformer):
         self.vector = sentence_transformer.encode(self.text)
 
-    #FOR DEBUGGING ONLY. The final version is seen above
-    def load_vector(self, sentence_transformer: SentenceTransformer, path: str = "query.npy"):
-        if self.vector is not None:
-            return
+    #---------------------------------------------------------------------------
 
-        #if not os.path.exists(path):
-        self.encode(sentence_transformer)
-        np.save(path, self.vector)
-        #else:
-            #print("Loading query from disk...")
-            #self.vector = np.load(path)
+    def data(self) -> dict:
+        return {
+            'id': self.id,
+            'text': self.text,
+            'source': self.source,
+            'text_path': self.text_path
+        }
+    
+    #---------------------------------------------------------------------------
+
+    @classmethod
+    def from_data(cls, data: dict) -> Query:
+        obj = cls.__new__(cls)
+        obj.id = data['id']
+        obj.text = data['text']
+        obj.source = data['source']
+        obj.text_path = data['text_path']
+
+        return obj
 
 
 #==============================================================================================
