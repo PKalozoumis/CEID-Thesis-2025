@@ -17,6 +17,7 @@
 
         <div id="content">
             <!-- Query tab -->
+            <!-- ==================================================================================================================== -->
             <div id="query_tab_content">
                 <!-- Column 1: History -->
                 <div id="history_sidebar" class="sidebar">
@@ -40,14 +41,11 @@
 
                 <!-- Alt layout 2: After sending the query -->
                 <div id="response_search_layout" class="hidden">
-                    <div id="response_title">
+                    <div id="response_title" class="title">
                         <h1 id="query_header" class="my-header">"Who is Dista 01"</h1>
                         <hr>
                     </div>
                 
-                    <!--
-                    <div id="response" class="fixed-center-expand-down">Childhood obesity is a significant public health concern worldwide, with rapid growth in prevalence over the last decade[cyan]<1923_000>[/cyan]. The importance of addressing this issue can be seen in its potential to reverse the increase in life expectancy observed in past decades[cyan]<1923_000>[/cyan]. Various lifestyle factors contribute to childhood obesity, which are often associated with each other[cyan]<1923_071>[/cyan].Three primary lifestyle behaviours known as most relevant risk factors for obesity were selected as intervention targets: diet, physical activity, and stress[cyan]<1923_003>[/cyan]. However, the adherence of European children to these health behaviours is surprisingly low, with only8.85-25% meeting the recommended target values[cyan]<1923_048-050>[/cyan].Consumption of sugar-sweetened beverages is an important contributor to childhood obesity, confirmed by longitudinal studies[cyan]<1923_048-050>[/cyan]. This can be attributed to direct and indirect mechanisms contributing to the childhood obesity epidemic, such as advertising on children's TV[cyan]<1923_055-056>[/cyan] and facilitation of adverse dietary patterns like energy-dense snack consumption, fast-food consumption, and higher total energy intake[cyan]<1923_055-056>[/cyan].Watching TV redirects attention from conscious eating and provides opportunity for unnoticed and unrestricted snacking, further supporting the need to limit screen time[cyan]<1923_055-056>[/cyan]. While the stress level of the family was not explicitly measured, various indicators suggest that it can be an important contributor to childhood obesity, and vice versa[cyan]<1923_064>[/cyan].The IDEFICS study aimed to investigate the aetiology of childhood obesity by assessing potential risk factors, including diet, lifestyle, psychosocial, and genetic factors, as well as their causal pathways[cyan]<1923_000>[/cyan]. The results of this study highlight the importance of addressing family relationships and social support in establishing adverse diet patterns[cyan]<1923_066-068>[/cyan] and stress management[cyan]<1923_066-068>[/cyan].In conclusion, childhood obesity is a complex issue with multiple contributing factors, including dietary habits, physical activity levels, stress, and family dynamics. Targeted interventions are needed to address these risk factors and prevent the continuation of this public health crisis[cyan]<1923_000>[/cyan].</div>
-                    -->
                     <div id="response_container">
                         <div id="response" class="fixed-center-expand-down"></div>
                     </div>
@@ -55,7 +53,36 @@
             </div>
 
             <!-- Collection tab -->
-            <div id="collection_tab_content" class="hidden-contents"></div>
+            <!-- ==================================================================================================================== -->
+
+            <div id="collection_tab_content" class="hidden">
+                <!-- Column 1: History -->
+                <div id="docs_sidebar" class="sidebar">
+                    <h1> Open Documents </h1>
+                    <div class="sidebar_scroll">
+                        <div id="open_documents"></div>
+                    </div>
+                </div>
+
+                <!-- Alt layout 1: Layout with all possible docs -->
+                <div id="collection_layout" class="">
+                    <div class="title">
+                        <h1 class="my-header">Documents</h1>
+                        <hr>
+                    </div>
+                
+                    <div id="article_container">
+                        <div id="article" class="fixed-center-expand-down"></div>
+                    </div>
+                </div>
+
+                <!-- Alt layout 2: When you open a document -->
+                <div id="open_doc_layout" class="hidden">
+                </div>
+            </div>
+
+            <!-- ==================================================================================================================== -->
+
         </div>
         
     </body>

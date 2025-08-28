@@ -3,7 +3,8 @@
 let open_conversation = null
 let convo_id_to_object = {} //may not be necessary
 
-let stream = null
+let dataToSend = null
+let entry = null
 
 let inputBox = document.querySelector("#query_input")
 
@@ -11,6 +12,100 @@ let queryTab = document.querySelector("div#query_tab")
 let collectionTab = document.querySelector("div#collection_tab")
 let queryTabContents = document.querySelector("div#query_tab_content")
 let collectionTabContents = document.querySelector("div#collection_tab_content")
+
+//Message handlers
+//====================================================================================================
+function define_handlers()
+{
+    window.socketAPI.on("connect", ()=>
+    {
+        console.log("%cConnected to server successfully", "color: green")
+        console.log(`Query: %c"${dataToSend['query']['text']}"\n`, "color: green")
+        window.socketAPI.emit('init_query', dataToSend)
+    })
+
+    //-----
+
+    window.socketAPI.on("disconnect", ()=>
+    {
+        console.log("Disconnecting from server...")
+    })
+
+    //-----
+
+    window.socketAPI.on("message", (data)=>
+    {
+        console.log(`%c[MESSAGE]%c: ${data}`, "color: cyan", "")
+    })
+
+    //-----
+
+    window.socketAPI.on("fragment", (data)=>
+    {
+        let responseField = document.querySelector("#response")
+
+        if (!responseField.lastChild || responseField.lastChild.nodeType !== Node.TEXT_NODE)
+            responseField.appendChild(document.createTextNode(data))
+        else
+            responseField.lastChild.textContent += data
+
+        entry.response += data
+    })
+
+    //-----
+    
+    window.socketAPI.on("fragment_with_citation", (data)=>
+    {
+        //data: {
+        //  fragment: ...
+        //  cite: {'doc', 'start', 'end'} All int
+        //}
+
+        let responseField = document.querySelector("#response")
+        let match = data.fragment.match(/(.*)<citation>(.*)/)
+
+        //Text before the citation
+        if (match[1].length > 0)
+        {
+            if (!responseField.lastChild || responseField.lastChild.nodeType !== Node.TEXT_NODE)
+                responseField.appendChild(document.createTextNode(match[1]))
+            else
+                responseField.lastChild.textContent += match[1]
+        }
+
+        //Citation
+        let citationNode = document.createElement("span")
+        citationNode.classList.add('citation')
+        citationNode.setAttribute('data-doc', data.citation.doc)
+        citationNode.setAttribute('data-start', data.citation.start)
+        citationNode.setAttribute('data-end', data.citation.end)
+        citationNode.addEventListener('click', (event)=>
+        {
+            switchToCollectionTab(event)
+        })
+        citationNode.textContent = `[${data.citation.doc}]`
+        responseField.appendChild(citationNode)
+
+        //Text after the citation
+        if (match[2].length > 0)
+            responseField.appendChild(document.createTextNode(match[2]))
+
+        entry.response += data.fragment.replace("<citation>", match[1] + `<CITE: ${data.citation.doc}_${data.citation.start}-${data.citation.end}>`)
+    })
+
+    //-----
+
+    window.socketAPI.on("end", (data)=>
+    {
+        store_to_db_and_kill_stream()
+        entry = null
+        //Conversation remains open
+    })
+}
+
+
+
+//====================================================================================================
 
 function store_to_db_and_kill_stream(deleted = false)
 {
@@ -21,14 +116,12 @@ function store_to_db_and_kill_stream(deleted = false)
         console.log("This will be stored")
         console.log(convo_id_to_object[open_conversation])
         addToHistory(convo_id_to_object[open_conversation]).then(()=>{
-            stream.close()
-            stream = null
+            window.socketAPI.disconnect()
         })
     }
     else //Just close the stream
     {
-        stream.close()
-        stream = null
+        window.socketAPI.disconnect()
     }
 }
 
@@ -39,7 +132,7 @@ function reset_search_layout(deleted = false)
     inputBox.innerText = ""
 
     //We are in the middle of an ongoing conversation
-    if (stream !== null)
+    if (window.socketAPI.connected())
     {
         store_to_db_and_kill_stream(deleted)
     }
@@ -108,7 +201,7 @@ class HistoryEntry
             
             //Otherwise, we need to check if a stream is currently running
             //We need to stop that stream
-            if (stream !== null)
+            if (window.socketAPI.connected())
             {
                 store_to_db_and_kill_stream()
             }
@@ -119,7 +212,41 @@ class HistoryEntry
             document.querySelector("#response_search_layout").classList.remove("hidden")
             document.querySelector("#query_header").textContent = `"${this.query}"`
             let responseField = document.querySelector("#response")
-            responseField.textContent = this.response
+            
+            //Populate the response field
+            //--------------------------------------------------------------------------------
+            responseField.textContent = ""; // clear existing content
+
+            // Regex to match your stored citation format
+            const regex = /<CITE: (\d+)_(\d+)-(\d+)>/g;
+
+            let lastIndex = 0;
+            let match;
+
+            while ((match = regex.exec(this.response)) !== null) {
+                // Text before the citation
+                if (match.index > lastIndex) {
+                    const textNode = document.createTextNode(this.response.slice(lastIndex, match.index));
+                    responseField.appendChild(textNode);
+                }
+
+                // Citation span
+                const citationNode = document.createElement("span");
+                citationNode.classList.add("citation");
+                citationNode.dataset.doc = match[1];
+                citationNode.dataset.start = match[2];
+                citationNode.dataset.end = match[3];
+                citationNode.textContent = `[${match[1]}]`;
+                citationNode.addEventListener("click", (event) => switchToCollectionTab(event));
+                responseField.appendChild(citationNode);
+
+                lastIndex = regex.lastIndex;
+            }
+
+            // Any remaining text after the last citation
+            if (lastIndex < this.response.length) {
+                responseField.appendChild(document.createTextNode(this.response.slice(lastIndex)));
+            }
         })
 
         return entry_div
@@ -132,29 +259,35 @@ class HistoryEntry
 queryTab.addEventListener("click", (event)=>
 {
     queryTab.classList.add("selected");
-    queryTabContents.classList.remove("hidden-contents")
+    queryTabContents.classList.remove("hidden")
     collectionTab.classList.remove("selected");
-    collectionTabContents.classList.add("hidden-contents");
+    collectionTabContents.classList.add("hidden");
 })
 
 //---------------------------------------------------------------------
 
-collectionTab.addEventListener("click", async (event)=>
+async function switchToCollectionTab(event)
 {
     collectionTab.classList.add("selected");
-    collectionTabContents.classList.remove("hidden-contents");
+    collectionTabContents.classList.remove("hidden");
     queryTab.classList.remove("selected");
-    queryTabContents.classList.add("hidden-contents");
+    queryTabContents.classList.add("hidden");
 
-    let resp = await fetch("https://localhost:9200/pubmed/_search?filter_path=hits.hits._id",
+    let resp = await fetch("https://localhost:9200/pubmed/_search?filter_path=hits.hits._id,hits.hits._source.article_id",
     {
         method: "POST",
         headers: {'Authorization': 'Basic ' + btoa("elastic" + ':' + "elastic"), 'Content-Type': 'application/json'},
         body: JSON.stringify({"from": 0, "size": 10})
     })
     let data = await resp.json()
-    console.log(data)
-})
+    
+    console.log(data.hits.hits.map((item)=>({
+        id: item._id,
+        title: item._source.article_id
+    })))
+}
+
+collectionTab.addEventListener("click", switchToCollectionTab)
 
 //Remove formatting from pasted text
 //====================================================================================================
@@ -186,7 +319,18 @@ inputBox.addEventListener("keydown", async (event)=>
             document.querySelector("#response_search_layout").classList.remove("hidden")
             document.querySelector("#query_header").textContent = `"${text}"`
 
-            let params = new URLSearchParams({'q': text})
+            dataToSend = {
+                query: {
+                    id: -1,
+                    text: "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", //text
+                    source: ["article", "summary"],
+                    text_path: "article"
+                },
+                args: {
+                    print: false,
+                    experiment: 'test' //Remember to change!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+                }
+            }
 
             let responseField = document.querySelector("#response")
             responseField.textContent = ""
@@ -202,35 +346,17 @@ inputBox.addEventListener("keydown", async (event)=>
 
             const formatted = `${h}:${m} ${d}/${mo}/${y}`;
 
-            const entry = new HistoryEntry(text, formatted)
+            entry = new HistoryEntry(text, formatted)
             const history_entries = document.querySelector("#history_entries")
             history_entries.insertBefore(entry.element, history_entries.firstChild)
             
-            //Select the current conversation
+            //Set the new conversation as selected
             open_conversation = entry.id
             console.log(open_conversation)
 
-            stream = new EventSource(`http://localhost:4625/query?${params}`);     
-
-            //For every message you receive, do this
-            stream.onmessage = (event)=>{
-                let data = JSON.parse(event.data)
-                switch (data.type)
-                {
-                    case "fragment":
-                    {
-                        responseField.textContent += data.contents
-                        entry.response += data.contents
-                    }
-                    break;
-                    case "end":
-                    {
-                        store_to_db_and_kill_stream()
-                        //Conversation remains open
-                    }
-                    break;
-                }
-            }
+            //Connect
+            window.socketAPI.connect()
+            define_handlers()
         }
     }
 })
