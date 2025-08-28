@@ -6,7 +6,7 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", action="store", default=None)
+    parser.add_argument("-d", action="store", default=None, help="Comma-separated list of docs or document range. Leave blank for a predefined set of test documents. -1 for all")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-x", nargs="?", action="store", type=str, default=None, help="Experiment name. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("p", nargs="?", action="store", type=str, help="The type of plot to make", choices=[
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-metric", action="store", type=str, default=None, help="Calculate an optional metric for each plot", choices=["silhouette", "flat_silhouette"])
     parser.add_argument("--clear", action="store_true", default=False, help="Delete previous plots from the folder")
     parser.add_argument("--no-outliers", action="store_true", default=False, help="Removes outliers from the visualization")
-    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to load the preprocessing results from", choices=['mongo', 'pickle'])
     parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     args = parser.parse_args()
 
@@ -33,7 +33,7 @@ from mypackage.elastic import ElasticDocument, Session
 from mypackage.clustering import visualize_clustering
 from mypackage.clustering.metrics import clustering_metrics, VALID_METRICS
 from mypackage.storage import ProcessedDocument, DatabaseSession, PickleSession, MongoSession
-from mypackage.helper import DEVICE_EXCEPTION
+from mypackage.helper import DEVICE_EXCEPTION, batched
 import pickle
 from collections import namedtuple
 from multiprocessing import Process, set_start_method
@@ -59,7 +59,7 @@ console = Console()
 
 #=============================================================================================================
 
-def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess: Session, no_outliers):
+def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess: Session, no_outliers: bool, batch_num: int = None):
     '''
     Draw one large figure, where each subplot contains the clustering results of a specific document
     '''
@@ -85,19 +85,25 @@ def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess:
     #For every document, visualize its clustering in the designated subplot
     for i, p in enumerate(pkl):
         console.print(f"Plotting document {p.doc.id}")
+        ax[i].set_title(f"{i:02}: Doc {p.doc.id:02} ({sess.index_name})")
         legend_elements = visualize_clustering(p.chains, p.labels, ax=ax[i], return_legend=True, no_outliers=no_outliers)
+        if legend_elements is None: continue
         if len(legend_elements) > len(max_legend):
             max_legend = legend_elements
-        ax[i].set_title(f"{i:02}: Doc {p.doc.id:02} ({sess.index_name})")
+
+    #Delete axes of remaining subplots
+    for j in range(i+1,10):
+        ax[j].set_xticks([])
+        ax[j].set_yticks([])
         
     fig.legend(handles=max_legend, loc='upper left', bbox_to_anchor=(pos.x0 + 0.05, pos.y0 + pos.height), ncols=3, prop=FontProperties(size=14), columnspacing=5)
-    fig.savefig(os.path.join(imgpath, f"full_{sess.index_name.replace('-index', '')}_{experiment_name}{'_no_outliers' if no_outliers else ''}.png"))
+    fig.savefig(os.path.join(imgpath, f"full_{sess.index_name.replace('-index', '')}_{experiment_name}{'_no_outliers' if no_outliers else ''}{f'_batch_{batch_num}' if batch_num is not None else ''}.png"))
     plt.close(fig)
 
 #=============================================================================================================
 
 
-def compare(db: DatabaseSession, exp_manager: ExperimentManager, experiment_names: str, imgpath, docs: list[int], sess: Session, *, metric: str = None, no_outliers):
+def compare(db: DatabaseSession, exp_manager: ExperimentManager, experiment_names: str, imgpath, docs: list[ElasticDocument], sess: Session, *, metric: str = None, no_outliers):
     '''
     Creates multiple figures.
     Each figure compares the clustering results of two or more experiments, on the same document
@@ -121,7 +127,7 @@ def compare(db: DatabaseSession, exp_manager: ExperimentManager, experiment_name
         else:
             axes = [ax_grid]
         
-        console.print(f"Plotting document {doc}")
+        console.print(f"Plotting document {doc.id}")
 
         for ax in axes:
             ax.set_xticks([])
@@ -136,8 +142,8 @@ def compare(db: DatabaseSession, exp_manager: ExperimentManager, experiment_name
             score = f" ({clustering_metrics(pkl.clustering, print=False)[metric]['value']:.3f})" if metric is not None else ""
             ax.set_title(pkl.params['title'] + score)
 
-        fig.suptitle(f"Comparisons for Document {doc} ({sess.index_name})")
-        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc, fallback=-1):02}_{doc}.png"))
+        fig.suptitle(f"Comparisons for Document {doc.id} ({sess.index_name})")
+        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc.id, fallback=-1):02}_{doc.id}.png"))
         plt.close(fig)
 
 #=============================================================================================================
@@ -247,41 +253,45 @@ if __name__ == "__main__":
         console.print(Rule())
 
         console.print(f"Making plot: '{args.p}'")
+        
 
-        if not args.d:
-            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
-        else:
-            docs_to_retrieve = [int(x) for x in args.d.split(",")]
+        imgpath = os.path.join(index, "images", args.p)
+        if args.clear and os.path.exists(imgpath):
+            shutil.rmtree(imgpath)
+        os.makedirs(imgpath, exist_ok=True)
+
+        sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
+        docs = exp_manager.get_docs(args.d, sess)
+        db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
 
         #---------------------------------------------------------------------------
 
         console.print("Session info:")
-        console.print({'index_name': index, 'docs': docs_to_retrieve})
+        console.print({'index_name': index, 'docs': 'All' if not isinstance(docs, list) else ([doc.id for doc in docs] if len(docs) < 20 else f"{[doc.id for doc in docs[0:10]]}...{[doc.id for doc in docs[-10:]]}")})
         print()
-
-        imgpath = os.path.join(index, "images", args.p)
-        
-        if args.clear and os.path.exists(imgpath):
-            shutil.rmtree(imgpath)
-        
-        os.makedirs(imgpath, exist_ok=True)
-        sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
-
-        db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
 
         #---------------------------------------------------------------------------
         if args.p == 'full':
             if args.x is None:
                 args.x = "default"
 
-            #Run for all the selected experiments...
-            for experiment_name in args.x.split(","):
-                db.sub_path = experiment_name
-                console.print(f"Plotting experiment '{experiment_name}'")
-                pkl = db.load(sess, docs_to_retrieve)
+            #'Full' supports up to 10 documents per figure
+            #Split docs into batches
+            #And run for each batch
+
+            for batch_num, doc_batch in enumerate(batched(docs, 10)):
+                if len(docs) <= 10:
+                    batch_num = None
+                doc_batch = list(doc_batch)
                 
-                full(pkl, imgpath, experiment_name, sess, args.no_outliers)
-                print()
+                #Run for all the selected experiments...
+                for experiment_name in args.x.split(","):
+                    db.sub_path = experiment_name
+                    console.print(f"Plotting experiment '{experiment_name}'")
+                    pkl = db.load(sess, doc_batch)
+                    
+                    full(pkl, imgpath, experiment_name, sess, args.no_outliers, batch_num=batch_num)
+                    print()
 
         #---------------------------------------------------------------------------
         elif args.p == 'compare':
@@ -289,7 +299,7 @@ if __name__ == "__main__":
                 args.x = "all"
                 console.print("No experiment was specified, so all will be selected\n")
                 
-            compare(db, exp_manager, args.x, imgpath, docs_to_retrieve, sess, metric=args.metric, no_outliers=args.no_outliers)
+            compare(db, exp_manager, args.x, imgpath, docs, sess, metric=args.metric, no_outliers=args.no_outliers)
 
         #---------------------------------------------------------------------------
         elif args.p in ['interdoc', 'interdoc2', 'centroids', 'query']:
@@ -302,7 +312,7 @@ if __name__ == "__main__":
             for experiment_name in args.x.split(","):
                 console.print(f"Plotting experiment '{experiment_name}'")
                 db.sub_path = experiment_name
-                pkl = db.load(sess, docs_to_retrieve)
+                pkl = db.load(sess, docs)
                 
                 match args.p:
                     case "interdoc": interdoc(pkl, imgpath, sess, args.no_outliers)

@@ -15,10 +15,10 @@ if __name__ == "__main__":
         "list-unused",
         "list-temp"
     ])
-    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
+    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs. Leave blank for a predefined set of test documents. -1 for all")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
-    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to load the preprocessing results from", choices=['mongo', 'pickle'])
     parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     args = parser.parse_args()
 
@@ -53,12 +53,8 @@ if __name__ == "__main__":
         console.print(f"\nRunning '{args.mode}' for index '{index}'")
         console.print(Rule())
 
-        if not args.d:
-            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
-        else:
-            docs_to_retrieve = [int(x) for x in args.d.split(",")]
-
         sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
+        docs = exp_manager.get_docs(args.d, sess)
 
         if args.db == "pickle":
             db = PickleSession(os.path.join(index, "pickles"))
@@ -72,8 +68,8 @@ if __name__ == "__main__":
             
             for THIS_NEXT_EXPERIMENT in db.available_experiments(args.x):
                 db.sub_path = THIS_NEXT_EXPERIMENT
-                for i, doc in enumerate(docs_to_retrieve):
-                    title = f"{index} -> {THIS_NEXT_EXPERIMENT} -> {exp_manager.document_index(index, doc, i):02}: Document {doc:04}"
+                for i, doc in enumerate(docs):
+                    title = f"{index} -> {THIS_NEXT_EXPERIMENT} -> {exp_manager.document_index(index, doc.id, i):02}: Document {doc.id:04}"
                     pkl = db.load(sess, doc)
                     panel_print(Pretty(pkl.params), title)
 

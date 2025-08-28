@@ -43,6 +43,12 @@ def connect():
 
 @socketio.on("init_query", namespace="/query")
 def query(data):
+    '''
+    {
+        'query': {'id', 'text', 'source', 'text_path'}
+        'args': {See Arguments class}
+    }
+    '''
     try:
         query_data = data['query']
         args = Arguments(**data['args'])

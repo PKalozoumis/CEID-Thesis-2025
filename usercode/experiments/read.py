@@ -7,7 +7,7 @@ Dynamically test the effects of chaining and context expansion
 
 import os
 import sys
-sys.path.append(os.path.abspath(".."))
+sys.path.append(os.path.abspath("../.."))
 
 import argparse
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     #--------------------------------------------------------------------------------------
 
     os.makedirs("cache", exist_ok=True)
-    sess = Session(args.i, cache_dir=("../cache" if args.cache else None), use="cache" if args.cache else "client")
+    sess = Session(args.i, base_path="../common", cache_dir=("../cache" if args.cache else None), use="cache" if args.cache else "client")
 
     if args.db == "pickle":
         db = PickleSession(os.path.join(sess.index_name, "pickles"), args.x)
@@ -122,10 +122,14 @@ if __name__ == "__main__":
             to_print = []
 
             if args.print_sentences and not args.score_sentences:
-                for sentence in args.sentences.split(","):
-                    sentence = int(sentence)
-                    to_print.append(Rule(f"[green]Sentence {sentence}[/green]"))
-                    to_print.append(Padding(doc.sentences[sentence].text, pad=(0,0,1,0)))
+                for sentence_range in args.sentences.split(","):
+                    res = re.match(r"^(\d+)(-(\d+))?$", sentence_range)
+                    start = int(res.group(1))
+                    end = int(res.group(3) or start)+1
+
+                    for sentence in doc.sentences[start:end]:
+                        to_print.append(Rule(f"[green]Sentence {sentence.index}[/green]"))
+                        to_print.append(Padding(sentence.text, pad=(0,0,1,0)))
 
             elif args.score_sentences:
 

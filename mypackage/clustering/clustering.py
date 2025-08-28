@@ -77,6 +77,14 @@ def chain_clustering(
     clustered_chains: dict[int, ChainCluster]
         A dictionary of clusters, with the label as the key
     '''
+    if n_components <= 0:
+        return ChainClustering(
+            chains,
+            [0]*len(chains),
+            {0: ChainCluster(chains, 0, pooling_method, normalize=normalize)},
+            {'umap_time': 0, 'cluster_time': 0}
+        )
+
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning) #when using seed
         warnings.filterwarnings("ignore", category=FutureWarning) #not in my control
@@ -201,8 +209,15 @@ def visualize_clustering(
 
     #Filter out outliers
     if no_outliers:
+        doc_id = chains[0].doc.id
         chains = [chain for chain, label in zip(chains, clustering_labels) if label >= 0]
         clustering_labels = [label for label in clustering_labels if label >= 0]
+
+        if len(chains) == 0:
+            warnings.warn(f"All chains of document {doc_id} were outliers and were removed")
+            ax.set_xticks([])
+            ax.set_yticks([])
+            return None
 
     #Creating the colors
     #-----------------------------------------------------------------------

@@ -9,14 +9,14 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluation of preprocessing results")
-    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs")
+    parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs. Leave blank for a predefined set of test documents. -1 for all")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("mode", nargs="?", action="store", type=str, help="What to compare (e.g. doc means iterate over experiments, create separate tables for them, and for each experiment compare the docs)", choices=[
         "doc", #Compare documents for each separate experiment
         "exp"  #Compare experiments for each separate document
     ], default="doc")
-    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to load the preprocessing results from", choices=['mongo', 'pickle'])
     parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     args = parser.parse_args()
 
@@ -76,14 +76,12 @@ if __name__ == "__main__":
         console.print(f"\nRunning for index '{index}'")
         console.print(Rule())
 
-        if not args.d:
-            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
-        else:
-            docs_to_retrieve = [int(x) for x in args.d.split(",")]
+        
 
         #-------------------------------------------------------------------------------------------
         os.makedirs(os.path.join(index, "stats"), exist_ok=True)
         sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
+        docs = exp_manager.get_docs(args.d, sess)
         db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
 
         if args.mode == "doc":
@@ -105,7 +103,7 @@ if __name__ == "__main__":
 
                 rich_group_items = []
 
-                pkl = db.load(sess, docs_to_retrieve)
+                pkl = db.load(sess, docs)
                 out = []
 
                 #Iterate over the documents
@@ -175,7 +173,7 @@ if __name__ == "__main__":
             #We iterate over all the documents
             #For each doc, we want to run and compare the selected experiments
             #Only then do we move on to the next document
-            for i, doc in enumerate(docs_to_retrieve):
+            for i, doc in enumerate(docs):
 
                 chain_rows = defaultdict(list)
                 cluster_rows = defaultdict(list)
@@ -200,13 +198,13 @@ if __name__ == "__main__":
                     for temp in clustering_metrics(pkl.clustering).values():
                         cluster_rows[temp['name']].append(temp['value'])
 
-                    for k,v in ({'id':doc, 'index': i} | stats(pkl.clustering)).items():
+                    for k,v in ({'id':doc.id, 'index': i} | stats(pkl.clustering)).items():
                         stat_rows[k].append(v)
 
                 #Write to excel file
                 #-----------------------------------------------------------------------
                 #Creates new tab
-                worksheet = workbook.add_worksheet(f"{exp_manager.document_index(index, doc, i):02}. Doc {doc:04}")
+                worksheet = workbook.add_worksheet(f"{exp_manager.document_index(index, doc.id, i):02}. Doc {doc.id:04}")
 
                 #Populate the tab with data
                 table_offset = 0
@@ -225,7 +223,7 @@ if __name__ == "__main__":
                 rich_group_items.append(Padding(create_table(['Metric', *column_names], cluster_rows, title="Clustering Metrics"), (0,0,1,0)))
                 rich_group_items.append(Padding(create_table(['Statistic', *column_names], stat_rows, title="Stats"), (0,0,1,0)))
 
-                console.print(Padding(Panel(Group(*rich_group_items), title=f"{exp_manager.document_index(index, doc, i):02}: Document {doc:04}", border_style="green", highlight=True), (0,0,10,0)))
+                console.print(Padding(Panel(Group(*rich_group_items), title=f"{exp_manager.document_index(index, doc.id, i):02}: Document {doc.id:04}", border_style="green", highlight=True), (0,0,10,0)))
 
             workbook.close()
             

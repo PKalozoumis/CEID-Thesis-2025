@@ -2,7 +2,7 @@ from ..helper import DEVICE_EXCEPTION
 import json
 from more_itertools import always_iterable
  
-from ..elastic import Session
+from ..elastic import Session, ElasticDocument, ScrollingCorpus
 from ..query import Query
 
 import re
@@ -54,7 +54,26 @@ class ExperimentManager():
 
     #---------------------------------------------------------------------------
 
-    def get_docs_for_index(self, index_name: str, fallback = None) -> list[int]:
+    def get_docs(self, docs_list: str, sess: Session, *, scroll_batch_size: int=5000, scroll_limit: int = None, scroll_time: str="1000s") -> list[ElasticDocument]:
+        #If docs are not specified, then a predefined set of docs is selected
+        if not docs_list:
+            docs_to_retrieve = self._get_docs_for_index(sess.index_name, list(range(10)))
+            return [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
+        elif docs_list == "-1":
+            return ScrollingCorpus(sess, batch_size=scroll_batch_size, limit=scroll_limit, scroll_time=scroll_time, doc_field="article")
+        else:
+            docs_to_retrieve = []
+            for doc_set in docs_list.split(","):
+                if res := re.match(r"^(?P<start>\d+)-(?P<end>\d+)$", doc_set):
+                    docs_to_retrieve += list(range(int(res.group('start')), int(res.group('end'))+1))
+                else:
+                    docs_to_retrieve += [int(doc_set)]
+            
+            return [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
+
+    #---------------------------------------------------------------------------
+
+    def _get_docs_for_index(self, index_name: str, fallback = None) -> list[int]:
         temp = self.index_defaults.get(index_name, None)
         if temp is not None:
             return temp['docs']
@@ -121,7 +140,7 @@ class ExperimentManager():
             The index of the requested test document, or ```fallback``` if the document is not a test document
         '''
         try:
-            return self.get_docs_for_index(index_name, list(range(10))).index(doc_id)
+            return self._get_docs_for_index(index_name, list(range(10))).index(doc_id)
         except ValueError:
             return fallback
         

@@ -135,6 +135,7 @@ class ChainCluster:
         return {
             'id': self.doc.id,
             'label': self.label,
+            #Mongo needs list
             'centroid': self.centroid.tolist() if self.centroid is not None else None, #It's None for outliers
             'pooling_method': self.pooling_method,
             'chains': [
@@ -149,7 +150,7 @@ class ChainCluster:
         obj = cls.__new__(cls)
         obj.chains = [SentenceChain.from_data(chain_data, doc, parent=obj) for chain_data in data['chains']]
         obj.label = data['label']
-        obj.centroid = data['centroid']
+        obj.centroid = np.array(data['centroid'])
         obj.pooling_method = data.get('pooling_method', "average")
 
         return obj

@@ -195,22 +195,7 @@ if __name__ == "__main__":
         console.print(Rule())
 
         sess = Session(index, base_path="../common", cache_dir="../cache", use= ("cache" if args.cache else "client"))
-
-        #If docs are not specified, then a predefined set of docs is selected
-        if not args.d:
-            docs_to_retrieve = exp_manager.get_docs_for_index(index, list(range(10)))
-            docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
-        elif args.d == "-1":
-            docs = ScrollingCorpus(sess, batch_size=args.batch_size, limit=args.limit, scroll_time=args.scroll_time, doc_field="article")
-        else:
-            if res := re.match(r"^(?P<start>\d+)-(?P<end>\d+)$", args.d):
-                docs_to_retrieve = list(range(int(res.group('start')), int(res.group('end'))+1))
-            else:
-                docs_to_retrieve = [int(x) for x in args.d.split(",")]
-            
-            docs = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
-
-        #-------------------------------------------------------------------------------------------
+        docs = exp_manager.get_docs(args.d, sess, scroll_batch_size=args.batch_size, scroll_time=args.scroll_time, scroll_limit=args.limit)
 
         console.print("Session info:")
         #console.print({'index_name': index, 'docs': docs_to_retrieve})
@@ -307,7 +292,7 @@ if __name__ == "__main__":
             except KeyboardInterrupt:
                 pass
             finally:
-                console.print(f"\nTotal time: {round(time.time() - t, 3):.3f}s\n")
+                console.print(f"\nTotal time: [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")
                 continue
 
         if len(time_records) > 0:

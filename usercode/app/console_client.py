@@ -174,7 +174,7 @@ async def ev_fragment(data):
 @sio.on("fragment_with_citation", namespace="/query")
 async def ev_fragment_with_citation(data):
     global full_text
-    data = data
+    data = data #wtf is this
     cite = data['citation']
     temp = data['fragment']
     temp = temp.replace("<citation>", f"[cyan]<{cite['doc']}_{cite['start']}-{cite['end']}>[/cyan]")

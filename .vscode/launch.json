@@ -17,6 +17,24 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "cwd": "${fileDirname}"
+        },
+        {
+            "name": "Debug plot.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${fileDirname}/plot.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "cwd": "${fileDirname}",
+            "args": [
+                "full",
+                "-x", "test",
+                "--no-outliers",
+                "--clear",
+                "-d", "18"
+            ]
         }
     ],
 }

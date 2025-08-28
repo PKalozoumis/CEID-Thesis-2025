@@ -4,6 +4,11 @@
             "docs": [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 1106],
             "source": ["summary", "article"],
             "text_path": "article"
+        },
+        "pubmed_new": {
+            "docs": [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 1106],
+            "source": ["summary", "article"],
+            "text_path": "article"
         }
     },
 

@@ -464,7 +464,7 @@ class SentenceChain(SentenceLike):
 
     def data(self) -> dict:
         return {
-            'vector': self.vector.tolist(),
+            'vector': self.vector.tolist(), #Mongo needs list
             'offset': self.first_index,
             'pooling_method': self.pooling_method,
             'index': self.index,
@@ -474,7 +474,7 @@ class SentenceChain(SentenceLike):
     @classmethod
     def from_data(cls, data: dict, doc: Document, *, parent: ChainCluster = None) -> SentenceChain:
         obj = cls.__new__(cls)
-        obj._vector = data['vector']
+        obj._vector = np.array(data['vector'])
         obj.pooling_method = data['pooling_method']
         obj.parent_cluster = parent
         obj.index = data.get('index', None)
@@ -487,6 +487,6 @@ class SentenceChain(SentenceLike):
         text = split_to_sentences(doc.text, sep="\n")
         if len(text) == 0:
             warnings.warn(f"Document {doc.id} has no sentences")
-        obj.sentences = [Sentence(text[offset + i], vec, doc, offset + i, parent_chain=obj) for i, vec in enumerate(data['sentences'])]
+        obj.sentences = [Sentence(text[offset + i], np.array(vec), doc, offset + i, parent_chain=obj) for i, vec in enumerate(data['sentences'])]
 
         return obj

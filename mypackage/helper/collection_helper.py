@@ -48,8 +48,8 @@ def generate_examples(path,*, doc_limit: int|None = None, byte_offsets=None, rem
                 return
             
             d = json.loads(line)
-            summary = "\n".join(d["abstract_text"])
-            summary = summary.replace("<S>", "").replace("</S>", "")
+            summary = "<temp>".join(d["abstract_text"])
+            summary = summary.replace("\n", "").replace("<temp>", "\n").replace("<S>", "").replace("</S>", "")
 
             #Remove duplicate sentences from article text
             #-----------------------------------------------------------
@@ -60,16 +60,19 @@ def generate_examples(path,*, doc_limit: int|None = None, byte_offsets=None, rem
                 for sentence in d["article_text"]:
                     if len(sentence.split()) > 7:
                         if sentence in seen_sentences:
-                            print(f"{d['article_id']} IMPOSTOR DETECTED 🗣")
+                            #print(f"{d['article_id']} IMPOSTOR DETECTED 🗣")
                             pass
                         else:
                             deduplicated.append(sentence)
                             seen_sentences.add(sentence)
             else:
-                deduplicated = d["article_text"]
+                deduplicated = [s.replace("\n", "") for s in d["article_text"]]
+
+            deduplicated = [s.replace("\n", "") for s in deduplicated]
 
             #Return document
             #-----------------------------------------------------------
+
             yield {
                 "article_id": d["article_id"],
                 "article": "\n".join(deduplicated),
@@ -81,5 +84,9 @@ def generate_examples(path,*, doc_limit: int|None = None, byte_offsets=None, rem
 
 def to_bulk_format(docs):
     for i, doc in enumerate(docs):
+        if 'usepackage' in doc['article']:
+            #print(f"Document {i} has latex")
+            continue
+
         yield {"index": {"_id": i}}
         yield doc
