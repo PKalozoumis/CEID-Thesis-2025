@@ -10,7 +10,7 @@ import warnings
 
 from rich.console import Console
 
-from .elastic import elasticsearch_client
+from .elastic import elasticsearch_client, NotFoundError
 from ..helper import overrides
 
 if TYPE_CHECKING:
@@ -229,7 +229,7 @@ class Document():
 
 class ElasticDocument(Document):
     '''
-    A class representing a documement in an Elasticsearch index. Can retrieve and store a single document.
+    A class representing a request for a document in an Elasticsearch index. Can be used to retrieve and store a single document.
     '''
     doc: str|dict
     id: int
@@ -239,7 +239,7 @@ class ElasticDocument(Document):
 
     def __init__(self, session: Session, id: int, *, filter_path: str = "_source", text_path: str | None = None):
         '''
-        A class representing a documement in an Elasticsearch index. Can be used to retrieve and store a single document.
+        A class representing a request for a documement in an Elasticsearch index. Can be used to retrieve and store a single document.
 
         Arguments
         ---
@@ -279,34 +279,38 @@ class ElasticDocument(Document):
         '''
         If the document has not yet been retrieved, it is retrieved and potentially stored in a cache
         '''
-        if self.doc is None:
-            #print(f"Fetching Document(ID={self.id})")
-
-            #Try to load from cache first
-            self.doc = self.session.cache_load(self.id)
-
-            #If loading from cache failed
+        try:
             if self.doc is None:
-                if self.session.client is None:
-                    if self.session.use == "cache":
-                        raise Exception("Session is in 'cache' mode, but the document was not found in cache. Consider setting mode to 'client' or 'both'")
-                self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
-                if self.session.cache_dir is not None:
-                    self.session.cache_store(self.doc, self.id)
+                #print(f"Fetching Document(ID={self.id})")
 
-            #If the filter path points to a single field, return the value inside that field
-            if self.filter_path and len(self.filter_path.split(",")) == 1:
-                for key in self.filter_path.split("."):
-                    self.doc = self.doc[key]
+                #Try to load from cache first
+                self.doc = self.session.cache_load(self.id)
 
-                #Here, we return the single value
-                #This is no longer a dictionary-like object
+                #If loading from cache failed
+                if self.doc is None:
+                    if self.session.client is None:
+                        if self.session.use == "cache":
+                            raise Exception("Session is in 'cache' mode, but the document was not found in cache. Consider setting mode to 'client' or 'both'")
+                    self.doc = self.session.client.get(index=self.session.index_name, id=f"{self.id}", filter_path=self.filter_path)
+                    if self.session.cache_dir is not None:
+                        self.session.cache_store(self.doc, self.id)
+
+                #If the filter path points to a single field, return the value inside that field
+                if self.filter_path and len(self.filter_path.split(",")) == 1:
+                    for key in self.filter_path.split("."):
+                        self.doc = self.doc[key]
+
+                    #Here, we return the single value
+                    #This is no longer a dictionary-like object
+                    return self.doc
+                else: #The document is dictionary-like. Specifically, it is an ObjectApiResponse
+                    assert isinstance(self.doc, ObjectApiResponse)
+                    self.doc = dict(self.doc)
+            else:
                 return self.doc
-            else: #The document is dictionary-like. Specifically, it is an ObjectApiResponse
-                assert isinstance(self.doc, ObjectApiResponse)
-                self.doc = dict(self.doc)
-        else:
-            return self.doc
+        except NotFoundError as e:
+            e.message = f"Failed to find document {self.id}"
+            raise e 
     
     #--------------------------------------------------------------------------------
     

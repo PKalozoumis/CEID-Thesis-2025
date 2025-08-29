@@ -84,6 +84,10 @@ def full(pkl: list[ProcessedDocument], imgpath: str, experiment_name: str, sess:
     #------------------------------------------------------------
     #For every document, visualize its clustering in the designated subplot
     for i, p in enumerate(pkl):
+        if not p.chains:
+            console.print(f"No preprocessing results for document {p.doc.id}. Skipping...")
+            continue
+
         console.print(f"Plotting document {p.doc.id}")
         ax[i].set_title(f"{i:02}: Doc {p.doc.id:02} ({sess.index_name})")
         legend_elements = visualize_clustering(p.chains, p.labels, ax=ax[i], return_legend=True, no_outliers=no_outliers)
@@ -133,18 +137,24 @@ def compare(db: DatabaseSession, exp_manager: ExperimentManager, experiment_name
             ax.set_xticks([])
             ax.set_yticks([])
 
-        for ax, experiment_name in zip(axes, experiment_list):
-            db.sub_path = experiment_name
-            pkl = db.load(sess, doc)
-            visualize_clustering(pkl.chains, pkl.labels, ax=ax, return_legend=True, min_dista=pkl.params['min_dista'], no_outliers=no_outliers)
+        try:
+            for ax, experiment_name in zip(axes, experiment_list):
+                db.sub_path = experiment_name
+                pkl = db.load(sess, doc)
+                visualize_clustering(pkl.chains, pkl.labels, ax=ax, return_legend=True, min_dista=pkl.params['min_dista'], no_outliers=no_outliers)
 
-            #Load experiment to get its title
-            score = f" ({clustering_metrics(pkl.clustering, print=False)[metric]['value']:.3f})" if metric is not None else ""
-            ax.set_title(pkl.params['title'] + score)
+                #Load experiment to get its title
+                score = f" ({clustering_metrics(pkl.clustering, print=False)[metric]['value']:.3f})" if metric is not None else ""
+                ax.set_title(pkl.params['title'] + score)
 
-        fig.suptitle(f"Comparisons for Document {doc.id} ({sess.index_name})")
-        fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc.id, fallback=-1):02}_{doc.id}.png"))
-        plt.close(fig)
+            fig.suptitle(f"Comparisons for Document {doc.id} ({sess.index_name})")
+            fig.savefig(os.path.join(imgpath, f"compare_{sess.index_name.replace('-index', '')}_{exp_manager.document_index(sess.index_name, doc.id, fallback=-1):02}_{doc.id}.png"))
+            plt.close(fig)
+        except Exception as e:
+            console.print(str(e) + ". Skipping...")
+            continue
+        finally:
+            plt.close(fig)
 
 #=============================================================================================================
 

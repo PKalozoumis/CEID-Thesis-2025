@@ -24,7 +24,7 @@ console = Console()
 
 #============================================================================================
 
-def doc_to_sentences(doc: Document, transformer: SentenceTransformer | None, *, remove_empty: bool = True, sep: str | None = None) -> list[Sentence]:
+def doc_to_sentences(doc: Document, transformer: SentenceTransformer | None, *, remove_empty: bool = True, sep: str | None = None, precalculated_embeddings: list = None) -> list[Sentence]:
     '''
     Breaks down a document into sentences. For the entire set of sentences, the embeddings are calculated
 
@@ -52,8 +52,15 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer | None, *, 
 
     result = []
 
-    if transformer is not None:
-        embeddings = transformer.encode(sentences)
+    if precalculated_embeddings is not None or transformer is not None:
+            
+        if precalculated_embeddings is not None:
+            if len(precalculated_embeddings) != len(sentences):
+                raise Exception(f"Number of embeddings ({len(precalculated_embeddings)}) is different from number of sentences ({len(sentences)})")
+            embeddings = precalculated_embeddings
+        else: #meaning that precalculated_embeddings was None, and transformer was NOT none
+            embeddings = transformer.encode(sentences)
+
         for offset, (sentence, embedding) in enumerate(zip(sentences, embeddings)):
             result.append(Sentence(sentence, embedding, doc, offset))
     else:

@@ -1,12 +1,16 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances, cosine_similarity
 from itertools import pairwise
+from collections import defaultdict
 
 from rich.console import Console
 from rich.table import Table
 
 from ..helper import create_table
 from .classes import SentenceChain
+
+from matplotlib import pyplot as plt
+import pandas as pd
 
 #================================================================================================
 
@@ -79,7 +83,7 @@ def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1
     if len(vec) > 0:
         return np.average(vec)
     else:
-        return -1
+        return np.nan
 
 #================================================================================================
 
@@ -121,7 +125,7 @@ def avg_within_chain_similarity(chains: list[SentenceChain], min_size: int = 1, 
     if len(vec) > 0:
         return np.average(vec)
     else:
-        return -1
+        return np.nan
 
 #================================================================================================
 
@@ -143,6 +147,59 @@ def avg_neighbor_chain_distance(chains: list[SentenceChain]):
 
 def avg_chain_length(chains: list[SentenceChain]):
     return np.average(np.array([len(c) for c in chains]))
+
+#================================================================================================
+
+def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
+    #Macro average
+    #robust
+
+    def single_doc_processing(chains: list[SentenceChain]) -> dict[int, float]:
+        sizes = defaultdict(list[SentenceChain])
+        for c in chains:
+            sizes[len(c)].append(c)
+
+        max_chain_size = list(sizes.keys())[-1]
+        #print(max_chain_size)
+        score_at_k: dict[int, list[SentenceChain]] = {}
+        for k in range(1, max_chain_size+1):
+            temp = avg_within_chain_similarity(chains, min_size=k, max_size=k)
+            if not np.isnan(temp):
+                score_at_k[k] = temp
+
+        return score_at_k
+    
+    #-------------------------------------------------------------------
+
+    multiple_doc_results = defaultdict(list)
+
+    for chains in doc_chains:
+        local_results = single_doc_processing(chains)
+        for k,v in local_results.items():
+            multiple_doc_results[k].append(v)
+
+    #Average scores per k
+    for k in multiple_doc_results:
+        #print(f"k={k}: {len(multiple_doc_results[k])}")
+        multiple_doc_results[k] = np.nanmean(multiple_doc_results[k])
+
+    keys = list(multiple_doc_results.keys())
+    values = list(multiple_doc_results.values())
+
+    #Plot results
+    #------------------------------------------------------------------
+    print(keys)
+    print(values)
+    df = pd.DataFrame(values, index=keys).sort_index()
+    print(df)
+    #df.plot()
+    plt.plot(df.index, df[0], marker='o', linestyle='-')
+    plt.axhline(y=0.6, color='red', linestyle='--')
+    plt.show(block=True)
+    #fig, ax = plt.subplots()
+    #ax.plot(keys, values)
+    #fig.show()
+
 
 #================================================================================================
 

@@ -9,6 +9,8 @@ from io import StringIO
 from rich.panel import Panel
 from rich.console import Console, Group
 from rich.table import Table
+from rich.rule import Rule
+from rich.text import Text
 
 console = Console()
 
@@ -25,6 +27,13 @@ def panel_print(text: str = "", title: str = "", *, return_panel=False, expand: 
         if return_panel:
             return panel
         console.print(panel)
+
+#===================================================================================
+
+def rule_print(text: str = "", title: str=""):
+    console.print(Rule(title=title))
+    console.print(Text(text))
+    console.print(Rule())
 
 #===================================================================================
 

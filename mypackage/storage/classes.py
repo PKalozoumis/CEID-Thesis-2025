@@ -16,6 +16,8 @@ from ..elastic import Document, Session, ElasticDocument
 from ..sentence import Sentence, SentenceChain
 from ..helper import DEVICE_EXCEPTION
 
+from elasticsearch import NotFoundError
+
 #==========================================================================================================
 
 class ProcessedDocument():
@@ -63,13 +65,13 @@ class DatabaseSession(ABC):
     def duplicate_session(cls, db: DatabaseSession) -> DatabaseSession: ...
 
     @overload
-    def load(self, sess: Session, docs: int|ElasticDocument) -> ProcessedDocument: ...
+    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False) -> ProcessedDocument: ...
 
     @overload
-    def load(self, sess: Session, docs: list[int]|list[ElasticDocument]) -> list[ProcessedDocument]: ...
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False) -> list[ProcessedDocument]: ...
 
     @abstractmethod
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]) -> ProcessedDocument|list[ProcessedDocument]:
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False) -> ProcessedDocument|list[ProcessedDocument]:
         pass
 
     @abstractmethod
@@ -104,13 +106,20 @@ class DatabaseSession(ABC):
     def set_temp(self):
         pass
 
-    def _restore_clusters(self, doc: Document, data: dict, params: dict = None) -> ProcessedDocument:
+    def _restore_clusters(self, doc: Document, data: dict, params: dict = None, skip_missing_docs: bool = False) -> ProcessedDocument:
         '''
         Recreates all cluster objects for a specific document using the retrieved data
         '''
         #Ensure the document's text has been retrieved
         #Otherwise, we cannot get the sentences
-        doc.get()
+        #May throw NotFoundError exception if document does not exist
+        try:
+            doc.get()
+        except NotFoundError as e:
+            if skip_missing_docs:
+                return None
+            else:
+                raise e
 
         #Recreate the cluster dictionary, by mapping each label to its ChainCluster,
         #the same way the clusters are returned from chain_clustering
@@ -195,15 +204,19 @@ class PickleSession(DatabaseSession):
     #----------------------------------------------------
 
     @overload
-    def load(self, sess: Session, docs: int|ElasticDocument) -> ProcessedDocument: ...
+    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False) -> ProcessedDocument: ...
 
     @overload
-    def load(self, sess: Session, docs: list[int]|list[ElasticDocument]) -> list[ProcessedDocument]: ...
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False) -> list[ProcessedDocument]: ...
 
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]) -> ProcessedDocument|list[ProcessedDocument]:
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False) -> ProcessedDocument|list[ProcessedDocument]:
         out = []
 
         for doc in always_iterable(docs):
+
+            if doc is None:
+                out.append(None)
+                continue
             
             #We only passed a document id, so we have to retrieve it first
             if type(doc) is int:
@@ -222,7 +235,7 @@ class PickleSession(DatabaseSession):
             else:
                 params = None
 
-            out.append(self._restore_clusters(doc_obj, data, params))
+            out.append(self._restore_clusters(doc_obj, data, params, skip_missing_docs=skip_missing_docs))
 
         if isinstance(docs, list):
             return out
@@ -328,7 +341,7 @@ class MongoSession(DatabaseSession):
         max_retries = 5
         for attempt in range(0, max_retries + 2):
             try:
-                self.client = MongoClient(f"mongodb://{host}/", serverSelectionTimeoutMS=5000)
+                self.client = MongoClient(f"mongodb://{host}/", serverSelectionTimeoutMS=7000)
                 self.client.admin.command("ping")
             except (ServerSelectionTimeoutError, ConnectionFailure) as e:
                 if attempt < max_retries:
@@ -381,12 +394,12 @@ class MongoSession(DatabaseSession):
     #----------------------------------------------------
 
     @overload
-    def load(self, sess: Session, docs: int|ElasticDocument) -> ProcessedDocument: ...
+    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False) -> ProcessedDocument: ...
 
     @overload
-    def load(self, sess: Session, docs: list[int]|list[ElasticDocument]) -> list[ProcessedDocument]: ...
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False) -> list[ProcessedDocument]: ...
 
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument]) -> ProcessedDocument|list[ProcessedDocument]:
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False) -> ProcessedDocument|list[ProcessedDocument]:
         out = []
 
         doc_objects = []
@@ -394,6 +407,10 @@ class MongoSession(DatabaseSession):
 
         #Get document objects from input
         for doc in always_iterable(docs):
+            if doc is None:
+                out.append(None)
+                continue
+
             #We only passed a document id, so we have to retrieve it first
             if type(doc) is int:
                 doc_obj = ElasticDocument(sess, doc, text_path="article")
@@ -411,12 +428,19 @@ class MongoSession(DatabaseSession):
         for data in cursor:
             doc_to_clusters[data['id']].append(data)
 
+        '''
+        #Check if we have retrieved data for all docs
+        for doc_id in doc_ids:
+            if not doc_to_clusters[doc_id]:
+                raise Exception(f"Preprocessing results for document {doc_id} not found")
+        '''
+
         #Retrieve params
         params = self.database['metadata'].find_one({'collection': self.sub_path})['params']
     
         #Create clusters
         for doc_obj in doc_objects:
-           out.append(self._restore_clusters(doc_obj, doc_to_clusters[doc_obj.id], params))
+           out.append(self._restore_clusters(doc_obj, doc_to_clusters[doc_obj.id], params, skip_missing_docs=skip_missing_docs))
 
         #Return results
         if isinstance(docs, list):

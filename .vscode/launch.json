@@ -35,6 +35,21 @@
                 "--clear",
                 "-d", "18"
             ]
+        },
+        {
+            "name": "Debug eval.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${fileDirname}/eval.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "cwd": "${fileDirname}",
+            "args": [
+                "full",
+                "-d", "0-10"
+            ]
         }
     ],
 }

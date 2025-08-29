@@ -14,3 +14,4 @@ cached_docs
 usercode/cache
 diagrams
 !final_summary.txt
+usercode/preprocess/embedding_cache

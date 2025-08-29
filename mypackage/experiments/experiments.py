@@ -2,7 +2,7 @@ from ..helper import DEVICE_EXCEPTION
 import json
 from more_itertools import always_iterable
  
-from ..elastic import Session, ElasticDocument, ScrollingCorpus
+from ..elastic import Session, ElasticDocument, ScrollingCorpus, NotFoundError
 from ..query import Query
 
 import re
@@ -69,7 +69,23 @@ class ExperimentManager():
                 else:
                     docs_to_retrieve += [int(doc_set)]
             
-            return [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
+            res = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
+
+            '''
+            if fetch:
+                for i, d in enumerate(res):
+                    try:
+                        d.get()
+                    except NotFoundError as e:
+                        if skip_missing_docs:
+                            res[i] = None
+                        else:
+                            raise e
+            '''
+                    
+            return res
+        
+
 
     #---------------------------------------------------------------------------
 

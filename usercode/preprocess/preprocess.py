@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the preprocessing step for the specified documents, and with the specified parameters (experiments)")
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs or document range. Leave blank for a predefined set of test documents. -1 for all")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
-    parser.add_argument("-m", "--model", action="store", type=str, default='sentence-transformers/all-MiniLM-L6-v2', help="Name or alias of the sentence embedding model to use")
+    #parser.add_argument("-m", "--model", action="store", type=str, default='sentence-transformers/all-MiniLM-L6-v2', help="Name or alias of the sentence embedding model to use")
     
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
@@ -32,6 +32,10 @@ if __name__ == "__main__":
     parser.add_argument("-st", "--scroll-time", action="store", type=str, default="1000s", help="Scroll time for scrolling corpus")
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     parser.add_argument("-w", "--warnings", action="store_true", default=False, help="Show warnings")
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--cache-embeddings", action="store_true", default=False, help="Cache sentence embeddings")
+    group.add_argument("--use-embedding-cache", action="store_true", default=False, help="Use cached sentence embeddings")
 
     parser.add_argument("-a", "--append", action="store_true", default=False, help="Insert document into database without deleting previous results")
     
@@ -77,7 +81,7 @@ db = None
 
 #==============================================================================================
 
-def initializer(p,i,_args,cpu_model = None,):
+def initializer(p,i,_args,cpu_model = None):
     global params, index_name, model, args, db
     params=p
     index_name=i
@@ -121,11 +125,28 @@ def work(doc: ElasticDocument):
         'hdbscan_t': None
     }
 
-    record['sent_t'] = time.time()
-    if args.verbose: console.print(f"Document {doc.id:02}: Creating sentences...")
-    sentences = doc_to_sentences(doc, model, sep="\n")
-    record['sent_t'] = round(time.time() - record['sent_t'], 3)
-    if args.verbose: console.print(f"Document {doc.id:02}: Created {len(sentences)} sentences")
+    cache_path = os.path.join("embedding_cache", index_name, params['sentence_model'].replace("/", "-"))
+
+    #Try to load embeddings from cache first
+    if args.use_embedding_cache:
+        with open(os.path.join(cache_path, f"{doc.id}.pkl"), "rb") as f:
+            sentence_vectors = pickle.load(f)
+        sentences = doc_to_sentences(doc, model, sep="\n", precalculated_embeddings=sentence_vectors)
+        record['sent_t'] = 0
+
+    #If cache is disabled, calculate on the spot
+    else:
+        record['sent_t'] = time.time()
+        if args.verbose: console.print(f"Document {doc.id:02}: Creating sentences...")
+        sentences = doc_to_sentences(doc, model, sep="\n")
+        record['sent_t'] = round(time.time() - record['sent_t'], 3)
+        if args.verbose: console.print(f"Document {doc.id:02}: Created {len(sentences)} sentences")
+
+    #Save to embedding cache
+    if args.cache_embeddings:
+        os.makedirs(cache_path, exist_ok=True)
+        with open(os.path.join(cache_path, f"{doc.id}.pkl"), "wb") as f:
+            pickle.dump([s.vector for s in sentences], f)
     
     #Chaining parameters
     record['chain_t'] = time.time()
@@ -228,7 +249,7 @@ if __name__ == "__main__":
             if args.device == "cpu":
                 cpu_model = SentenceTransformer(THIS_NEXT_EXPERIMENT['sentence_model'], device='cpu')
 
-            procs = []
+            #procs = []
 
             t = time.time()
 
@@ -240,7 +261,8 @@ if __name__ == "__main__":
                     BarColumn(),
                     TextColumn("[progress.percentage]{task.completed}/{task.total}"),
                     TimeElapsedColumn(),
-                    TimeRemainingColumn()
+                    TimeRemainingColumn(),
+                    disable=args.verbose
                 ) as progress:
                     
                     batch_size = args.batch_size if args.d == "-1" else len(docs)
@@ -270,14 +292,19 @@ if __name__ == "__main__":
                                 #Pass the workload to the pool
                                 #The workload should be higher than the pool size
                                 for i, batch in enumerate(batched(docs, args.batch_size)):
-                                    task = progress.add_task(f"Processing documents for batch {i}...", total=batch_size, start=True)
                                     workload = []
 
-                                    #Retrieve documents and remove the unserializeable session object from them
+                                    #Retrieve documents
+                                    #Remove the unserializeable session object from them
                                     for doc in batch:
-                                        doc.get()
-                                        doc.session = None
-                                        workload.append(doc)
+                                        try:
+                                            doc.get()
+                                            doc.session = None
+                                            workload.append(doc)
+                                        except Exception:
+                                            continue
+
+                                    task = progress.add_task(f"Processing documents for batch {i}...", total=len(workload), start=True)
 
                                     #Distribute work
                                     for res in pool.imap_unordered(work, workload):
