@@ -167,6 +167,10 @@ class ChainClustering():
     clusters: dict[int, ChainCluster]
     times: dict[str, float] = field(default=None)
 
+    @property
+    def doc(self) -> Document:
+        return self.chains[0].doc
+
     def __post_init__(self):
         for cluster in self.clusters.values():
             cluster.clustering_context = self

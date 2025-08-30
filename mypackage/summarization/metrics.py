@@ -1,34 +1,90 @@
 import evaluate
 from transformers import AutoTokenizer
 from .classes import SummaryUnit
+from rouge_score import rouge_scorer
+from ..helper import panel_print, format_latex_table
+
+import pandas as pd
+
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
+from nltk.translate.meteor_score import single_meteor_score
+from nltk import word_tokenize
+from bert_score import score as _bert_score
+
+from rich.console import Console
+
+console = Console()
+
+#=====================================================================================================
 
 def bert_score(summary_unit: SummaryUnit):
+    P, R, F1 = _bert_score([summary_unit.summary], [summary_unit.reference], lang="en", model_type="roberta-large")
+    print("Precision:", P.mean().item())
+    print("Recall:", R.mean().item())
+    print("F1:", F1.mean().item())
 
-    model = 'roberta-large'
-
-    tokenizer = AutoTokenizer.from_pretrained(model)
-    temp = "Childhood obesity is a complex issue, influenced by multiple lifestyle factors and behaviours. Several lifestyle factors are interrelated behavioural contributors to childhood obesity <1923_100-100>. These include diet, physical activity, and stress levels. In fact, the most relevant lifestyle-related risk factors for obesity were selected as intervention targets: (1) diet, (2) physical activity, and (3) stress <1923_5-5>. The consumption of sugar-sweetened beverages is an important contributor to childhood obesity, confirmed by longitudinal studies <1923_62-64>. Additionally, a sedentary lifestyle plays a major role in the rising prevalence of obesity, with lack of physical activity being the fourth leading cause of death worldwide <3611_66-68>. Furthermore, a diet consisting of energy-dense snack consumption, fast-food consumption, and energy-dense drink intake can lead to adverse dietary patterns <1923_79-81>. Childhood obesity is also associated with several immediate health risk factors, such as orthopedic, neurological, pulmonary, gastroenterological, and endocrine conditions. Moreover, it has been linked to negative psychosocial outcomes in children, including low self-esteem and depression, which can indirectly impact academic performance and social relationships <272_6-7>. Obesity may also increase the stress level of both the child and their family <1923_90-90>. Interestingly, while obesity was more prevalent among higher socio-economic status (SES) groups, other factors such as family size, residence, and parent's education did not contribute to obesity. However, recent studies have shown a steady increase in prevalence among government school children in large metropolitan cities and peri-urban areas <2581_65-66>."
-
-    summary_unit.summary = temp
-    max_len = tokenizer.model_max_length
-
-    print(f"Input tokens: {len(tokenizer(summary_unit.single_text)['input_ids'])}")
-    print(f"Summary tokens: {len(tokenizer(summary_unit.summary)['input_ids'])}")
-    print(f"Model max length: {max_len}")
-
-    bertscore = evaluate.load("bertscore")
-    results = bertscore.compute(
-        predictions=[summary_unit.summary],
-        references=[summary_unit.single_text],
-        lang="en",
-        model_type=model
-    )
-
-    print("Precision:", results["precision"])
-    print("Recall:", results["recall"])
-    print("F1:", results["f1"])
+#=====================================================================================================
 
 def rouge_score(summary_unit: SummaryUnit):
-    pass
+    scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
+    reference = summary_unit.reference
+    candidate = summary_unit.summary
+    scores = scorer.score(reference, candidate)
 
-    
+    # Build a DataFrame with metrics as rows
+    df = pd.DataFrame({
+        metric: {
+            "precision": scores[metric].precision,
+            "recall": scores[metric].recall,
+            "fmeasure": scores[metric].fmeasure
+        }
+        for metric in scores
+    }).T  # transpose so metrics become rows
+
+    console.print(df)
+
+    latex = df.to_latex(
+        escape=True,
+        column_format='lccc',
+        caption="Rouge scores", 
+        label="tab:rouge", 
+        float_format="%.3f",
+        position="h"
+    )
+
+    format_latex_table(latex, name="Rouge")
+    '''
+
+    #What will happen if I treat each fact as a referece
+    #------------------------------------------------------------------
+    references = [(c.text, c.id) for c in summary_unit.sorted_candidates[0]]
+
+    data = []
+    for ref in references:
+        candidate = summary_unit.summary
+        scores = scorer.score(ref[0], candidate)
+        data.append(f"{ref[1]}: {scores}")
+    panel_print(data)
+    '''
+
+#=====================================================================================================
+
+def compression_ratio(summary_unit: SummaryUnit):
+    source_len = len(summary_unit.reference.split())
+    summary_len = len(summary_unit.summary.split())
+
+    compression_ratio = summary_len / source_len
+    print(f"Compression ratio: {compression_ratio:.2f}")
+
+#=====================================================================================================
+
+'''
+def meteor_score(summary_unit: SummaryUnit):
+    reference_tokens = word_tokenize(summary_unit.reference)
+    candidate_tokens = word_tokenize(summary_unit.summary)
+
+    # Compute METEOR
+    score = single_meteor_score(reference_tokens, candidate_tokens)
+    print(f"METEOR score: {score:.4f}")
+'''

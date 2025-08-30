@@ -181,6 +181,17 @@ async def ev_fragment_with_citation(data):
     full_text += temp
 
 #---
+
+@sio.on("summary_end", namespace="/query")
+async def ev_summary_end():
+    global live, full_text, receiving_fragments
+    if live is not None:
+        live.stop()
+        live = None
+    receiving_fragments = False
+    full_text = ""
+
+#---
     
 @sio.on("end", namespace="/query")
 async def ev_end(data):

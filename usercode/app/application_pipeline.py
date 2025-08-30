@@ -8,7 +8,7 @@ from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
 from mypackage.llm import LLMSession
-from mypackage.storage import DatabaseSession, MongoSession, PickleSession
+from mypackage.storage import DatabaseSession, MongoSession, PickleSession, RealTimeResults
 
 from application_classes import Arguments
 
@@ -112,7 +112,7 @@ def calculate_cross_scores(query, selected_clusters: list[SelectedCluster], *, a
     '''
     Stage 4 of the pipeline
     '''
-    evaluator = RelevanceEvaluator(query, CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2'))
+    evaluator = RelevanceEvaluator(query, 'cross-encoder/ms-marco-MiniLM-L12-v2')
 
     for cluster in selected_clusters:
         key = f'cross_score_{cluster.id}'
@@ -190,7 +190,7 @@ def expand_context(selected_clusters: list[SelectedCluster], *, args: Arguments 
 
 #===============================================================================================================
 
-def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], stop_dict, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], stop_dict, summary_num: int, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 6 of the pipeline
     '''
@@ -204,7 +204,7 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
     if args.summ:
         is_first_fragment = True
 
-        message_sender("info", "Summarizing...\n")
+        message_sender("info", "[white]Summarizing...[/white]" + (f" ({summary_num+1}/{args.num_summaries})" if args.num_summaries > 1 else ""))
         llm = LLMSession.create(server_args.llm_backend, "meta-llama-3.1-8b-instruct", api_host=server_args.host)
 
         summarizer = Summarizer(query, llm=llm)
@@ -264,36 +264,40 @@ def pipeline(query_data: dict, stop_dict, *, args: Arguments = None, server_args
     selected_clusters= retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
     evaluator = calculate_cross_scores(query, selected_clusters, **kwargs)
     expand_context(selected_clusters, **kwargs)
-    summary_unit = summarization_stage(query, selected_clusters, stop_dict, **kwargs)
+
+    #Summarization
+    summaries = []
+    temp = kwargs['args'].print
+    for i in range(args.num_summaries):
+        summaries.append(summarization_stage(query, selected_clusters, stop_dict, i, **kwargs))
+        message_sender("summary_end", None)
+        kwargs['args'].print = False #Do not resend the input to the client
+    kwargs['args'].print = temp
 
     #Terminate
     #--------------------------------------------------------------------------
     message_sender("end", {'status': 0})
     db.close()
 
+    #Store results (for future evaluation)
+    #--------------------------------------------------------------------------
+    RealTimeResults.store_results("test.pkl", sess, query, evaluator, args.to_namespace(), returned_docs, selected_clusters, summaries, times)
+
+
+    '''
     #Evaluation
     #--------------------------------------------------------------------------
     if args.eval:
-        evaluation_pipeline(sess, query, returned_docs, db, args.eval_relevance_threshold)
+        evaluation_pipeline(
+            sess,
+            query,
+            returned_docs,
+            db,
+            evaluator,
+            selected_clusters,
+            summaries,
 
-        '''
-        t = time.time()
-        score1 = document_cross_score(returned_docs, selected_clusters, evaluator, verbose=server_args.verbose, vector=True, keep_all_docs=False)
-        console.print(score1)
-        console.print(f"Score (filtered docs): {round(sum(score1)/len(score1), 3):.3f}")
-        console.print(f"Evaluation time: {round(time.time() - t, 3):.3f}s\n")
-
-        t = time.time()
-        score2 = document_cross_score(returned_docs, selected_clusters, evaluator, verbose=server_args.verbose, vector=True, keep_all_docs=True)
-        console.print(score2)
-        x1 = sum(x for x, _ in score2)
-        x2 = sum(x for _, x in score2)
-        console.print(f"Score (all retrieved docs): {round(x1/x2, 3):.3f}")
-        console.print(f"Evaluation time: {round(time.time() - t, 3):.3f}s")
-
-        document_cross_score_at_k(score2)
-        '''
-
-
-        #bert_score(summary_unit)
-        #rouge_score(summary_unit)
+            server_args = server_args,
+            eval_relevance_threshold = args.eval_relevance_threshold
+        )
+    '''

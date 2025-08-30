@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances, cosine_similarity
-from itertools import pairwise
+from itertools import pairwise, chain
 from collections import defaultdict
 
 from rich.console import Console
@@ -10,6 +10,7 @@ from ..helper import create_table
 from .classes import SentenceChain
 
 from matplotlib import pyplot as plt
+import seaborn as sns
 import pandas as pd
 
 #================================================================================================
@@ -97,7 +98,7 @@ def inter_chain_distance(chain_a: SentenceChain, chain_b: SentenceChain):
     
 #================================================================================================
 
-def avg_within_chain_similarity(chains: list[SentenceChain], min_size: int = 1, max_size: int|None = None):
+def avg_within_chain_similarity(chains: list[SentenceChain], min_size: int = 1, max_size: int|None = None, size_index: dict[int, list[SentenceChain]] = None):
     '''
     Caclculates the average similarity within each chain in the list.
     Then, it calculates the average of those values. 
@@ -106,13 +107,13 @@ def avg_within_chain_similarity(chains: list[SentenceChain], min_size: int = 1, 
     ---
     chains: list[SentenceChain]
         The list of chains to calculate similarity for
-
     min_size: int
         Default is ```1```. Only consider chains that have at least min_size sentences inside
-
     max_size: int
         Default is ```None```. Only consider chains that have at most max_size sentences inside
-
+    size_index: dict[int, list[SentenceChain]]
+        A precalculated dictionary mapping each size to the chains of that size
+        
     Returns
     ---
     avg_sim: float
@@ -121,7 +122,11 @@ def avg_within_chain_similarity(chains: list[SentenceChain], min_size: int = 1, 
     if max_size is None:
         max_size = 6666
 
-    vec = np.array([within_chain_similarity(a) for a in chains if len(a) >= min_size and len(a) <= max_size])
+    if size_index:
+        vec = np.array([within_chain_similarity(c) for k in range(min_size, max_size+1) if k in size_index for c in size_index[k]])
+    else:
+        vec = np.array([within_chain_similarity(a) for a in chains if len(a) >= min_size and len(a) <= max_size])
+    
     if len(vec) > 0:
         return np.average(vec)
     else:
@@ -150,6 +155,36 @@ def avg_chain_length(chains: list[SentenceChain]):
 
 #================================================================================================
 
+def plot_chain_lengths(experiment_chains: list[list[SentenceChain]]):
+
+    sizes_per_experiment = []
+
+    for chains in experiment_chains:
+        sizes_per_experiment.append([len(c) for c in chains])
+
+    df = pd.DataFrame({
+        'Size': list(chain.from_iterable(sizes_per_experiment)),
+        'Experiment': [f'exp{i}' for i, exp in enumerate(sizes_per_experiment) for _ in exp]
+    })
+    
+    # Count number of groups per size for each method
+    counts = df.groupby(['Experiment', 'Size']).size().unstack(fill_value=0)
+    # Remove sizes that are zero in all experiments
+    counts = counts.loc[:, (counts != 0).any(axis=0)]
+
+    # Convert to percentages
+    percentages = counts.div(counts.sum(axis=1), axis=0) * 100
+
+    # Plot bar plot
+    ax = percentages.T.plot(kind='bar', width=0.7)  # .T so sizes on x-axis
+    ax.set_xlabel('Group Size')
+    ax.set_ylabel('Percentage of Groups')
+    ax.set_title('Group Size Distribution by Method')
+    plt.xticks(rotation=0)  # keep x-ticks horizontal
+    plt.show()
+
+
+#================================================================================================
 def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
     #Macro average
     #robust
@@ -163,7 +198,7 @@ def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
         #print(max_chain_size)
         score_at_k: dict[int, list[SentenceChain]] = {}
         for k in range(1, max_chain_size+1):
-            temp = avg_within_chain_similarity(chains, min_size=k, max_size=k)
+            temp = avg_within_chain_similarity(chains, min_size=k, max_size=k, size_index=sizes)
             if not np.isnan(temp):
                 score_at_k[k] = temp
 
@@ -190,16 +225,7 @@ def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
     #------------------------------------------------------------------
     print(keys)
     print(values)
-    df = pd.DataFrame(values, index=keys).sort_index()
-    print(df)
-    #df.plot()
-    plt.plot(df.index, df[0], marker='o', linestyle='-')
-    plt.axhline(y=0.6, color='red', linestyle='--')
-    plt.show(block=True)
-    #fig, ax = plt.subplots()
-    #ax.plot(keys, values)
-    #fig.show()
-
+    return pd.DataFrame(values, index=keys).sort_index()
 
 #================================================================================================
 

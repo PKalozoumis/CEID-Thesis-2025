@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field, fields
 from typing import Literal, get_origin, get_args
+from types import SimpleNamespace
 import argparse
 
 #========================================================================================================================
@@ -25,6 +26,7 @@ class Arguments():
     eval: bool = field(default=False, metadata={"help": "Enable evaluation mode"})
     index: str = field(default="pubmed", metadata={"help": "Index name", "short": "i"})
     eval_relevance_threshold: float = field(default=5.5, metadata={"help": "Relevant doc threshold"})
+    num_summaries: int = field(default=1, metadata={"help": "Number of summaries to generate from the same input", "short": "nsumm"})
 
     query: str = field(default=None, metadata={"help": "Numeric query ID or query string", "short": "q", "client_only": True})
 
@@ -116,6 +118,11 @@ class Arguments():
             data = {f.name: getattr(self, f.name) for f in fields(Arguments) if not (f.metadata.get('client_only') and ignore_client_args)}
     
         return data
+    
+    #-------------------------------------------------------------------------------------
+    
+    def to_namespace(self, ignore_defaults: bool = False) -> SimpleNamespace:
+        return SimpleNamespace(**self.to_dict(ignore_defaults=ignore_defaults, ignore_client_args=True))
         
     #-------------------------------------------------------------------------------------
 

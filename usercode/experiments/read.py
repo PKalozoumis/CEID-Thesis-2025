@@ -80,7 +80,7 @@ if __name__ == "__main__":
     
     if args.score_chains:
         query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article")
-        evaluator = RelevanceEvaluator(query, CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2'))
+        evaluator = RelevanceEvaluator(query, 'cross-encoder/ms-marco-MiniLM-L12-v2')
     
     docs = [ElasticDocument(sess, id=id, text_path="article") for id in args.d.split(",")]
     #print(f"{db.base_path}/{db.sub_path}")

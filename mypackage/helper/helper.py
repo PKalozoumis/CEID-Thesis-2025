@@ -11,6 +11,9 @@ from rich.console import Console, Group
 from rich.table import Table
 from rich.rule import Rule
 from rich.text import Text
+from rich.pretty import Pretty
+
+import re
 
 console = Console()
 
@@ -19,14 +22,14 @@ console = Console()
 def panel_print(text: str = "", title: str = "", *, return_panel=False, expand: bool = True):
     if isinstance(text, list):
         panel = Panel(Group(*text), title=title, title_align="left", border_style="bold cyan", expand=expand)
-        if return_panel:
-            return panel
-        console.print(panel)
-    else:
+    elif type(text) is str:
         panel = Panel(text, title=title, title_align="left", border_style="bold cyan", expand=expand)
-        if return_panel:
-            return panel
-        console.print(panel)
+    else:
+        panel = Panel(Pretty(text), title_align="left", border_style="bold cyan", expand=expand)
+
+    if return_panel:
+        return panel
+    console.print(panel)
 
 #===================================================================================
 
@@ -217,3 +220,81 @@ def rich_console_text(obj, console_width=None) -> str:
 
 class DEVICE_EXCEPTION(Exception):
     pass
+
+#=============================================================================================================
+
+def format_latex_table(latex_code: str, name: str = None) -> str:
+    # Insert caption formatting before \caption
+    latex_code = re.sub(
+        r"(\\caption\{)",
+        r"\\captionsetup{font=normalsize, labelfont=bf}\n\1",
+        latex_code,
+        count=1
+    )
+
+    # Extract tabular spec
+    match = re.search(r"\\begin\{tabular\}\{(.*?)\}", latex_code, re.DOTALL)
+    if not match:
+        return latex_code
+    
+    col_spec = match.group(1)
+
+    # If there is an X → use tabularx
+    if "X" in col_spec:
+        new_cols = []
+        count = 0
+        last_char = None
+
+        for c in col_spec:
+            if c == "X":
+                if last_char == "X":
+                    count += 1
+                else:
+                    if last_char:
+                        if last_char == "X":
+                            new_cols.append(rf"*{{{count}}}{{>{{\\raggedleft\\arraybackslash}}X}}")
+                        else:
+                            new_cols.append(last_char * count)
+                    count = 1
+                last_char = "X"
+            else:
+                if last_char == "X":
+                    new_cols.append(rf"*{{{count}}}{{>{{\\raggedleft\\arraybackslash}}X}}")
+                    count = 0
+                if last_char == c:
+                    count += 1
+                else:
+                    if last_char and last_char != "X":
+                        new_cols.append(last_char * count)
+                    count = 1
+                last_char = c
+
+        # flush last group
+        if last_char == "X":
+            new_cols.append(rf"*{{{count}}}{{>{{\\raggedleft\\arraybackslash}}X}}")
+        else:
+            new_cols.append(last_char * count)
+
+        new_spec = "".join(new_cols)
+
+        latex_code = re.sub(
+            r"\\begin\{tabular\}\{.*?\}",
+            r"\\begin{tabularx}{\\textwidth}{" + new_spec + "}",
+            latex_code,
+            count=1
+        )
+        latex_code = re.sub(r"\\end\{tabular\}", r"\\end{tabularx}", latex_code, count=1)
+
+    else:
+        # No X → just center it
+        latex_code = re.sub(
+            r"(\\begin\{tabular\}\{.*?\})",
+            r"\\centering\n\1",
+            latex_code,
+            count=1
+        )
+
+    if name is not None:
+        rule_print(latex_code, title=name)
+
+    return latex_code

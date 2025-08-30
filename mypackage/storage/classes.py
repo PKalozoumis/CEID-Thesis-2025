@@ -10,13 +10,146 @@ from pymongo import MongoClient, collection, database
 from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from collections import defaultdict
 import re
+from types import SimpleNamespace
 
 from ..clustering import ChainCluster, ChainClustering
 from ..elastic import Document, Session, ElasticDocument
 from ..sentence import Sentence, SentenceChain
 from ..helper import DEVICE_EXCEPTION
+from ..summarization import SummaryUnit
+from ..query import Query
+from ..cluster_selection import SelectedCluster, RelevanceEvaluator
+from ..experiments import ExperimentManager
 
 from elasticsearch import NotFoundError
+
+from dataclasses import dataclass
+
+#==========================================================================================================
+
+@dataclass
+class RealTimeResults():
+    '''
+    Represents the results of a single client query. Can be used for later evaluatiion.
+    '''
+    #Environment objects
+    sess: Session
+    experiment: str
+    db: DatabaseSession
+    evaluator: RelevanceEvaluator
+    query: Query
+    args: SimpleNamespace
+
+    #Result objects
+    returned_docs: list[ElasticDocument]
+    selected_clusters: list[SelectedCluster]
+    summaries: list[SummaryUnit]
+
+    #---------------------------------------------------------------------------------
+
+    @staticmethod
+    def store_results(
+        path: str,
+
+        sess: Session,
+        query: Query,
+        evaluator: RelevanceEvaluator,
+        args: SimpleNamespace,
+
+        returned_docs: list[ElasticDocument],
+        selected_clusters: list[SelectedCluster],
+        summaries: list[SummaryUnit],
+
+        times: defaultdict
+    ):
+        data = {
+            'index_name': sess.index_name,
+            'experiment': args.experiment,
+            'query_id': query.id,
+            'cross_encoder': evaluator.model_name,
+            'args': args,
+
+            'returned_docs': [doc.id for doc in returned_docs],
+            'selected_clusters': [c.data() for c in selected_clusters],
+            'summaries': [s.data() for s in summaries],
+
+            'times': dict(times)
+        }
+
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
+
+    #---------------------------------------------------------------------------------
+
+    @classmethod
+    def load(cls, path: str, sess: Session, db: DatabaseSession, exp_manager: ExperimentManager, experiment: str):
+        #I want to load a results file that corresponds to a specific:
+            #Index
+            #Experiment
+            #Query
+
+        #What do we NOT know about the environment:
+            #The index name
+            #The experiment name
+            #We don't care about the database
+            #The query ID
+            #The cross-encoder used
+            #The client arguments (explicitly write ALL, even the default ones)
+
+        #Result objects that need to be stored:
+            #Retrieved documents
+            #Selected clusters
+            #Generated summaries
+
+        with open(path, "rb") as f:
+            data = pickle.load(f)
+
+        #Check if the index name matches
+        if data['index_name'] != sess.index_name:
+            raise Exception("Index names do not match")
+        
+        #Load experiment
+        processed = db.load(sess, data['returned_docs'], skip_missing_docs=False)
+        
+        query = exp_manager.get_queries(data['query_id'], data['index_name'])[0]
+        evaluator = RelevanceEvaluator(query, data['cross_encoder'])
+
+        #Find the document (inside returned docs) that corresponds to each selected cluster
+        #This will give the position of the respective processed document
+        selected_clusters = [
+            SelectedCluster.from_data(
+                sc_data,
+                processed[data['returned_docs'].index(sc_data['doc_id'])].clustering,
+                evaluator
+            )
+            for sc_data in data['selected_clusters']
+        ]
+
+        #Documents
+        returned_docs = [
+            ElasticDocument(
+                sess,
+                id,
+                text_path = exp_manager.index_defaults[sess.index_name]['text_path']
+            )
+            for id in data['returned_docs']
+        ]
+        
+        #Create final object
+        return cls(
+            sess,
+            experiment,
+            db,
+            evaluator,
+            query,
+            data['args'],
+
+            returned_docs,            
+            selected_clusters,
+            [SummaryUnit.from_data(summ, selected_clusters) for summ in data['summaries']],
+
+            data['times']      
+        )
 
 #==========================================================================================================
 

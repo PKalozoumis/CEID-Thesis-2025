@@ -151,8 +151,6 @@ class LMStudioSession(LLMSession):
             else:
                 self.api_host = api_host
 
-        print(self.api_host)
-
         client = lms.Client(api_host=self.api_host)
         self.model = client.llm.model(model_name)
 

@@ -32,7 +32,12 @@ class RelevanceEvaluator():
     Contains the query, as well as the model used to evaluate a sentence's relevance with it
     '''
     query: Query
-    model: CrossEncoder
+    model_name: str
+    model: CrossEncoder = field(default=None)
+
+    def __post_init__(self):
+        if self.model is None:
+            self.model = CrossEncoder(self.model_name)
 
     def predict(self, sentences: list[SentenceLike], *, join=False) -> float | list[float]:
         '''
@@ -143,6 +148,27 @@ class SummaryCandidate():
         def __eq__(self, other: SummaryCandidate.State) -> bool:
             return self.id == other.id and self.actions == other.actions
         
+        #----------------------------------------------------------------------
+        
+        def data(self) -> dict:
+            return {
+                'chains': [c.index for c in self.chains],
+                'score': self.score,
+                'actions': self.actions,
+                'timestamp': self.timestamp,
+                'improvement_score': self.improvement_score
+            }
+        
+        @classmethod
+        def from_data(cls, data, all_chains: list[SentenceChain]):
+            return cls(
+                [all_chains[i] for i in data['chains']],
+                data['score'],
+                data['actions'],
+                data['timestamp'],
+                data['improvement_score']
+            )
+        
     #---------------------------------------------------------------------------------------------------
 
     def __init__(self, chain: SentenceChain, score: float, evaluator: RelevanceEvaluator = None):
@@ -159,6 +185,10 @@ class SummaryCandidate():
     @property
     def id(self) -> str:
         return f"{self.chain.doc.id}_{self.context.id}"
+    
+    @property
+    def citation(self) -> str:
+        return f"<{self.chain.doc.id}_{self.first_sentence_index}-{self.last_sentence_index}>"
     
     @property
     def score(self):
@@ -421,6 +451,24 @@ class SummaryCandidate():
     
     def __repr__(self) -> str:
         return f"SummaryCandidate(range=[{self.context.chains[0].index}, {self.context.chains[-1].index}], score={self.score:.3f})"
+    
+    #---------------------------------------------------------------------------------------------------
+
+    def data(self) -> dict:
+        return {
+            'chain_index': self.chain.index,
+            'selected_state': self.selected_state,
+            'history': [state.data() for state in self.history],
+            'expandable': self.expandable
+        }
+    
+    @classmethod
+    def from_data(cls, data, all_chains: list[SentenceChain], evaluator: RelevanceEvaluator) -> SummaryCandidate:
+        temp = cls(all_chains[data['chain_index']], 0)
+        temp.selected_state = data['selected_state']
+        temp.history = [cls.State.from_data(d, all_chains) for d in data['history']]
+        temp.evaluator = evaluator
+        temp.expandable = data['expandable']
 
 
 #==========================================================================================================
@@ -681,3 +729,32 @@ class SelectedCluster():
         
     def __iter__(self):
         return iter(self.candidates)
+    
+    #---------------------------------------------------------------------------
+
+    def data(self) -> dict:
+        return {
+            #The actual cluster will be loaded from the preprocessing results. We assign at a later time
+            'cluster_label': self.cluster.label,
+            #For validity check during loading. We must not pass the wrong ChainClustering
+            'doc_id': self.cluster.doc.id,
+            'sim': self.sim,
+            'candidates': [sc.data() for sc in self.candidates]
+        }
+    
+    @classmethod
+    def from_data(cls, data: dict, clustering: ChainClustering, evaluator: RelevanceEvaluator):
+        #This requires that you have loaded the preprocessing results first
+
+        #Check if the clustering is ok
+        if clustering.doc.id != data['doc_id']:
+            raise Exception(f"ChainClustering object of document {clustering.doc.id} does not match document {data['doc_id']} from data")
+
+        all_chains = clustering.chains
+
+        return cls(
+            clustering.clusters[data['cluster_label']],
+            data['sim'],
+            [SummaryCandidate.from_data(sc_data, all_chains, evaluator) for sc_data in data['candidates']],
+            evaluator
+        )

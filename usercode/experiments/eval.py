@@ -26,7 +26,7 @@ if __name__ == "__main__":
 from collections import namedtuple
 from mypackage.elastic import Session, ElasticDocument
 from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION
-from mypackage.sentence.metrics import chain_metrics, within_chain_similarity_at_k
+from mypackage.sentence.metrics import chain_metrics, within_chain_similarity_at_k, plot_chain_lengths
 from mypackage.clustering.metrics import clustering_metrics, stats
 from mypackage.sentence import SentenceChain
 from mypackage.clustering import ChainClustering
@@ -39,6 +39,7 @@ from mypackage.storage import PickleSession, MongoSession, DatabaseSession, Proc
 
 import pickle
 from itertools import chain
+from functools import reduce
 import json
 
 from rich.console import Console, Group
@@ -52,6 +53,8 @@ from rich.columns import Columns
 
 from collections import defaultdict
 import xlsxwriter
+
+from matplotlib import pyplot as plt
 
 console = Console()
 
@@ -203,20 +206,39 @@ def compare_experiments(args: argparse.Namespace, sess: Session, db: DatabaseSes
 #=================================================================================================================
 
 def full(args: argparse.Namespace, sess: Session, db: DatabaseSession, docs: list[ElasticDocument]):
+    dframes = []
+
+    #Show how similarity progresses with chain size k
+    '''
     for exp in db.available_experiments(args.x):
         db.sub_path = exp
-        processed = db.load(sess, docs, skip_missing_docs=True)
+        processed = db.load(sess, docs, skip_missing_docs=True)    
 
-        rows = []
-        for i, proc in enumerate(processed):
-            if proc is None: continue
-            #data = {'doc': proc.doc.id} | {k:v['value'] for k,v in chain_metrics(proc.chains).items()}
-            #rows.append(data)
+        df = within_chain_similarity_at_k([d.chains for d in processed if d is not None])
+        df.columns = [exp]
+        #print(df)
+        dframes.append(df)
 
-        within_chain_similarity_at_k([d.chains for d in processed if d is not None])
+    #I cannot draw merged df due to the line breaking at NaN values
+    #I have to draw each df separately instead
+    cmap = plt.cm.get_cmap("tab10").colors
+    for i, df in enumerate(dframes):
+        plt.plot(df.index, df.to_numpy(), marker='o', linestyle='-', label=df.columns)
+        db._sub_path = df.columns[0]
+        params = db.get_experiment_params()
+        plt.axhline(y=params['threshold'], color=cmap[i], linestyle='--')
+    plt.legend()
+    plt.show(block=True)
+    '''
 
-        #df = pd.DataFrame(rows).set_index("doc")
-        #console.print(df)
+    experiment_chains = []
+
+    for exp in db.available_experiments(args.x):
+        db.sub_path = exp
+        processed = db.load(sess, docs, skip_missing_docs=True)    
+        experiment_chains.append(list(chain.from_iterable(proc.chains for proc in processed)))
+
+    plot_chain_lengths(experiment_chains)
 
 #=================================================================================================================
 

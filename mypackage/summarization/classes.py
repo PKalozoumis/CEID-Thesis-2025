@@ -1,3 +1,9 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..cluster_selection import SelectedCluster, SummaryCandidate
+
 import os
 import json
 import numpy as np
@@ -8,8 +14,6 @@ import time
 from collections import defaultdict
 import re
 
-from ..cluster_selection import SelectedCluster, SummaryCandidate
-from ..elastic import ElasticDocument, Document
 from ..llm import LLMSession
 from ..helper import panel_print, rich_console_text
 from ..query import Query
@@ -30,7 +34,6 @@ class SummaryUnit():
     citations: list[int]
     clusters: list[SelectedCluster]
     sorting_method: str
-    
 
     def __init__(self, clusters: list[SelectedCluster], sorting_method: str):
         '''
@@ -116,6 +119,12 @@ class SummaryUnit():
     
     #------------------------------------------------------------------------------------
 
+    @property
+    def query(self) -> Query:
+        return self.clusters[0].evaluator.query
+    
+    #------------------------------------------------------------------------------------
+
     def pretty_print(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False, return_text = True, console_width=None):
 
         if len(self.sorted_candidates) == 0:
@@ -128,7 +137,8 @@ class SummaryUnit():
 
             if self.sorting_method == "flat_relevance":
                 for candidate in self.sorted_candidates[0]:
-                    id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
+                    id = candidate.citation
+                    #id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
                     #FF6A00 -> orange
                     #FF64DC -> pink
                     to_print += [f"[#FF6A00]{id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
@@ -158,12 +168,29 @@ class SummaryUnit():
     #------------------------------------------------------------------------------------
 
     @property
-    def single_text(self) -> str:
+    def reference(self) -> str:
         txt = ""
         for candidate_list in self.sorted_candidates:
             for candidate in candidate_list:
                 txt += candidate.text
         return txt
+    
+    #------------------------------------------------------------------------------------
+
+    def data(self) -> dict:
+        return {
+            'summary': self.summary,
+            'citations': self.citations,
+            'sorting_method': self.sorting_method
+        }
+    
+    @classmethod
+    def from_data(cls, data, clusters: list[SelectedCluster]) -> 'SummaryUnit':
+        temp = cls(clusters, data['sorting_method'])
+        temp.summary = data['summary']
+        temp.citations = data['citations']
+
+        return temp
 
 #================================================================================================================
 

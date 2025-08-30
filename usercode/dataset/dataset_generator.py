@@ -32,15 +32,14 @@ console = Console()
 #=====================================================================================
 
 def initializer():
-    global cross_encoder, conn, evaluator
-    cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2')
+    global conn, evaluator
     conn = MongoSession(db_name=f"experiments_{args.index}", collection="test")
-    evaluator = RelevanceEvaluator(query, cross_encoder)
+    evaluator = RelevanceEvaluator(query, 'cross-encoder/ms-marco-MiniLM-L12-v2')
 
 #=====================================================================================
 
 def work(args):
-    global cross_encoder, conn, evaluator
+    global conn, evaluator
 
     try:
         conn.load(sess, args[1])
