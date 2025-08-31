@@ -469,6 +469,7 @@ class SummaryCandidate():
         temp.history = [cls.State.from_data(d, all_chains) for d in data['history']]
         temp.evaluator = evaluator
         temp.expandable = data['expandable']
+        return temp
 
 
 #==========================================================================================================
@@ -755,6 +756,6 @@ class SelectedCluster():
         return cls(
             clustering.clusters[data['cluster_label']],
             data['sim'],
-            [SummaryCandidate.from_data(sc_data, all_chains, evaluator) for sc_data in data['candidates']],
-            evaluator
+            candidates = [SummaryCandidate.from_data(sc_data, all_chains, evaluator) for sc_data in data['candidates']],
+            evaluator=evaluator
         )

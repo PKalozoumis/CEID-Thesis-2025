@@ -12,13 +12,12 @@ import asyncio.exceptions
 import argparse
 from collections import defaultdict
 
-from application_classes import Arguments #Client command-line arguments
+from application_helper import Arguments, create_time_tree
 
 from rich.pretty import Pretty
 from rich.console import Console
 from rich.live import Live
 from rich.rule import Rule
-from rich.tree import Tree
 
 import warnings
 import shutil
@@ -53,33 +52,6 @@ async def reset_state():
     times = {}
     end = False
 
-#===============================================================================================================
-
-async def print_times():
-    #Print times
-    #------------------------------------------------------------------------------
-    mytimes = defaultdict(float, {k:round(v, 3) for k,v in times.items()})
-
-    tree = Tree(f"[green]Total time: [cyan]{sum(mytimes.values()):.3f}s[/cyan]")
-    tree.add(f"[green]Elasticsearch time: [cyan]{mytimes['elastic']:.3f}s[/cyan]")
-    tree.add(f"[green]Query encoding: [cyan]{mytimes['query_encode']:.3f}s[/cyan]")
-    tree.add(f"[green]Cluster retrieval: [cyan]{mytimes['cluster_retrieval']:.3f}s[/cyan]")
-
-    score_tree = tree.add(f"[green]Cross-scores: [cyan]{sum(v for k,v in mytimes.items() if k.startswith('cross_score')):.3f}s[/cyan]")
-    for k,v in mytimes.items():
-        if k.startswith('cross_score'):
-            score_tree.add(f"[green]Cluster {k[12:]}: [cyan]{v:.3f}s[/cyan]")
-
-    context_tree = tree.add(f"[green]Context expansion: [cyan]{sum(v for k,v in mytimes.items() if k.startswith('context_expansion')):.3f}s[/cyan]")
-    for k,v in mytimes.items():
-        if k.startswith('context_expansion'):
-            context_tree.add(f"[green]Cluster {k[18:]}: [cyan]{v:.3f}s[/cyan]")
-
-    summary_tree = tree.add(f"[green]Summarization[/green]: [cyan]{mytimes['summary_time']}s[/cyan]")
-    summary_tree.add(f"[green]Response time[/green]: [cyan]{mytimes['summary_response_time']:.3f}s[/cyan]")
-
-    console.print(tree)
-    print()
 
 #===============================================================================================================
 
@@ -118,6 +90,12 @@ async def ev_ansi_text(data):
 @sio.on("info", namespace="/query")
 async def ev_info(data):
     console.print(f"[green]INFO:[/green] {data}")
+
+#---
+
+@sio.on("warn", namespace="/query")
+async def ev_warn(data):
+    console.print(f"[yellow]WARNING:[/yellow] {data}")
 
 #---
 
@@ -220,7 +198,9 @@ async def main_loop():
         if receiving_fragments:
             live.update(panel_print(full_text, return_panel=True))
         if end:
-            await print_times()
+            tree = create_time_tree(times)
+            console.print(tree)
+            print()
             print("Stopping...")
             return
         await asyncio.sleep(0.001)
@@ -248,16 +228,22 @@ async def main():
     for experiment in experiment_list:
         args.x = experiment
         try:
-            data_to_send = {
-                'query': query.data(),
-                'args': args.to_dict(ignore_defaults=True, ignore_client_args=True),
-                'console_width': shutil.get_terminal_size().columns
-            }
+            status, msg = args.validate()
 
-            #Connect and send data
-            await sio.connect("http://localhost:1225", namespaces=["/query"])
-            sio.start_background_task(main_loop)
-            await sio.wait()
+            if status:
+                data_to_send = {
+                    'query': query.data(),
+                    'args': args.to_dict(ignore_defaults=True, ignore_client_args=True),
+                    'console_width': shutil.get_terminal_size().columns,
+                    'store_as': args.store_as
+                }
+
+                #Connect and send data
+                await sio.connect("http://localhost:1225", namespaces=["/query"])
+                sio.start_background_task(main_loop)
+                await sio.wait()
+            else:
+                console.print(f"[red]{msg}[/red]")
 
         except (KeyboardInterrupt, asyncio.exceptions.CancelledError):
             await sio.disconnect()

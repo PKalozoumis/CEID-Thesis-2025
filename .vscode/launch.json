@@ -50,6 +50,21 @@
                 "full",
                 "-d", "0-10"
             ]
+        },
+        {
+            "name": "Debug evaluation_pipeline.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${fileDirname}/evaluation_pipeline.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "cwd": "${fileDirname}",
+            "args": [
+                "summ",
+                "-f", "test.pkl"
+            ]
         }
     ],
 }

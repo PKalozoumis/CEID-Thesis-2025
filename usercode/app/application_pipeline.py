@@ -8,17 +8,15 @@ from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
 from mypackage.llm import LLMSession
-from mypackage.storage import DatabaseSession, MongoSession, PickleSession, RealTimeResults
+from mypackage.storage import DatabaseSession, MongoSession, PickleSession, RealTimeResults, ExperimentManager
 
-from application_classes import Arguments
+from usercode.app.application_helper import Arguments
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from collections import defaultdict
 import time
 from flask_socketio import SocketIO
 from rich.console import Console
-
-from evaluation_pipeline import evaluation_pipeline
 
 console = Console()
 message_sender = None
@@ -32,28 +30,15 @@ def retrieval_stage(sess, query, *, args: Arguments = None, base_path: str = "..
     Stage 1 of the pipeline
     '''
     message_sender("info", "Retrieving documents...")
-
     times['elastic'] = time.time()
-    res = query.execute(sess)
+
+    if not server_args.test_mode:
+        res = query.execute(sess)
+    else:
+        res = ExperimentManager("../common/experiments.json").get_docs(None, sess)
+
     times['elastic'] = time.time() - times['elastic']
-
     message_sender("time", {'elastic': times['elastic']})
-
-    '''
-    res = [
-        ElasticDocument(sess, id=1923, text_path="article"),
-        ElasticDocument(sess, id=4355, text_path="article"),
-        ElasticDocument(sess, id=4166, text_path="article"),
-        ElasticDocument(sess, id=3611, text_path="article"),
-        ElasticDocument(sess, id=6389, text_path="article"),
-        ElasticDocument(sess, id=272, text_path="article"),
-        ElasticDocument(sess, id=2635, text_path="article"),
-        ElasticDocument(sess, id=2581, text_path="article"),
-        ElasticDocument(sess, id=372, text_path="article"),
-        ElasticDocument(sess, id=1106, text_path="article")
-    ]
-    '''
-
     message_sender("docs", [doc.id for doc in res])
 
     return res
@@ -232,7 +217,17 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
 
 #===============================================================================================================
 
-def pipeline(query_data: dict, stop_dict, *, args: Arguments = None, server_args, base_path: str = ".", socket: SocketIO, console_width: int):
+def pipeline(
+        query_data: dict,
+        stop_dict,
+        *,
+        args: Arguments = None,
+        server_args,
+        base_path: str = ".",
+        socket: SocketIO,
+        console_width: int,
+        store_as: str | None
+    ):
 
     global message_sender, _console_width
 
@@ -242,13 +237,17 @@ def pipeline(query_data: dict, stop_dict, *, args: Arguments = None, server_args
     #Create a sender function that is bound to specific namespace. Saves time
     message_sender = lambda event, data: socket.emit(event, data, namespace="/query")
 
+    if not args.summ and args.num_summaries > 1:
+        args.num_summaries = 1
+        message_sender("warn", "Because summarization is disabled, number of summaries was set to 1 (single empty summary)")
+
     _console_width = console_width #Match the client's console width
     times = defaultdict(float)
     kwargs = {'args': args, 'base_path': base_path, 'times': times, 'server_args': server_args}
 
     #Session initialization
     #--------------------------------------------------------------------------
-    sess = Session(args.index, base_path=base_path, use="client")
+    sess = Session(args.index, base_path=base_path, use="cache" if server_args.test_mode else "client", cache_dir="../cache")
     query  = Query.from_data(query_data)
     
     #Select database
@@ -280,24 +279,5 @@ def pipeline(query_data: dict, stop_dict, *, args: Arguments = None, server_args
     db.close()
 
     #Store results (for future evaluation)
-    #--------------------------------------------------------------------------
-    RealTimeResults.store_results("test.pkl", sess, query, evaluator, args.to_namespace(), returned_docs, selected_clusters, summaries, times)
-
-
-    '''
-    #Evaluation
-    #--------------------------------------------------------------------------
-    if args.eval:
-        evaluation_pipeline(
-            sess,
-            query,
-            returned_docs,
-            db,
-            evaluator,
-            selected_clusters,
-            summaries,
-
-            server_args = server_args,
-            eval_relevance_threshold = args.eval_relevance_threshold
-        )
-    '''
+    if store_as is not None:
+        RealTimeResults.store_results(store_as, sess, query, evaluator, args.to_namespace(), returned_docs, selected_clusters, summaries, times)

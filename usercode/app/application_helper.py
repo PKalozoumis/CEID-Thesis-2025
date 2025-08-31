@@ -2,6 +2,8 @@ from dataclasses import dataclass, field, fields
 from typing import Literal, get_origin, get_args
 from types import SimpleNamespace
 import argparse
+from collections import defaultdict
+from rich.tree import Tree
 
 #========================================================================================================================
 
@@ -29,6 +31,7 @@ class Arguments():
     num_summaries: int = field(default=1, metadata={"help": "Number of summaries to generate from the same input", "short": "nsumm"})
 
     query: str = field(default=None, metadata={"help": "Numeric query ID or query string", "short": "q", "client_only": True})
+    store_as: str = field(default=None, metadata={"help": "Filename to store summarization results in. Default is no store", "client_only": True})
 
     #-------------------------------------------------------------------------------------
 
@@ -128,3 +131,36 @@ class Arguments():
 
     def __rich__(self):
         return self.to_dict()
+    
+    #-------------------------------------------------------------------------------------
+
+    def validate(self) -> tuple[bool, str]:
+        if self.num_summaries < 1:
+            return False, "Number of summaries must be greater than zero"
+        
+        return True, "ok"
+    
+#========================================================================================================================
+
+def create_time_tree(times: dict):
+    mytimes = defaultdict(float, {k:round(v, 3) for k,v in times.items()})
+
+    tree = Tree(f"[green]Total time: [cyan]{sum(mytimes.values()):.3f}s[/cyan]")
+    tree.add(f"[green]Elasticsearch time: [cyan]{mytimes['elastic']:.3f}s[/cyan]")
+    tree.add(f"[green]Query encoding: [cyan]{mytimes['query_encode']:.3f}s[/cyan]")
+    tree.add(f"[green]Cluster retrieval: [cyan]{mytimes['cluster_retrieval']:.3f}s[/cyan]")
+
+    score_tree = tree.add(f"[green]Cross-scores: [cyan]{sum(v for k,v in mytimes.items() if k.startswith('cross_score')):.3f}s[/cyan]")
+    for k,v in mytimes.items():
+        if k.startswith('cross_score'):
+            score_tree.add(f"[green]Cluster {k[12:]}: [cyan]{v:.3f}s[/cyan]")
+
+    context_tree = tree.add(f"[green]Context expansion: [cyan]{sum(v for k,v in mytimes.items() if k.startswith('context_expansion')):.3f}s[/cyan]")
+    for k,v in mytimes.items():
+        if k.startswith('context_expansion'):
+            context_tree.add(f"[green]Cluster {k[18:]}: [cyan]{v:.3f}s[/cyan]")
+
+    summary_tree = tree.add(f"[green]Summarization[/green]: [cyan]{mytimes['summary_time']}s[/cyan]")
+    summary_tree.add(f"[green]Response time[/green]: [cyan]{mytimes['summary_response_time']:.3f}s[/cyan]")
+
+    return tree

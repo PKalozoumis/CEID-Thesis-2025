@@ -14,6 +14,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-prompt-cache", action="store_true", help="Disable system prompt caching", default=False)
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
+    parser.add_argument("--test-mode", action="store_true", default=False, help="Use predefined set of docs")
     server_args = parser.parse_args()
 
 #==================================================================================
@@ -24,7 +25,7 @@ from rich.console import Console
 from mypackage.llm import LLMSession
 
 from application_pipeline import pipeline
-from application_classes import Arguments
+from usercode.app.application_helper import Arguments
 
 console = Console()
 app = Flask(__name__)
@@ -47,13 +48,19 @@ def query(data):
     {
         'query': {'id', 'text', 'source', 'text_path'}
         'args': {See Arguments class}
+        'console_width'
+        'store_as'
     }
     '''
     try:
         query_data = data['query']
         args = Arguments(**data['args'])
         console.print(args)
-        pipeline(query_data, stop_dict, socket=socketio, base_path="../common", args=args, server_args=server_args, console_width=data.get('console_width', None))
+        status, msg = args.validate()
+        if status:
+            pipeline(query_data, stop_dict, socket=socketio, base_path="../common", args=args, server_args=server_args, console_width=data.get('console_width', None), store_as=data.get('store_as', None))
+        else:
+            socketio.emit('end', {'status': -1, 'msg': msg}, namespace='/query')
     except:
         socketio.emit('end', {'status': -1, 'msg': "Internal server error"}, namespace='/query')
         raise

@@ -25,7 +25,7 @@ def panel_print(text: str = "", title: str = "", *, return_panel=False, expand: 
     elif type(text) is str:
         panel = Panel(text, title=title, title_align="left", border_style="bold cyan", expand=expand)
     else:
-        panel = Panel(Pretty(text), title_align="left", border_style="bold cyan", expand=expand)
+        panel = Panel(Pretty(text), title=title, title_align="left", border_style="bold cyan", expand=expand)
 
     if return_panel:
         return panel

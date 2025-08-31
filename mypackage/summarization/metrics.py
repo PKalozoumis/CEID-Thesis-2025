@@ -42,31 +42,7 @@ def rouge_score(summary_unit: SummaryUnit):
         for metric in scores
     }).T  # transpose so metrics become rows
 
-    console.print(df)
-
-    latex = df.to_latex(
-        escape=True,
-        column_format='lccc',
-        caption="Rouge scores", 
-        label="tab:rouge", 
-        float_format="%.3f",
-        position="h"
-    )
-
-    format_latex_table(latex, name="Rouge")
-    '''
-
-    #What will happen if I treat each fact as a referece
-    #------------------------------------------------------------------
-    references = [(c.text, c.id) for c in summary_unit.sorted_candidates[0]]
-
-    data = []
-    for ref in references:
-        candidate = summary_unit.summary
-        scores = scorer.score(ref[0], candidate)
-        data.append(f"{ref[1]}: {scores}")
-    panel_print(data)
-    '''
+    return df
 
 #=====================================================================================================
 

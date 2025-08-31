@@ -44,6 +44,7 @@ class RealTimeResults():
     returned_docs: list[ElasticDocument]
     selected_clusters: list[SelectedCluster]
     summaries: list[SummaryUnit]
+    times: list[dict] #We can gather the times from multiple runs (by merging different files)
 
     #---------------------------------------------------------------------------------
 
@@ -73,7 +74,7 @@ class RealTimeResults():
             'selected_clusters': [c.data() for c in selected_clusters],
             'summaries': [s.data() for s in summaries],
 
-            'times': dict(times)
+            'times': [dict(times)]
         }
 
         with open(path, "wb") as f:
@@ -82,7 +83,7 @@ class RealTimeResults():
     #---------------------------------------------------------------------------------
 
     @classmethod
-    def load(cls, path: str, sess: Session, db: DatabaseSession, exp_manager: ExperimentManager, experiment: str):
+    def load(cls, path: str, sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
         #I want to load a results file that corresponds to a specific:
             #Index
             #Experiment
@@ -109,6 +110,7 @@ class RealTimeResults():
             raise Exception("Index names do not match")
         
         #Load experiment
+        db.sub_path = data['args'].experiment
         processed = db.load(sess, data['returned_docs'], skip_missing_docs=False)
         
         query = exp_manager.get_queries(data['query_id'], data['index_name'])[0]
@@ -138,7 +140,7 @@ class RealTimeResults():
         #Create final object
         return cls(
             sess,
-            experiment,
+            db.sub_path,
             db,
             evaluator,
             query,
@@ -191,6 +193,26 @@ class DatabaseSession(ABC):
     @property
     @abstractmethod
     def db_type(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def base_path(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def sub_path(self) -> str:
+        pass
+
+    @base_path.setter
+    @abstractmethod
+    def base_path(self, value: str):
+        pass
+    
+    @sub_path.setter
+    @abstractmethod
+    def sub_path(self, value: str):
         pass
 
     @classmethod

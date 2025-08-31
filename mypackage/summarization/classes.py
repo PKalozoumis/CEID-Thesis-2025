@@ -13,6 +13,7 @@ from transformers import LlamaTokenizer
 import time
 from collections import defaultdict
 import re
+import copy
 
 from ..llm import LLMSession
 from ..helper import panel_print, rich_console_text
@@ -124,6 +125,23 @@ class SummaryUnit():
         return self.clusters[0].evaluator.query
     
     #------------------------------------------------------------------------------------
+    
+    def clean_summary(self, no_citations: bool = False, no_newlines: bool = False, inplace: bool = False) -> SummaryUnit:
+        new_obj = copy.copy(self)
+
+        if self.summary is not None:
+            if no_citations:
+                new_obj.summary = re.sub(r"<\d+_\d+-\d+>", "", new_obj.summary)
+            if no_newlines:
+                new_obj.summary = re.sub(r"\n+", " ", new_obj.summary)
+
+        if inplace:
+            self.summary = new_obj.summary
+            return self
+        else:
+            return new_obj
+    
+    #------------------------------------------------------------------------------------
 
     def pretty_print(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False, return_text = True, console_width=None):
 
@@ -225,8 +243,8 @@ class Summarizer():
         parsing_citation = False
         citation_temp_text = ""
 
-        prefix_regex = re.compile("(.*?)(<(\d+|$)(_(\d+|$))?(-(\d+|$))?(>|$))(.*)")
-        full_regex = re.compile("(.*?)(<(?P<doc>\d+)_(?P<start>\d+)-(?P<end>\d+)>)(.*)")
+        prefix_regex = re.compile(r"(.*?)(<(\d+|$)(_(\d+|$))?(-(\d+|$))?(>|$))(.*)")
+        full_regex = re.compile(r"(.*?)(<(?P<doc>\d+)_(?P<start>\d+)-(?P<end>\d+)>)(.*)")
 
         for fragment in self.llm.summarize(self.query.text, unit.text, stop_dict, cache_prompt=cache_prompt):
 

@@ -1,8 +1,13 @@
 
-from ..elastic import Session, ElasticDocument
-from ..query import Query
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..storage import DatabaseSession
+    from ..elastic import Session, ElasticDocument
+    from ..query import Query
+
 from .classes import SelectedCluster
-from ..storage import PickleSession, MongoSession, DatabaseSession
 from ..helper import panel_print
 from .helper import print_candidates
 
