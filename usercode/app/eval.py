@@ -23,12 +23,13 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--files", required=True, action="store", type=str, help="Pickle files to load")
     parser.add_argument("--num-test-summaries", action="store", type=int, default=0, help="Number of test summaries to use. 0 for no test")
     parser.add_argument("--latex", action="store_true", default=False, help="Print latex tables")
+    parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
     args = parser.parse_args()
 
 from mypackage.elastic import Session, ElasticDocument
 from mypackage.query import Query
-from mypackage.summarization.metrics import bert_score, rouge_score, compression_ratio
+from mypackage.summarization.metrics import bert_score, rouge_score, compression_ratio, rouge_presentation, bertscore_presentation, compression_presentation
 from mypackage.storage import DatabaseSession, MongoSession, PickleSession, ExperimentManager, RealTimeResults
 from mypackage.cluster_selection.metrics import document_cross_score, document_cross_score_at_k
 from mypackage.helper.retrieval_metrics import precision, recall, fscore, mean_average_precision, mean_reciprocal_rank, average_precision
@@ -43,28 +44,40 @@ from rich.rule import Rule
 import copy
 import time
 import pandas as pd
+import numpy as np
 
 console = Console()
 
 #=================================================================================================================
 
-def test(results: RealTimeResults):
-    panel_print(results.args.__dict__, title="Client args")
-    console.print(create_time_tree(results.times))
+def test(sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
+    #Each file represents a different execution
+    for file in args.files.split(","):
+        t = time.time()
+        results = RealTimeResults.load(file, sess, db, exp_manager)
+        if args.verbose: console.print(f"[green]Loaded results in[/green] [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")
 
-    console.print(Rule("Final clusters"))
-    for focused_cluster in results.selected_clusters:
-        print_candidates(focused_cluster, title=f"Merged candidates for cluster {focused_cluster.id}", current_state_only=True)
+        #Print arguments and times
+        panel_print(results.args.__dict__, title="Client args")
+        console.print(create_time_tree(results.times))
 
-    results.summaries[0].pretty_print(show_added_context=True, show_chain_indices=True, return_text=False)
+        #Print cluster selection results
+        console.print(Rule("Final clusters"))
+        for focused_cluster in results.selected_clusters:
+            print_candidates(focused_cluster, title=f"Merged candidates for cluster {focused_cluster.id}", current_state_only=True)
 
-    console.print(Rule("Summaries"))
-    panel_print(results.summaries[0].reference, title="Reference")
-    for i, s in enumerate(results.summaries):
-        panel_print(s.summary, title="Summary" + (f" ({i+1}/{len(results.summaries)})" if len(results.summaries) > 1 else ""))
+        #Print text that was selected for summarization
+        results.summaries[0].pretty_print(show_added_context=True, show_chain_indices=True, return_text=False)
+
+        #Raw input and output
+        console.print(Rule("Summaries"))
+        panel_print(results.summaries[0].reference, title="Reference")
+        for i, s in enumerate(results.summaries):
+            panel_print(s.summary, title="Summary" + (f" ({i+1}/{len(results.summaries)})" if len(results.summaries) > 1 else ""))
 
 #=================================================================================================================
 
+'''
 def retrieval_evaluation(sess: Session, query: Query, returned_docs: list[ElasticDocument], db: DatabaseSession, eval_relevance_threshold: float = 5.5):
     df = pd.read_csv(f"../dataset/query_{query.id}_results.csv")
 
@@ -78,9 +91,11 @@ def retrieval_evaluation(sess: Session, query: Query, returned_docs: list[Elasti
     console.print(f"F-Score: {fscore(single_query_results, relevant, vector=True)}")
     console.print(f"Average precision: {average_precision(single_query_results, relevant)}")
     console.print(f"MRR: {mean_reciprocal_rank([single_query_results], [relevant])}")
+'''
     
 #=================================================================================================================
 
+'''
 def cluster_selection_evaluation(returned_docs: list[ElasticDocument], selected_clusters: list[SelectedCluster], evaluator: RelevanceEvaluator, server_args: argparse.Namespace):
     t = time.time()
     score1 = document_cross_score(returned_docs, selected_clusters, evaluator, verbose=server_args.verbose, vector=True, keep_all_docs=False)
@@ -97,39 +112,43 @@ def cluster_selection_evaluation(returned_docs: list[ElasticDocument], selected_
     console.print(f"Evaluation time: {round(time.time() - t, 3):.3f}s")
 
     document_cross_score_at_k(score2)
-
+'''
+    
 #=================================================================================================================
 
-def summary_evaluation(results: RealTimeResults):
-    summaries = results.summaries
+def summary_evaluation(sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
+    #Each execution group corresponds to one or more executions (joint by +) for the same experiment, but different queries
+    execution_groups: list[list[RealTimeResults]] = []
 
-    if summaries[0].summary is None:
-        raise DEVICE_EXCEPTION("IT WAS ABRIDGED INTO NULLITY, AND CANNOT BE EVALUATED")
+    #Gather the results of multiple executions
+    for group in args.files.split(","):
+        exec_group: list[RealTimeResults] = []
+        for file in group.split("+"):
 
-    rouge_scores = []
-    compression_ratios = []
-    bert_scores = []
+            t = time.time()
+            results = RealTimeResults.load(file, sess, db, exp_manager)
+            if args.verbose: console.print(f"[green]Loaded results in[/green] [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")
 
-    for summary in summaries:
-        rouge_scores.append(rouge_score(summary))
-        #compression_ratio.append(compression_ratio(summary))
-        #bert_scores.append(bert_score(summary))
+            #Assign test summaries
+            if args.num_test_summaries > 0 and results.summaries[0].summary is None:
+                assign_test_summaries(results)
 
-    #Rouge
-    #--------------------------------------------------------------
-    rouge_scores = pd.concat(rouge_scores, axis=0)
-    console.print(rouge_scores.groupby(level=0).mean())
+            #Cleanup summaries
+            for sum in results.summaries:
+                sum.clean_summary(no_citations=True, inplace=True)
 
-    if args.latex:
-        latex = rouge_scores.to_latex(
-            escape=True,
-            column_format='lccc',
-            caption="Rouge scores", 
-            label="tab:rouge", 
-            float_format="%.3f",
-            position="h"
-        )
-        format_latex_table(latex, name="Rouge")
+            summaries = results.summaries
+
+            if summaries[0].summary is None:
+                raise DEVICE_EXCEPTION("IT WAS ABRIDGED INTO NULLITY, AND CANNOT BE EVALUATED")
+            
+            exec_group.append(results)
+        execution_groups.append(exec_group)
+
+    rouge_presentation(execution_groups, show_latex=args.latex)
+    bertscore_presentation(execution_groups, show_latex=args.latex)
+    compression_presentation(execution_groups, show_latex=args.latex)
+        
 
 #=================================================================================================================
 
@@ -154,11 +173,16 @@ def assign_test_summaries(results: RealTimeResults):
 
 #=================================================================================================================
 
-def times(results: RealTimeResults):
+def times(sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
 
-    for t in results.times:
-        console.print(Rule())
-        console.print(create_time_tree(t))
+    for file in args.files.split(","):
+        t = time.time()
+        results = RealTimeResults.load(file, sess, db, exp_manager)
+        if args.verbose: console.print(f"[green]Loaded results in[/green] [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")
+
+        for t in results.times:
+            console.print(Rule())
+            console.print(create_time_tree(t))
 
 #=================================================================================================================
 
@@ -167,19 +191,11 @@ if __name__ == "__main__":
     exp_manager = ExperimentManager("../common/experiments.json")
     db = PickleSession() if args.db == "pickle" else MongoSession()
     db.base_path = f"experiments_{sess.index_name}"
+    console.print()
 
-    for file in args.files.split(","):
-        results = RealTimeResults.load(file, sess, db, exp_manager)
+    match args.op:
+        case "test": test(sess, db, exp_manager)
+        case "summ": summary_evaluation(sess, db, exp_manager)
+        case "times": times(sess, db, exp_manager)
 
-        #Assign test summaries
-        if args.num_test_summaries > 0 and results.summaries[0].summary is None:
-            assign_test_summaries(results)
-
-        #Cleanup summaries
-        for sum in results.summaries:
-            sum.clean_summary(no_citations=True, inplace=True)
-
-        match args.op:
-            case "test": test(results)
-            case "summ": summary_evaluation(results)
-            case "times": times(results)
+        

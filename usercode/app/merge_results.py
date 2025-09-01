@@ -1,8 +1,10 @@
 '''
-Merge results that came from multiple different files (meaning multiple different executions)
+Merge results that came from multiple different files (meaning multiple different executions, BUT FOR THE SAME EXPERIMENT)
 The results we merge are mainly summary lists and times, as those are the only ones that change across runs, EVEN FOR THE SAME ARGUMENTS
 Files that belong to different queries, experiments or real-time parameters SHOULD NOT be merged.
 Doing so is considered UNDEFINED BEHAVIOR 🗣
+
+For jointly evaluating (in a single average) executions that came from the same experiment, but different queries, use the + symbol in eval.py
 '''
 
 import os
@@ -49,12 +51,12 @@ if __name__ == "__main__":
             else:
                 merged['summaries'] += temp['summaries']
 
-    #We store the merged file
-    with open(args.name, "wb") as f:
-        pickle.dump(merged, f)
-
     #Replace the old files
     if args.delete_original:
         for file in partial_files:
             if os.path.exists(file):
                 os.remove(file)
+
+    #We store the merged file
+    with open(args.name, "wb") as f:
+        pickle.dump(merged, f)
