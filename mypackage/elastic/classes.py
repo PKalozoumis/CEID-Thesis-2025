@@ -394,7 +394,7 @@ class ScrollingCorpus:
                 for doc in docs:
                     if self.limit and num_docs == self.limit: return
 
-                    doc_obj = Document(doc['_source'][self.doc_field], doc['_id'])
+                    doc_obj = Document(doc['_source'][self.doc_field], int(doc['_id']))
                     num_docs += 1
                     yield doc_obj
 

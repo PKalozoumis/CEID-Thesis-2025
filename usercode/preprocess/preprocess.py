@@ -189,6 +189,55 @@ def work(doc: ElasticDocument):
 
 #=============================================================================================================
 
+def serial_execution(progress, experiment, index, args, cpu_model, docs, batch_size):
+    console.print("Serial execution")
+    initializer(experiment, index, args, cpu_model)
+
+    for i, batch in enumerate(batched(docs, batch_size)):
+        task = progress.add_task(f"Processing documents for batch {i}...", total=batch_size, start=True)
+
+        for doc in batch:
+            time_records.append(work(doc))
+            progress.update(task, advance=1)
+
+#=============================================================================================================
+
+def parallel_execution(progress, experiment, index, args, cpu_model, docs, batch_size):
+    console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
+    if args.spawn:
+        mp.set_start_method('spawn', force=True)
+    try:
+        with Pool(processes=args.nprocs, initializer=initializer, initargs=(experiment, index, args, cpu_model)) as pool:
+            
+            #Receive a batch of documents from Elasticsearch
+            #Pass the workload to the pool
+            #The workload should be higher than the pool size
+            for i, batch in enumerate(batched(docs, args.batch_size)):
+                workload = []
+
+                #Retrieve documents
+                #Remove the unserializeable session object from them
+                for doc in batch:
+                    try:
+                        doc.get()
+                        doc.session = None
+                        workload.append(doc)
+                    except Exception:
+                        continue
+
+                task = progress.add_task(f"Processing documents for batch {i}...", total=len(workload), start=True)
+
+                #Distribute work
+                for res in pool.imap_unordered(work, workload):
+                    time_records.append(res)
+                    progress.update(task, advance=1)
+    except BaseException as e:
+        pool.terminate()
+        pool.join()
+        raise e
+    
+#=============================================================================================================
+
 if __name__ == "__main__":
 
     exp_manager = ExperimentManager("../common/experiments.json")
@@ -267,53 +316,12 @@ if __name__ == "__main__":
                     
                     batch_size = args.batch_size if args.d == "-1" else len(docs)
 
-                    #Serial execution
+                    #Execution
                     if args.nprocs == 1:
-                        console.print("Serial execution")
-                        initializer(THIS_NEXT_EXPERIMENT, index, args, cpu_model)
-
-                        for i, batch in enumerate(batched(docs, batch_size)):
-                            task = progress.add_task(f"Processing documents for batch {i}...", total=batch_size, start=True)
-
-                            for doc in batch:
-                                time_records.append(work(doc))
-                                progress.update(task, advance=1)
-
-                        
-                    #Parallel execution with pool
+                        serial_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
                     else:
-                        console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
-                        if args.spawn:
-                            mp.set_start_method('spawn', force=True)
-                        try:
-                            with Pool(processes=args.nprocs, initializer=initializer, initargs=(THIS_NEXT_EXPERIMENT, index, args, cpu_model)) as pool:
-                                
-                                #Receive a batch of documents from Elasticsearch
-                                #Pass the workload to the pool
-                                #The workload should be higher than the pool size
-                                for i, batch in enumerate(batched(docs, args.batch_size)):
-                                    workload = []
-
-                                    #Retrieve documents
-                                    #Remove the unserializeable session object from them
-                                    for doc in batch:
-                                        try:
-                                            doc.get()
-                                            doc.session = None
-                                            workload.append(doc)
-                                        except Exception:
-                                            continue
-
-                                    task = progress.add_task(f"Processing documents for batch {i}...", total=len(workload), start=True)
-
-                                    #Distribute work
-                                    for res in pool.imap_unordered(work, workload):
-                                        time_records.append(res)
-                                        progress.update(task, advance=1)
-                        except BaseException as e:
-                            pool.terminate()
-                            pool.join()
-                            raise e
+                        parallel_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
+                    
             except Exception as e:
                 traceback.print_exc()
             except KeyboardInterrupt:

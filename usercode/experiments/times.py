@@ -9,9 +9,14 @@ from rich.console import Console
 import os
 import re
 from mypackage.helper import panel_print, rule_print, format_latex_table
+from mypackage.elastic import ScrollingCorpus, Session
 from itertools import groupby
-
+from collections import defaultdict
+import json
 import re
+from matplotlib import pyplot as plt
+import numpy as np
+from scipy.stats import pearsonr, spearmanr
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--file", action="store", type=str, help="CSV file name with processing times")
@@ -22,7 +27,8 @@ console = Console()
 #=============================================================================================================
 
 def stats(df):
-    agg = df.agg(['min', 'max', 'median', 'std']).round(3).astype(str)
+    agg = df.agg(['median', 'max', 'min', 'std']).round(3).astype(str)
+    console.print(agg)
     rule_print(format_latex_table(agg.to_latex(
         escape=True,
         column_format='lrrrrr',
@@ -31,6 +37,157 @@ def stats(df):
         position="h"
     ),),
     title="Stats")
+
+#=============================================================================================================
+
+def time_bar_chart(dfs: list[pd.DataFrame]):
+    
+    labels = [str(i) for i in range(len(dfs))]
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # keep same for sent_t, chain_t, hdbscan_t, umap_t
+    
+    # Aggregate and convert to ms
+    df_ms_list = [(df.agg(['mean'])).round(3) for df in dfs]
+
+    fig, ax = plt.subplots(figsize=(7,5))
+    plt.subplots_adjust(left=0.08,right=0.92, top=0.9)
+    #ax.grid(color="b", alpha=0.25)
+
+    width = 0.5  # thinner bars
+    x = np.arange(len(dfs))  # one x-position per df
+    ax.set_xlim(x[0] - 1, x[-1] + 1)
+
+    for i, df_ms in enumerate(df_ms_list):
+        bottom = np.zeros(len(df_ms))
+        for j, col in enumerate(['sent_t', 'chain_t', 'hdbscan_t', 'umap_t']):
+            ax.bar(x[i], df_ms[col].values[0], bottom=bottom, width=width, color=colors[j], label=col if i==0 else "")
+            bottom += df_ms[col].values
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel('Median time [ms]')
+    ax.set_title('Median Processing Time Comparison')
+    ax.legend()
+    plt.show()
+
+
+def time_bar_chart_subplots(dfs: list[pd.DataFrame]):
+    
+    labels = [str(i) for i in range(len(dfs))]
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    cols = ['sent_t', 'chain_t', 'hdbscan_t', 'umap_t']
+    
+    # Aggregate
+    df_ms_list = [(df.agg(['mean'])).round(3) for df in dfs]
+
+    fig, axes = plt.subplots(2, 2, figsize=(10,8))
+    plt.subplots_adjust(hspace=0.4, wspace=0.3)
+
+    for ax, col, color in zip(axes.flatten(), cols, colors):
+        values = [df[col].values[0] for df in df_ms_list]
+        ax.bar(labels, values, color=color)
+        ax.set_title(col)
+        ax.set_ylabel('Median time [ms]')
+    
+    fig.suptitle('Median Processing Time Comparison per Column')
+    plt.show()
+
+
+def time_line_chart(dfs: list[pd.DataFrame]):
+    
+    labels = [str(i) for i in range(len(dfs))]
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    cols = ['chain_t', 'hdbscan_t', 'umap_t']
+    
+    # Aggregate
+    df_ms_list = [(df.agg(['mean'])).round(3) for df in dfs]
+
+    fig, axes = plt.subplots(len(cols), 1, figsize=(8, 10), sharex=True)
+    plt.subplots_adjust(hspace=0.3)
+
+    for ax, col, color in zip(axes, cols, colors):
+        values = [df[col].values[0] for df in df_ms_list]
+        ax.plot(labels, values, marker='o', color=color, label=col)
+        ax.set_ylabel('Median time [ms]')
+        ax.set_title(col)
+        ax.legend()
+
+    axes[-1].set_xlabel('DataFrame Index')
+    fig.suptitle('Median Processing Time Comparison')
+    plt.show()
+
+
+
+#=============================================================================================================
+
+def time_vs_doc_size(df: pd.DataFrame):
+    #Get size of each doc in the collection
+    sizes = {}
+    if not os.path.exists("doc_sizes.json"):
+        from mypackage.sentence.helper import split_to_sentences
+
+        for doc in ScrollingCorpus(Session("pubmed", base_path="../common"), doc_field="article"):
+            #sizes[doc.id] = len(doc.get().split())
+            sizes[doc.id] = len(split_to_sentences(doc.get(), sep="\n"))
+        with open("doc_sizes.json", "w") as f:
+            json.dump(sizes, f)
+    else:
+        with open("doc_sizes.json", "r") as f:
+            sizes = json.load(f)
+            sizes = {int(k): v for k, v in sizes.items()}
+
+    #Only keep sizes of docs that actually appear in the times df
+    new_sizes = {}
+    for _,doc in df.index.tolist():
+        new_sizes[doc] = sizes[doc]
+    sizes = new_sizes
+
+    #Plot
+    #-------------------------------------------------------------------
+    doc_sizes = list(sizes.values())
+    exec_times = df['sent_t'].tolist()
+
+    plt.figure(figsize=(7, 5))
+    plt.subplots_adjust(left=0.08,right=0.92, top=0.9)
+
+    plt.scatter(doc_sizes, exec_times, label="Σημεία")
+
+    # Regression line
+    m, b = np.polyfit(doc_sizes, exec_times, 1)
+    plt.plot(doc_sizes, np.array(doc_sizes)*m + b, color="red", label="Γραμμή τάσης")
+
+    plt.xlabel("Πλήθος προτάσεων")
+    plt.ylabel("Χρόνος εκτέλεσης (s)")
+    plt.title(f"Χρόνος Εκτέλεσης vs Μέγεθος Κειμένου\n(Pearson r = {float(pearsonr(doc_sizes, exec_times).statistic):.3f}, p < 0.001)")
+    plt.grid(color="b", alpha=0.25)
+    plt.legend()
+    os.makedirs("plots", exist_ok=True)
+    plt.savefig("plots/time_size_corr.png", dpi=300)
+    plt.show()
+
+#=============================================================================================================
+
+def total_vs_sent_time(df: pd.DataFrame):
+    sent_t = df['sent_t'].tolist()
+    total_t = df['total'].tolist()
+
+    plt.figure(figsize=(7, 5))
+    plt.subplots_adjust(left=0.08,right=0.92, top=0.9)
+
+    plt.scatter(sent_t, total_t, label="Σημεία")
+
+    # Regression line
+    m, b = np.polyfit(sent_t, total_t, 1)
+    plt.plot(sent_t, np.array(sent_t)*m + b, color="red", label="Γραμμή τάσης")
+
+    plt.xlabel("Χρόνος υπολογισμού ενσωματώσεων (s)")
+    plt.ylabel("Συνολικός ρόνος εκτέλεσης (s)")
+    plt.title(f"Συσχέτιση χρόνων εκτέλεσης (Pearson r = {float(pearsonr(sent_t, total_t).statistic):.3f}, p < 0.001)")
+    plt.grid(color="b", alpha=0.25)
+    plt.legend()
+    os.makedirs("plots", exist_ok=True)
+    plt.savefig("plots/total_vs_sent_time.png", dpi=300)
+    plt.show()
+
 
 #=============================================================================================================    
 
@@ -41,7 +198,7 @@ def first_n(df: pd.DataFrame, n):
     latex = df.to_latex(
         escape=True,
         column_format='lXXXXX',
-        caption="Processing times per stage", 
+        caption="Τα πρώτα 10 κείμενα που επεξεργάζονται", 
         label="tab:first_n", 
         float_format="%.3f",
         position="h"
@@ -58,8 +215,6 @@ def min_and_max_doc(df):
         'value': max_val,
         'doc': max_idx
     })
-
-    console.print(max_df)
 
     min_idx = df.idxmin().apply(lambda x: x[1]).astype('str')
     min_val = df.min().astype('str')
@@ -78,6 +233,8 @@ def min_and_max_doc(df):
     combined_values = pd.concat([max_df, min_df], axis=1)
     combined_df = pd.DataFrame(combined_values.values, columns=multi_index, index=df.columns)
 
+
+    console.print(combined_df)
     rule_print(format_latex_table(combined_df.to_latex(
         escape=True,
         multicolumn=True,
@@ -97,13 +254,20 @@ if __name__ == "__main__":
     if args.file is None:
         args.file = [f for f in sorted(os.listdir(preprocess_dir)) if re.match(r"preprocessing_results_(\d+)\.(\d+)\.csv", f)][-1]
 
-    df = pd.read_csv(os.path.join(preprocess_dir, args.file), index_col=['exp', 'doc'])
-    df['total'] = df.sum(axis=1)
+    dfs = []
+    for file in args.file.split(","):
+        df = pd.read_csv(os.path.join(preprocess_dir, file), index_col=['exp', 'doc'])
+        df['total'] = df.sum(axis=1)
+        df = df.loc[df['umap_t']>0] #Some documents are so small they dont even get clustered
+        dfs.append(df)
 
-    df = df.loc[df['umap_t']>0]
+    #console.print(df.loc[df['umap_t']==0])
 
     #--------------------------------------------------------------------------
-
-    stats(df)
-    min_and_max_doc(df)
-    first_n(df, 10)
+    console.print(dfs)
+    time_line_chart([x[['chain_t', 'umap_t', 'hdbscan_t']] for x in dfs])
+    #time_vs_doc_size(dfs[0])
+    #total_vs_sent_time(dfs[0])
+    #stats(dfs[0])
+    #min_and_max_doc(dfs[0])
+    #first_n(dfs[0], 10)
