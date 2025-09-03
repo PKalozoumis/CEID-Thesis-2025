@@ -80,6 +80,10 @@
             "sentence_model": "sentence-transformers/all-mpnet-base-v2",
             "chain_pooling_method": "most_similar",
             "cluster_pooling_method": "most_similar"
+        },
+        "leaf": {
+            "title": "Leaf cluster selection method",
+            "cluster_selection_method": "leaf"
         }
     }
 }

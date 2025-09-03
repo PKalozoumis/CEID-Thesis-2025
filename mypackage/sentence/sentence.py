@@ -146,7 +146,7 @@ def iterative_merge(
     #This will create a separate chain for each sentence
     if round_limit == 0:
         #Nothing is affected. No pooling happens
-        return [SentenceChain(s, index=i) for i, s in enumerate(sentences)] 
+        return [SentenceChain(s, chain_index=i) for i, s in enumerate(sentences)] 
     
     #We check the sentences in pairs to see if their similarity is above the threshold
     #Here, it doesn't matter if ```sentences``` is a list of sentences or chains

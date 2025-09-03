@@ -177,7 +177,8 @@ def work(doc: ElasticDocument):
         min_samples=params['min_samples'],
         n_neighbors=params['n_neighbors'],
         normalize=params['cluster_normalize'],
-        pooling_method=params['cluster_pooling_method']
+        pooling_method=params['cluster_pooling_method'],
+        cluster_selection_method=params['cluster_selection_method']
     )
     record['umap_t'] = clustering.times['umap_time']
     record['hdbscan_t'] = clustering.times['cluster_time']
@@ -192,6 +193,7 @@ def work(doc: ElasticDocument):
 def serial_execution(progress, experiment, index, args, cpu_model, docs, batch_size):
     console.print("Serial execution")
     initializer(experiment, index, args, cpu_model)
+    time_records = []
 
     for i, batch in enumerate(batched(docs, batch_size)):
         task = progress.add_task(f"Processing documents for batch {i}...", total=batch_size, start=True)
@@ -200,10 +202,13 @@ def serial_execution(progress, experiment, index, args, cpu_model, docs, batch_s
             time_records.append(work(doc))
             progress.update(task, advance=1)
 
+    return time_records
+
 #=============================================================================================================
 
 def parallel_execution(progress, experiment, index, args, cpu_model, docs, batch_size):
     console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
+    time_records = []
     if args.spawn:
         mp.set_start_method('spawn', force=True)
     try:
@@ -231,6 +236,9 @@ def parallel_execution(progress, experiment, index, args, cpu_model, docs, batch
                 for res in pool.imap_unordered(work, workload):
                     time_records.append(res)
                     progress.update(task, advance=1)
+
+            return time_records
+        
     except BaseException as e:
         pool.terminate()
         pool.join()
@@ -271,8 +279,6 @@ if __name__ == "__main__":
         #console.print({'index_name': index, 'docs': docs_to_retrieve})
         console.print(f"DEVICE: {args.device}")
         print()
-
-        time_records = []
 
         #Iterate over the requested experiments
         #For each experiment, we execute it on the requested documents and store the pickle files
@@ -318,10 +324,19 @@ if __name__ == "__main__":
 
                     #Execution
                     if args.nprocs == 1:
-                        serial_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
+                        time_records = serial_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
                     else:
-                        parallel_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
+                        time_records = parallel_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
                     
+                    #Store results
+                    if len(time_records) > 0:
+                        df = pd.DataFrame(time_records)
+                        df.sort_values(by="doc", inplace=True, ascending=True)
+                        df.set_index(['doc', 'exp'], inplace=True)
+                        print(df)
+                        print()
+                        df.to_csv(f"preprocessing_results_{time.time()}.csv", index=True)
+
             except Exception as e:
                 traceback.print_exc()
             except KeyboardInterrupt:
@@ -329,13 +344,3 @@ if __name__ == "__main__":
             finally:
                 console.print(f"\nTotal time: [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")
                 continue
-
-        if len(time_records) > 0:
-            df = pd.DataFrame(time_records)
-            df.sort_values(by="doc", inplace=True, ascending=True)
-            df.set_index(['doc', 'exp'], inplace=True)
-            print(df)
-            print()
-            df.to_csv(f"preprocessing_results_{time.time()}.csv", index=True)
-
-        

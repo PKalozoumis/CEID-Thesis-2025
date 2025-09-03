@@ -155,34 +155,6 @@ def avg_chain_length(chains: list[SentenceChain]):
 
 #================================================================================================
 
-def plot_chain_lengths(experiment_chains: list[list[SentenceChain]]):
-
-    sizes_per_experiment = []
-
-    for chains in experiment_chains:
-        sizes_per_experiment.append([len(c) for c in chains])
-
-    df = pd.DataFrame({
-        'Size': list(chain.from_iterable(sizes_per_experiment)),
-        'Experiment': [f'exp{i}' for i, exp in enumerate(sizes_per_experiment) for _ in exp]
-    })
-    
-    # Count number of groups per size for each method
-    counts = df.groupby(['Experiment', 'Size']).size().unstack(fill_value=0)
-    # Remove sizes that are zero in all experiments
-    counts = counts.loc[:, (counts != 0).any(axis=0)]
-
-    # Convert to percentages
-    percentages = counts.div(counts.sum(axis=1), axis=0) * 100
-
-    # Plot bar plot
-    ax = percentages.T.plot(kind='bar', width=0.7)  # .T so sizes on x-axis
-    ax.set_xlabel('Group Size')
-    ax.set_ylabel('Percentage of Groups')
-    ax.set_title('Group Size Distribution by Method')
-    plt.xticks(rotation=0)  # keep x-ticks horizontal
-    plt.show()
-
 
 #================================================================================================
 def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
@@ -190,6 +162,8 @@ def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
     #robust
 
     def single_doc_processing(chains: list[SentenceChain]) -> dict[int, float]:
+        fname = f"doc_{chains[0].doc.id}_scores.csv"
+
         sizes = defaultdict(list[SentenceChain])
         for c in chains:
             sizes[len(c)].append(c)
@@ -201,6 +175,8 @@ def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
             temp = avg_within_chain_similarity(chains, min_size=k, max_size=k, size_index=sizes)
             if not np.isnan(temp):
                 score_at_k[k] = temp
+
+        
 
         return score_at_k
     
@@ -221,10 +197,6 @@ def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
     keys = list(multiple_doc_results.keys())
     values = list(multiple_doc_results.values())
 
-    #Plot results
-    #------------------------------------------------------------------
-    print(keys)
-    print(values)
     return pd.DataFrame(values, index=keys).sort_index()
 
 #================================================================================================

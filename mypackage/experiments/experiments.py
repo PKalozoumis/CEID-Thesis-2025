@@ -30,6 +30,7 @@ class ExperimentManager():
         "min_cluster_size": 3,
         "min_samples": 5,
         "n_neighbors": 15,
+        "cluster_selection_method": "eom",
         "cluster_pooling_method": "average",
         "cluster_normalize": True
     }

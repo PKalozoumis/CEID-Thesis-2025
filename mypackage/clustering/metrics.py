@@ -2,7 +2,6 @@ import numpy as np
 from rich.console import Console
 from rich.table import Table
 from hdbscan.validity import validity_index
-from dbcv import dbcv
 from itertools import chain
 from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
@@ -89,7 +88,7 @@ def avg_cluster_centroid_similarity(clustering: ChainClustering):
     
 #================================================================================================
 
-def chain_clustering_silhouette_score(clustering: ChainClustering):
+def chain_clustering_silhouette_score(clustering: ChainClustering, reducer=None):
 
     #Filter out outliers
     chains = [chain for chain, label in zip(clustering.chains, clustering.labels) if label >= 0]
@@ -101,7 +100,28 @@ def chain_clustering_silhouette_score(clustering: ChainClustering):
     #From each chain in the list, get its representative vector
     #Crete a matrix from these vectors
     mat = np.array([chain.vector for chain in chains])
-    return silhouette_score(chains, labels, metric='cosine')
+
+    if reducer:
+        mat = reducer.fit_transform(mat)
+        return silhouette_score(mat, labels, metric='euclidean')
+
+    return silhouette_score(mat, labels, metric='cosine')
+
+#================================================================================================
+
+def dbcv(clustering: ChainClustering, reducer = None):
+    if reducer:
+        mat = reducer.fit_transform(np.array([c.vector for c in clustering.chains])).astype(np.float64)
+    else:
+        mat = np.array([c.vector for c in clustering.chains])
+    return validity_index(mat, np.array(clustering.labels))
+
+def dbi(clustering: ChainClustering, reducer = None):
+    if reducer:
+        mat = reducer.fit_transform(np.array([c.vector for c in clustering.chains])).astype(np.float64)
+    else:
+        mat = np.array([c.vector for c in clustering.chains])
+    return davies_bouldin_score(mat, clustering.labels)
 
 #================================================================================================
 
@@ -125,17 +145,38 @@ def chain_clustering_flat_silhouette_score(clustering: ChainClustering):
 
 VALID_METRICS = ["silhouette", "flat_silhouette"]
 
-def clustering_metrics(clustering: ChainClustering, *, render=False, return_renderable=False) -> dict | tuple[dict, Table]:
-
+def clustering_metrics(clustering: ChainClustering, metrics_list: list[str] = None, *, reducer=None, value=False, render=False, return_renderable=False) -> dict | tuple[dict, Table]:
     metrics = {
-        'silhouette': {'name': "Silhouette Score", 'value': chain_clustering_silhouette_score(clustering)},
-        'flat_silhouette': {'name': "Flat Silhouette Score", 'value': chain_clustering_flat_silhouette_score(clustering)},
-        'avg_sim': {'name': "Average Within-Cluster Similarity", 'value': avg_within_cluster_similarity(clustering)},
+        'silhouette': {'name': "Silhouette Score", 'value': lambda: chain_clustering_silhouette_score(clustering, reducer)},
+        'flat_silhouette': {'name': "Flat Silhouette Score", 'value': lambda: chain_clustering_flat_silhouette_score(clustering)},
+        'avg_sim': {'name': "Average Within-Cluster Similarity", 'value': lambda: avg_within_cluster_similarity(clustering)},
         #'validity': {'name': "Validity", 'value': validity_index(distas, np.array(labels), metric="precomputed", d=chains[0].vector.shape[0])},
-        #'dbcv': {'name': "DBCV", 'value': dbcv(chains, labels)},
-        'dbi': {'name': "Davies-Bouldin Index", 'value': davies_bouldin_score(clustering.chains, clustering.labels)},
-        'avg_centroid_sim': {'name': "Average Similarity to Centroid", 'value': avg_cluster_centroid_similarity(clustering)},
+        'dbcv': {'name': "DBCV", 'value': lambda: dbcv(clustering, reducer)},
+        #'dbi': {'name': "Davies-Bouldin Index", 'value': lambda: dbi(clustering, reducer)},
+        'avg_centroid_sim': {'name': "Average Similarity to Centroid", 'value': lambda: avg_cluster_centroid_similarity(clustering)},
     }
+
+    #Run requested results
+    for k in metrics:
+        if metrics_list is None or k in metrics_list:
+            metrics[k]['value'] = metrics[k]['value']() #Run the lazy function
+        else:
+            metrics[k]['value'] = None
+
+    #Delete None
+    metrics = {k:v for k,v in metrics.items() if v['value'] is not None}
+
+    #Keep only value
+    if value:
+        for k in metrics:
+            metrics[k] = metrics[k]['value']
+
+    if len(metrics) == 0:
+        metrics = {}
+    '''
+    elif len(metrics) == 1:
+        metrics = list(metrics.values())[0]
+    '''
 
     console = Console()
     

@@ -17,12 +17,25 @@ import re
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
+import math
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--file", action="store", type=str, help="CSV file name with processing times")
 args = parser.parse_args()
 
 console = Console()
+store_path = os.path.join(os.path.expanduser("~"), "ceid", "thesis-text", "images")
+
+colors = ["#8fbbd3",  # light blue
+          "#f8b455",  # light orange
+          "#a4d37b",  # light green
+          '#fb9a99',  # light red/pink
+          '#cab2d6',  # light purple
+          '#ffff99',  # light yellow
+          '#fdbf6f',  # soft orange
+          '#80b1d3',  # soft teal
+          '#fccde5',  # soft pink
+          '#d9d9d9']  # light gray
 
 #=============================================================================================================
 
@@ -69,53 +82,75 @@ def time_bar_chart(dfs: list[pd.DataFrame]):
     ax.legend()
     plt.show()
 
+#========================================================================================
 
-def time_bar_chart_subplots(dfs: list[pd.DataFrame]):
+def model_time_comparisons(dfs: list[pd.DataFrame]):
     
-    labels = [str(i) for i in range(len(dfs))]
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    labels = ["all-MiniLM-L6-v2", "all-mpnet-base-v2"]
+    #colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
     cols = ['sent_t', 'chain_t', 'hdbscan_t', 'umap_t']
     
     # Aggregate
     df_ms_list = [(df.agg(['mean'])).round(3) for df in dfs]
 
-    fig, axes = plt.subplots(2, 2, figsize=(10,8))
+    fig, axes = plt.subplots(2, 2, figsize=(8,6))
     plt.subplots_adjust(hspace=0.4, wspace=0.3)
+
+    #colors = plt.cm.get_cmap("Set2").colors  # original
+    #colors = [[(r+1)/2, (g+1)/2, (b+1)/2] for r, g, b in colors]  # lighten
 
     for ax, col, color in zip(axes.flatten(), cols, colors):
         values = [df[col].values[0] for df in df_ms_list]
-        ax.bar(labels, values, color=color)
+        x = range(len(labels))
+        ax.bar(x, values, color=color, width=0.25)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
         ax.set_title(col)
-        ax.set_ylabel('Median time [ms]')
-    
-    fig.suptitle('Median Processing Time Comparison per Column')
+        ax.set_ylabel('Χρόνος (s)')
+        ax.margins(x=0.2)
+        
+    fig.tight_layout(rect=[0, 0, 0.95, 1])
+    plt.savefig(f"{store_path}/time_vs_model.png", dpi=300)
     plt.show()
 
+#======================================================================
 
-def time_line_chart(dfs: list[pd.DataFrame]):
-    
-    labels = [str(i) for i in range(len(dfs))]
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    cols = ['chain_t', 'hdbscan_t', 'umap_t']
+def threshold_chart(dfs: list[pd.DataFrame], labels):
+    cols = dfs[0].columns.tolist()   # dynamic columns
+    colors = plt.cm.tab10.colors     # auto color cycle
     
     # Aggregate
-    df_ms_list = [(df.agg(['mean'])).round(3) for df in dfs]
+    df_ms_list = [(df.agg(['median'])).round(3) for df in dfs]
 
-    fig, axes = plt.subplots(len(cols), 1, figsize=(8, 10), sharex=True)
-    plt.subplots_adjust(hspace=0.3)
+    n = len(cols)
+    if n == 3:
+        fig, axes = plt.subplots(3, 1, figsize=(6, 7), sharex=True)
+    elif n == 4:
+        fig, axes = plt.subplots(2, 2, figsize=(8, 6), sharex=True)
+        axes = axes.flatten()
+    else:
+        raise ValueError("This function only supports DataFrames with 3 or 4 columns.")
 
     for ax, col, color in zip(axes, cols, colors):
         values = [df[col].values[0] for df in df_ms_list]
         ax.plot(labels, values, marker='o', color=color, label=col)
-        ax.set_ylabel('Median time [ms]')
-        ax.set_title(col)
-        ax.legend()
+        ax.set_ylabel('Χρόνος (s)', fontsize=9)
+        ax.set_title(col, fontsize=10)
+        #ax.legend(fontsize=8)
+        ax.tick_params(axis='both', labelsize=8)
+        ax.grid(color="b", alpha=0.25)
 
-    axes[-1].set_xlabel('DataFrame Index')
-    fig.suptitle('Median Processing Time Comparison')
+    # X-label placement
+    if n == 3:
+        axes[-1].set_xlabel('Κατώφλι', fontsize=9)
+    elif n == 4:
+        axes[-2].set_xlabel('Κατώφλι', fontsize=9)
+        axes[-1].set_xlabel('Κατώφλι', fontsize=9)
+
+    #fig.suptitle('Χρόνος εκτέλεσης για διαφορετικά κατώφλια', fontsize=12)
+    fig.tight_layout(rect=[0, 0, 0.95, 1])
+    plt.savefig(f"{store_path}/time_vs_threshold.png", dpi=300)
     plt.show()
-
-
 
 #=============================================================================================================
 
@@ -247,6 +282,28 @@ def min_and_max_doc(df):
     title="Min and max documents")
     
 
+def total_and_throughput(dfs: list[pd.DataFrame], df_names):
+    result = pd.DataFrame(columns=df_names, index=['Συνολικός Χρόνος (s)', 'Ρυθμός Επεξ. (doc/s)'])
+    for name, df in zip(df_names, dfs):
+        total_time = df['total'].sum()
+        num_docs = len(df)
+        throughput = num_docs / total_time if total_time != 0 else 0
+        result[name] = [total_time, throughput]
+    result = result.round(3)
+    
+    console.print(result)
+
+    latex = result.to_latex(
+        escape=True,
+        column_format='l' + 'l'*len(dfs),
+        caption="Συνολικός χρόνος και ρυθμός επεξεργασίας", 
+        label="tab:throughput", 
+        float_format="%.3f",
+        position="h"
+    )
+
+    rule_print(format_latex_table(latex), title=f"Συνολικός χρόνος και ρυθμός επεξεργασίας")
+
 #=============================================================================================================
 
 if __name__ == "__main__":
@@ -259,13 +316,19 @@ if __name__ == "__main__":
         df = pd.read_csv(os.path.join(preprocess_dir, file), index_col=['exp', 'doc'])
         df['total'] = df.sum(axis=1)
         df = df.loc[df['umap_t']>0] #Some documents are so small they dont even get clustered
+
+        #If the dataframe has multiple experiments, split them
         dfs.append(df)
 
     #console.print(df.loc[df['umap_t']==0])
 
     #--------------------------------------------------------------------------
+    #console.print([df.agg(['median']).round(3) for df in dfs])
     console.print(dfs)
-    time_line_chart([x[['chain_t', 'umap_t', 'hdbscan_t']] for x in dfs])
+    
+    total_and_throughput(dfs, df_names=["all-MiniLM-L6-v2", "all-mpnet-base-v2"][:len(dfs)])
+    #threshold_chart([x[['chain_t', 'umap_t', 'hdbscan_t']].assign(total=lambda d: d.sum(axis=1)) for x in dfs],[0.55, 0.6, 0.65, 0.70, 0.75, 1])
+    #model_time_comparisons([x[['sent_t', 'chain_t', 'umap_t', 'hdbscan_t']] for x in dfs])
     #time_vs_doc_size(dfs[0])
     #total_vs_sent_time(dfs[0])
     #stats(dfs[0])

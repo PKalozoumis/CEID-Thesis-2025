@@ -44,6 +44,9 @@ def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) ->
 
 #===================================================================================================
 
+def dimensionality_reducer(n_components: int = 25, n_neighbors: int = 15, min_dista: float = 0.1, n_jobs: int = 1):
+    return UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", output_metric="euclidean", n_jobs=n_jobs, min_dist=min_dista)
+
 def chain_clustering(
         chains: list[SentenceChain],
         *
@@ -54,7 +57,8 @@ def chain_clustering(
         min_samples: int = 5,
         n_neighbors: int = 15,
         pooling_method: str = "average",
-        normalize: bool = True
+        normalize: bool = True,
+        cluster_selection_method: str = "eom"
     ) -> ChainClustering:
     '''
     Clusters a list of sentence chains for a single document.
@@ -106,7 +110,7 @@ def chain_clustering(
 
         #Cluster
         times['cluster_time'] = time.time()
-        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean")
+        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean", cluster_selection_method=cluster_selection_method)
         clustering = model.fit(reduced_matrix)
         times['cluster_time'] = round(time.time() - times['cluster_time'], 3)
 

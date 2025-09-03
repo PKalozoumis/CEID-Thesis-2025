@@ -182,6 +182,10 @@ class ProcessedDocument():
     @property
     def clusters(self) -> dict[int, ChainCluster]:
         return self.clustering.clusters
+    
+    def remove_outliers(self) -> ProcessedDocument:
+        self.clustering.remove_outliers()
+        return self
 
 #==========================================================================================================
 

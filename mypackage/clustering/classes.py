@@ -180,3 +180,9 @@ class ChainClustering():
     
     def __iter__(self):
         return iter(self.clusters.values())
+    
+    def remove_outliers(self) -> ChainClustering:
+        self.chains = [c for i,c in enumerate(self.chains) if self.labels[i] >= 0]
+        self.labels = [i for i in self.labels if i >= 0]
+        self.clusters = {k:v for k,v in self.clusters.items() if k >= 0}
+        return self

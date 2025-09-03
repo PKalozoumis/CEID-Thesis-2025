@@ -14,8 +14,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
     parser.add_argument("mode", nargs="?", action="store", type=str, help="What to compare (e.g. doc means iterate over experiments, create separate tables for them, and for each experiment compare the docs)", choices=[
         "doc", #Compare documents for each separate experiment
-        "exp", #Compare experiments for each separate document
-        "full" #Evaluate entire experiment and store results to dataframes
+        "exp" #Compare experiments for each separate document
     ], default="full")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to load the preprocessing results from", choices=['mongo', 'pickle'])
     parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
@@ -205,43 +204,6 @@ def compare_experiments(args: argparse.Namespace, sess: Session, db: DatabaseSes
 
 #=================================================================================================================
 
-def full(args: argparse.Namespace, sess: Session, db: DatabaseSession, docs: list[ElasticDocument]):
-    dframes = []
-
-    #Show how similarity progresses with chain size k
-    '''
-    for exp in db.available_experiments(args.x):
-        db.sub_path = exp
-        processed = db.load(sess, docs, skip_missing_docs=True)    
-
-        df = within_chain_similarity_at_k([d.chains for d in processed if d is not None])
-        df.columns = [exp]
-        #print(df)
-        dframes.append(df)
-
-    #I cannot draw merged df due to the line breaking at NaN values
-    #I have to draw each df separately instead
-    cmap = plt.cm.get_cmap("tab10").colors
-    for i, df in enumerate(dframes):
-        plt.plot(df.index, df.to_numpy(), marker='o', linestyle='-', label=df.columns)
-        db._sub_path = df.columns[0]
-        params = db.get_experiment_params()
-        plt.axhline(y=params['threshold'], color=cmap[i], linestyle='--')
-    plt.legend()
-    plt.show(block=True)
-    '''
-
-    experiment_chains = []
-
-    for exp in db.available_experiments(args.x):
-        db.sub_path = exp
-        processed = db.load(sess, docs, skip_missing_docs=True)    
-        experiment_chains.append(list(chain.from_iterable(proc.chains for proc in processed)))
-
-    plot_chain_lengths(experiment_chains)
-
-#=================================================================================================================
-
 if __name__ == "__main__":
 
     exp_manager = ExperimentManager("../common/experiments.json")
@@ -267,7 +229,5 @@ if __name__ == "__main__":
             compare_docs(args, sess, db, docs)
         elif args.mode == "exp":
             compare_experiments(args, sess, db, docs)
-        elif args.mode == "full":
-            full(args, sess, db, docs)
             
         db.close()
