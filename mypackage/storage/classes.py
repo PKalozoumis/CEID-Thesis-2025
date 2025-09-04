@@ -389,7 +389,7 @@ class PickleSession(DatabaseSession):
                 data = pickle.load(f)
 
             if 'params' in data:
-                params = data['params']
+                params = ExperimentManager.DEFAULT_EXPERIMENT | data['params']
                 data = data['data']
             else:
                 params = None
@@ -595,7 +595,7 @@ class MongoSession(DatabaseSession):
         '''
 
         #Retrieve params
-        params = self.database['metadata'].find_one({'collection': self.sub_path})['params']
+        params = ExperimentManager.DEFAULT_EXPERIMENT | self.database['metadata'].find_one({'collection': self.sub_path})['params']
     
         #Create clusters
         for doc_obj in doc_objects:

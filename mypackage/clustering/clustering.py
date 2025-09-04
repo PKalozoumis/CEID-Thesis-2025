@@ -5,6 +5,9 @@ from umap import UMAP
 import warnings
 from matplotlib.patches import Patch
 from matplotlib.axes import Axes
+from sklearn.cluster import AgglomerativeClustering
+from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity
 
 from ..sentence import SentenceChain
 from .classes import ChainCluster, ChainClustering
@@ -58,7 +61,8 @@ def chain_clustering(
         n_neighbors: int = 15,
         pooling_method: str = "average",
         normalize: bool = True,
-        cluster_selection_method: str = "eom"
+        cluster_selection_method: str = "eom",
+        allow_hierarchical: bool = False
     ) -> ChainClustering:
     '''
     Clusters a list of sentence chains for a single document.
@@ -81,7 +85,7 @@ def chain_clustering(
     clustered_chains: dict[int, ChainCluster]
         A dictionary of clusters, with the label as the key
     '''
-    if n_components <= 0:
+    if n_components <= 0 or len(chains) <= 5:
         return ChainClustering(
             chains,
             [0]*len(chains),
@@ -89,39 +93,57 @@ def chain_clustering(
             {'umap_time': 0, 'cluster_time': 0}
         )
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning) #when using seed
-        warnings.filterwarnings("ignore", category=FutureWarning) #not in my control
+    #Extract representative vectors from the chains
+    #Set them as rows of a new matrix
+    matrix = np.array([chain.vector for chain in chains])
 
-        #Extract representative vectors from the chains
-        #Set them as rows of a new matrix
-        matrix = np.array([chain.vector for chain in chains])
+    times = defaultdict(float)
 
-        times = {}
-
-        times['umap_time'] = time.time()
-        if n_components is not None:
-            #Reduce dimensionality before clustering
-            clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", output_metric="euclidean", random_state=42, min_dist=min_dista)
-            reduced_matrix = clustering_reducer.fit_transform(matrix)
-        else:
-            reduced_matrix = matrix
-        times['umap_time'] = round(time.time() - times['umap_time'], 3)
-
-        #Cluster
+    #Use hierarchical clustering instead of HDBSCAN
+    #------------------------------------------------------------------
+    if allow_hierarchical and len(chains) < n_components + 2:
         times['cluster_time'] = time.time()
-        model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean", cluster_selection_method=cluster_selection_method)
-        clustering = model.fit(reduced_matrix)
+        sim = cosine_similarity(matrix)
+        dista = 1 - sim  # convert to distance
+
+        model = AgglomerativeClustering(n_clusters=2, distance_threshold=None, metric='precomputed', linkage='average')
+        labels = model.fit_predict(dista)
         times['cluster_time'] = round(time.time() - times['cluster_time'], 3)
 
-    clusters = group_chains_by_label(chains, clustering.labels_)
+    #Use UMAP + HDBSCAN
+    #------------------------------------------------------------------
+    else:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning) #when using seed
+            warnings.filterwarnings("ignore", category=FutureWarning) #not in my control
+            
+            times['umap_time'] = time.time()
+            if n_components is not None:
+                #Reduce dimensionality before clustering
+                clustering_reducer = UMAP(n_neighbors=n_neighbors, n_components=n_components, metric="cosine", output_metric="euclidean", random_state=42, min_dist=min_dista)
+                reduced_matrix = clustering_reducer.fit_transform(matrix)
+            else:
+                reduced_matrix = matrix
+            times['umap_time'] = round(time.time() - times['umap_time'], 3)
+
+            #Cluster
+            times['cluster_time'] = time.time()
+            model = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, metric="euclidean", cluster_selection_method=cluster_selection_method)
+            clustering = model.fit(reduced_matrix)
+            times['cluster_time'] = round(time.time() - times['cluster_time'], 3)
+
+            labels = clustering.labels_
+
+    #Create clusters
+    #------------------------------------------------------------------
+    clusters = group_chains_by_label(chains, labels)
     clustered_chains = {}
 
     #Create cluster objects
     for label, cluster in clusters.items():
         clustered_chains[label] = ChainCluster(cluster, int(label), pooling_method, normalize=normalize)
 
-    return ChainClustering(chains, [int(l) for l in clustering.labels_], clustered_chains, times)
+    return ChainClustering(chains, [int(l) for l in labels], clustered_chains, times)
 
 #===================================================================================================
 

@@ -372,6 +372,9 @@ class ScrollingCorpus:
 
     #--------------------------------------------------------------------------------------
 
+    def __len__(self):
+        return self.batch_size
+
     def __iter__(self):
         res = self.session.client.search(index=self.session.index_name, scroll=self.scroll_time, filter_path="_scroll_id,hits.hits", body={
             "size": self.batch_size,

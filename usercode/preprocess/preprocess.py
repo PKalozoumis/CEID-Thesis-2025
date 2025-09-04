@@ -122,7 +122,7 @@ def work(doc: ElasticDocument):
         'sent_t': None,
         'chain_t': None,
         'umap_t': None,
-        'hdbscan_t': None
+        'cluster_t': None
     }
 
     cache_path = os.path.join("embedding_cache", index_name, params['sentence_model'].replace("/", "-"))
@@ -171,17 +171,18 @@ def work(doc: ElasticDocument):
     if args.verbose: console.print(f"Document {doc.id:02}: Clustering chains...")
     clustering = chain_clustering(
         merged,
-        n_components=min(params['n_components'], len(merged)-2),
+        n_components=min(params['n_components'], len(merged)-2) if not params['allow_hierarchical'] else params['n_components'],
         min_dista=params['min_dista'],
         min_cluster_size=params['min_cluster_size'],
         min_samples=params['min_samples'],
         n_neighbors=params['n_neighbors'],
         normalize=params['cluster_normalize'],
         pooling_method=params['cluster_pooling_method'],
-        cluster_selection_method=params['cluster_selection_method']
+        cluster_selection_method=params['cluster_selection_method'],
+        allow_hierarchical=params['allow_hierarchical']
     )
     record['umap_t'] = clustering.times['umap_time']
-    record['hdbscan_t'] = clustering.times['cluster_time']
+    record['cluster_t'] = clustering.times['cluster_time']
     
     #Save to database
     db.store(clustering, params=params)

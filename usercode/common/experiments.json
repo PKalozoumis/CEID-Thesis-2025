@@ -84,6 +84,10 @@
         "leaf": {
             "title": "Leaf cluster selection method",
             "cluster_selection_method": "leaf"
+        },
+        "allow_hierarchical": {
+            "title": "Agglomearative clustering is used for small documents",
+            "allow_hierarchical": true
         }
     }
 }

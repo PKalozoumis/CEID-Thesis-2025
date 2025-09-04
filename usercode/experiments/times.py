@@ -56,7 +56,7 @@ def stats(df):
 def time_bar_chart(dfs: list[pd.DataFrame]):
     
     labels = [str(i) for i in range(len(dfs))]
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # keep same for sent_t, chain_t, hdbscan_t, umap_t
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # keep same for sent_t, chain_t, cluster_t, umap_t
     
     # Aggregate and convert to ms
     df_ms_list = [(df.agg(['mean'])).round(3) for df in dfs]
@@ -71,7 +71,7 @@ def time_bar_chart(dfs: list[pd.DataFrame]):
 
     for i, df_ms in enumerate(df_ms_list):
         bottom = np.zeros(len(df_ms))
-        for j, col in enumerate(['sent_t', 'chain_t', 'hdbscan_t', 'umap_t']):
+        for j, col in enumerate(['sent_t', 'chain_t', 'cluster_t', 'umap_t']):
             ax.bar(x[i], df_ms[col].values[0], bottom=bottom, width=width, color=colors[j], label=col if i==0 else "")
             bottom += df_ms[col].values
 
@@ -88,7 +88,7 @@ def model_time_comparisons(dfs: list[pd.DataFrame]):
     
     labels = ["all-MiniLM-L6-v2", "all-mpnet-base-v2"]
     #colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
-    cols = ['sent_t', 'chain_t', 'hdbscan_t', 'umap_t']
+    cols = ['sent_t', 'chain_t', 'cluster_t', 'umap_t']
     
     # Aggregate
     df_ms_list = [(df.agg(['mean'])).round(3) for df in dfs]
@@ -327,8 +327,8 @@ if __name__ == "__main__":
     console.print(dfs)
     
     total_and_throughput(dfs, df_names=["all-MiniLM-L6-v2", "all-mpnet-base-v2"][:len(dfs)])
-    #threshold_chart([x[['chain_t', 'umap_t', 'hdbscan_t']].assign(total=lambda d: d.sum(axis=1)) for x in dfs],[0.55, 0.6, 0.65, 0.70, 0.75, 1])
-    #model_time_comparisons([x[['sent_t', 'chain_t', 'umap_t', 'hdbscan_t']] for x in dfs])
+    #threshold_chart([x[['chain_t', 'umap_t', 'cluster_t']].assign(total=lambda d: d.sum(axis=1)) for x in dfs],[0.55, 0.6, 0.65, 0.70, 0.75, 1])
+    #model_time_comparisons([x[['sent_t', 'chain_t', 'umap_t', 'cluster_t']] for x in dfs])
     #time_vs_doc_size(dfs[0])
     #total_vs_sent_time(dfs[0])
     #stats(dfs[0])

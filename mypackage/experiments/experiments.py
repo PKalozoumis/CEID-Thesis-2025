@@ -31,6 +31,7 @@ class ExperimentManager():
         "min_samples": 5,
         "n_neighbors": 15,
         "cluster_selection_method": "eom",
+        "allow_hierarchical": False,
         "cluster_pooling_method": "average",
         "cluster_normalize": True
     }
