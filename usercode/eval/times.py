@@ -307,7 +307,7 @@ def total_and_throughput(dfs: list[pd.DataFrame], df_names):
 #=============================================================================================================
 
 if __name__ == "__main__":
-    preprocess_dir = os.path.join("..", "preprocess")
+    preprocess_dir = os.path.join("..", "preprocess", "times")
     if args.file is None:
         args.file = [f for f in sorted(os.listdir(preprocess_dir)) if re.match(r"preprocessing_results_(\d+)\.(\d+)\.csv", f)][-1]
 

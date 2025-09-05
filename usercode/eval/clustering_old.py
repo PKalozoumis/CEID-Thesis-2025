@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
 from collections import namedtuple
 from mypackage.elastic import Session, ElasticDocument
-from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION, batched, format_latex_table, rule_print
+from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION, batched, format_latex_table
 from mypackage.clustering.metrics import chain_clustering_silhouette_score, clustering_metrics
 from mypackage.sentence import SentenceChain
 from mypackage.clustering import ChainClustering, dimensionality_reducer
@@ -59,48 +59,14 @@ console = Console()
 
 #=================================================================================================================
 
-def cluster_sizes_work(doc: int):
-    global db
-
-    pipeline = [
-        {"$match": {"id": doc, "label": {"$ne": -1}}},
-        {"$project": {"chain_length": {"$size": "$chains"}}}
-    ]
-
-    return {
-        doc: [cluster["chain_length"] for cluster in db.collection.aggregate(pipeline)]
-    }
-
-#-------------------------------------------------------------------
-
-def cluster_sizes_initializer(d: MongoSession):
-    global db
-    db = d.duplicate_session(d)
-
-#-------------------------------------------------------------------
-
-def cluster_sizes(db, docs: list[int]):
-
-    lengths = {}
-    
-    with Pool(10, initializer=cluster_sizes_initializer, initargs=(db,)) as pool:
-        task = progress.add_task(f"Experiment: [cyan]{exp}[/cyan] cluster sizes", start=True, total=len(docs))
-        for res in pool.imap_unordered(cluster_sizes_work, docs):
-            lengths |= res
-            progress.update(task, advance=1)
-
-    return lengths
-
-#=================================================================================================================
-
 def initializer(m):
-    global reducer, db, metrics
+    global reducer, db, metric
     reducer = dimensionality_reducer()
     db = PickleSession() if args.db == "pickle" else MongoSession()
-    metrics = m
+    metric = m
 
 def work(processed):
-    global reducer, db, metrics
+    global reducer, db, metric
 
     try:
         if processed is None:
@@ -116,11 +82,11 @@ def work(processed):
         if reducer is not None and len(processed.clustering.chains) < 27:
             if not processed.params['allow_hierarchical']:
                 reducer = dimensionality_reducer(n_components=len(processed.clustering.chains)-2)
-            elif "dbcv" in metrics: #Small docs were not clustered with density, and this metric does not apply
+            elif metric=="dbcv": #Small docs were not clustered with density, and this metric does not apply
                 #console.print(f"Doc {d.id} skipped: Cannot apply density-based metric")
-                metrics = [m for m in metrics if m != "dbcv"]
+                return None
             
-        return {'doc': processed.doc.id, **clustering_metrics(processed.clustering, metrics, value=True, reducer=reducer)}
+        return {'doc': processed.doc.id, **clustering_metrics(processed.clustering, metric, value=True, reducer=reducer)}
     except Exception as e:
         print(f"For document {processed.doc.id}: {e}")
         return None
@@ -141,59 +107,21 @@ def gather_processed_batch(batch):
 
 #=================================================================================================================
 
-def run_for_metrics(metrics: list[str], reducer=None):
-    metric_dfs = []
+def run_for_metric(metric: str, fname, reducer=None):
 
-    must_calculate = []
-
-    #Check if some of the metrics exist
-    for metric in metrics:
-        fname = f"metrics/{exp}/{metric}.csv"
-
-        #Check if this metric has already been calculated
-        if not args.replace and os.path.exists(fname):
-            df = pd.read_csv(fname, index_col=["doc"]).sort_index()[[metric]]
-            df = df[df.index.isin([d.id for d in docs])]
-            metric_dfs.append(df.agg("median").to_frame(exp).T)
-
-        #Check if this is a special metric
-        elif metric == "avg_cluster_size" or metric=="avg_cluster_count": 
-                specil = f"metrics/{exp}/cluster_sizes.json"
-                if not os.path.exists(specil):
-                    lengths = cluster_sizes(db, [d.id for d in docs])
-                    with open(specil, "w") as f:
-                        json.dump(lengths, f, indent="\t")
-                else:
-                    with open(specil, "r") as f:
-                        lengths = json.load(f)
-
-                if metric == "avg_cluster_size":
-                    temp = np.mean(list(chain.from_iterable(l for l in lengths.values())))
-                    temp = pd.DataFrame({'exp': exp, metric: temp}, index=["exp"]).set_index("exp")
-                    temp.index.names = [None]
-                    metric_dfs.append(temp)
-                    
-                elif metric == "avg_cluster_count":
-                    temp = np.mean([len(l) for l in lengths.values()])
-                    temp = pd.DataFrame({'exp': exp, metric: temp}, index=["exp"]).set_index("exp")
-                    temp.index.names = [None]
-                    metric_dfs.append(temp)
-
-        else:
-            must_calculate.append(metric)
-            
-
-    #------------------------------------------------------------------------------
-
-    if len(must_calculate) > 0:
-        calculated_scores = []
+    if not args.replace and os.path.exists(fname):
+        #console.print(f"Found {fname}")
+        df = pd.read_csv(fname, index_col=["doc"]).sort_index()[[metric]]
+        df = df[df.index.isin([d.id for d in docs])]
+    else:
+        scores = []
         
-        with Pool(processes=5, initializer=initializer, initargs=(must_calculate,)) as pool:
+        with Pool(processes=5, initializer=initializer, initargs=(metric,)) as pool:
 
             batch_size = args.batch_size
             all_batches = list(batched(docs, batch_size))
             workload = gather_processed_batch(all_batches[0])
-            task = progress.add_task(f"Experiment: [cyan]{exp}[/cyan]", start=True, total=len(docs))
+            task = progress.add_task(f"Experiment: [cyan]{exp}[/cyan] Metric: [cyan]{metric}[/cyan]", start=True, total=len(docs))
 
             for i in range(len(all_batches)):
                 #Distribute workload
@@ -207,20 +135,15 @@ def run_for_metrics(metrics: list[str], reducer=None):
                 for res in results:
                     progress.update(task, advance=1)
                     if res is not None:
-                        calculated_scores.append(res)
+                        scores.append(res)
 
-        #Each of the calculated scores must become its own dataframe, and stored in a separate file
-        df = pd.DataFrame(calculated_scores).set_index('doc').sort_index()
-        for c in df.columns.tolist():
-            fname = f"metrics/{exp}/{c}.csv"
-            temp_df = df[[c]]
-            metric_dfs.append(temp_df.agg("median").to_frame(exp).T)
-            if not args.no_store or args.replace:
-                temp_df.to_csv(fname)
+        df = pd.DataFrame(scores).set_index('doc').sort_index()[[metric]]
+        if not args.no_store or args.replace:
+            df.to_csv(fname)
 
         progress.stop_task(task)
 
-    return pd.concat(metric_dfs, axis=1)[metrics]
+    return df
 
 #=========================================================================================================
 
@@ -247,38 +170,38 @@ if __name__ == "__main__":
         TimeElapsedColumn(),
         TimeRemainingColumn()
     ) as progress:
-        if args.compare:
-            exp_dfs = []
+        exp_dfs = []
         experiments = db.available_experiments(args.x)
         for exp in experiments:
             os.makedirs(f"metrics/{exp}", exist_ok=True)
             db.sub_path = exp
-
-            metric_dfs = run_for_metrics(metrics, reducer)
-            
+            metric_dfs = []
+            for metric in metrics:
+                fname = f"metrics/{exp}/{metric}.csv"
+                if args.compare and not os.path.exists(fname):
+                    raise DEVICE_EXCEPTION("BUT, THERE WAS NOTHING TO COMPARE")
+                metric_dfs.append(run_for_metric(metric, fname, reducer))
             
             #For this experiment, merge the metrics into one dataframe
-            if args.columns:
+            #console.print(metric_dfs)
+            metric_dfs = pd.concat(metric_dfs, axis=1).agg("median").to_frame(exp)
+            if not args.columns:
                 metric_dfs = metric_dfs.T
+            exp_dfs.append(metric_dfs)
 
-            console.print(f"\n{metric_dfs}\n")
+        #Each experiment is its own row
+        exp_dfs = pd.concat(exp_dfs, axis=0 if not args.columns else 1)
+        console.print(exp_dfs)
+
+        latex = exp_dfs.to_latex(
+            escape=True,
+            column_format='l' + 'l'*(len(metrics) if not args.columns else len(experiments)),
+            caption="Μετρικές συσταδοποίησης", 
+            label="tab:cluster", 
+            float_format="%.3f",
+            position="h"
+        )
+        format_latex_table(latex, name="Μετρικές συσταδοποίησης")
             
-            if args.compare:
-                exp_dfs.append(metric_dfs)
-
-        if args.compare:
-            #Each experiment is its own row
-            exp_dfs = pd.concat(exp_dfs, axis=0 if not args.columns else 1)
-            console.print(exp_dfs)
-
-            latex = exp_dfs.to_latex(
-                escape=True,
-                column_format='l' + 'l'*(len(metrics) if not args.columns else len(experiments)),
-                caption="Μετρικές συσταδοποίησης", 
-                label="tab:cluster", 
-                float_format="%.3f",
-                position="h"
-            )
-            format_latex_table(latex, name="Μετρικές συσταδοποίησης")
         
     db.close()

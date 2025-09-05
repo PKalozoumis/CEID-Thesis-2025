@@ -274,7 +274,7 @@ class DatabaseSession(ABC):
         #May throw NotFoundError exception if document does not exist
         try:
             doc.get()
-        except NotFoundError as e:
+        except Exception as e:
             if skip_missing_docs:
                 return None
             else:

@@ -104,8 +104,8 @@ def chain_clustering_silhouette_score(clustering: ChainClustering, reducer=None)
     if reducer:
         mat = reducer.fit_transform(mat)
         return silhouette_score(mat, labels, metric='euclidean')
-
-    return silhouette_score(mat, labels, metric='cosine')
+    else:
+        return silhouette_score(mat, labels, metric='cosine')
 
 #================================================================================================
 
@@ -125,7 +125,7 @@ def dbi(clustering: ChainClustering, reducer = None):
 
 #================================================================================================
 
-def chain_clustering_flat_silhouette_score(clustering: ChainClustering):
+def chain_clustering_flat_silhouette_score(clustering: ChainClustering, reducer=None):
 
     #Filter out outliers
     chains = [chain for chain, label in zip(clustering.chains, clustering.labels) if label >= 0]
@@ -137,9 +137,14 @@ def chain_clustering_flat_silhouette_score(clustering: ChainClustering):
     #We need to expand each chain to its sentences
     labels, sentences = zip(*[(label, sentence) for label, chain in zip(labels, chains) for sentence in chain])
 
-    #From each sentence in the list, get its representative vector
-    #Crete a matrix from these vectors
-    return silhouette_score(sentences, labels, metric='cosine')
+    mat = np.array([s.vector for s in sentences])
+
+    #Reduce sentence dimensionality
+    if reducer:
+        mat = reducer.fit_transform(mat)
+        return silhouette_score(mat, labels, metric='euclidean')
+    else:
+        return silhouette_score(mat, labels, metric='cosine')
 
 #================================================================================================
 
@@ -148,11 +153,9 @@ VALID_METRICS = ["silhouette", "flat_silhouette"]
 def clustering_metrics(clustering: ChainClustering, metrics_list: list[str] = None, *, reducer=None, value=False, render=False, return_renderable=False) -> dict | tuple[dict, Table]:
     metrics = {
         'silhouette': {'name': "Silhouette Score", 'value': lambda: chain_clustering_silhouette_score(clustering, reducer)},
-        'flat_silhouette': {'name': "Flat Silhouette Score", 'value': lambda: chain_clustering_flat_silhouette_score(clustering)},
+        'flat_silhouette': {'name': "Flat Silhouette Score", 'value': lambda: chain_clustering_flat_silhouette_score(clustering, reducer)},
         'avg_sim': {'name': "Average Within-Cluster Similarity", 'value': lambda: avg_within_cluster_similarity(clustering)},
-        #'validity': {'name': "Validity", 'value': validity_index(distas, np.array(labels), metric="precomputed", d=chains[0].vector.shape[0])},
         'dbcv': {'name': "DBCV", 'value': lambda: dbcv(clustering, reducer)},
-        #'dbi': {'name': "Davies-Bouldin Index", 'value': lambda: dbi(clustering, reducer)},
         'avg_centroid_sim': {'name': "Average Similarity to Centroid", 'value': lambda: avg_cluster_centroid_similarity(clustering)},
     }
 

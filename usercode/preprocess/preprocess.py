@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("-st", "--scroll-time", action="store", type=str, default="1000s", help="Scroll time for scrolling corpus")
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     parser.add_argument("-w", "--warnings", action="store_true", default=False, help="Show warnings")
+    group.add_argument("--no-times", action="store_true", default=False, help="Do not store times")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--cache-embeddings", action="store_true", default=False, help="Cache sentence embeddings")
@@ -336,7 +337,9 @@ if __name__ == "__main__":
                         df.set_index(['doc', 'exp'], inplace=True)
                         print(df)
                         print()
-                        df.to_csv(f"preprocessing_results_{time.time()}.csv", index=True)
+                        os.makedirs("times", exist_ok=True)
+                        if not args.no_times:
+                            df.to_csv(f"times/preprocessing_results_{time.time()}.csv", index=True)
 
             except Exception as e:
                 traceback.print_exc()
