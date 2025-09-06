@@ -58,6 +58,7 @@ class RealTimeResults():
         args: SimpleNamespace,
 
         returned_docs: list[ElasticDocument],
+        original_selected_clusters: list[SelectedCluster],
         selected_clusters: list[SelectedCluster],
         summaries: list[SummaryUnit],
 
@@ -71,6 +72,7 @@ class RealTimeResults():
             'args': args,
 
             'returned_docs': [doc.id for doc in returned_docs],
+            'original_selected_clusters': [c.data() for c in original_selected_clusters],
             'selected_clusters': [c.data() for c in selected_clusters],
             'summaries': [s.data() for s in summaries],
 
@@ -127,6 +129,15 @@ class RealTimeResults():
             for sc_data in data['selected_clusters']
         ]
 
+        original_selected_clusters = [
+            SelectedCluster.from_data(
+                sc_data,
+                processed[data['returned_docs'].index(sc_data['doc_id'])].clustering,
+                evaluator
+            )
+            for sc_data in data['original_selected_clusters']
+        ]
+
         #Documents
         returned_docs = [
             ElasticDocument(
@@ -146,7 +157,8 @@ class RealTimeResults():
             query,
             data['args'],
 
-            returned_docs,            
+            returned_docs,
+            original_selected_clusters,
             selected_clusters,
             [SummaryUnit.from_data(summ, selected_clusters) for summ in data['summaries']],
 
@@ -224,13 +236,13 @@ class DatabaseSession(ABC):
     def duplicate_session(cls, db: DatabaseSession) -> DatabaseSession: ...
 
     @overload
-    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False) -> ProcessedDocument: ...
+    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument: ...
 
     @overload
-    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False) -> list[ProcessedDocument]: ...
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> list[ProcessedDocument]: ...
 
     @abstractmethod
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False) -> ProcessedDocument|list[ProcessedDocument]:
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument|list[ProcessedDocument]:
         pass
 
     @abstractmethod
@@ -265,7 +277,7 @@ class DatabaseSession(ABC):
     def set_temp(self):
         pass
 
-    def _restore_clusters(self, doc: Document, data: dict, params: dict = None, skip_missing_docs: bool = False) -> ProcessedDocument:
+    def _restore_clusters(self, doc: Document, data: dict, params: dict = None, *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument:
         '''
         Recreates all cluster objects for a specific document using the retrieved data
         '''
@@ -279,6 +291,12 @@ class DatabaseSession(ABC):
                 return None
             else:
                 raise e
+            
+        if len(data) == 0 or doc.id in reject_list:
+            if skip_missing_docs:
+                return None
+            else:
+                raise Exception(f"Missing data for document {doc.id}")
 
         #Recreate the cluster dictionary, by mapping each label to its ChainCluster,
         #the same way the clusters are returned from chain_clustering
@@ -363,12 +381,12 @@ class PickleSession(DatabaseSession):
     #----------------------------------------------------
 
     @overload
-    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False) -> ProcessedDocument: ...
+    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument: ...
 
     @overload
-    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False) -> list[ProcessedDocument]: ...
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> list[ProcessedDocument]: ...
 
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False) -> ProcessedDocument|list[ProcessedDocument]:
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument|list[ProcessedDocument]:
         out = []
 
         for doc in always_iterable(docs):
@@ -394,7 +412,7 @@ class PickleSession(DatabaseSession):
             else:
                 params = None
 
-            out.append(self._restore_clusters(doc_obj, data, params, skip_missing_docs=skip_missing_docs))
+            out.append(self._restore_clusters(doc_obj, data, params, skip_missing_docs=skip_missing_docs, reject_list=reject_list))
 
         if isinstance(docs, list):
             return out
@@ -553,12 +571,12 @@ class MongoSession(DatabaseSession):
     #----------------------------------------------------
 
     @overload
-    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False) -> ProcessedDocument: ...
+    def load(self, sess: Session, docs: int|ElasticDocument, *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument: ...
 
     @overload
-    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False) -> list[ProcessedDocument]: ...
+    def load(self, sess: Session, docs: list[int]|list[ElasticDocument], *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> list[ProcessedDocument]: ...
 
-    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False) -> ProcessedDocument|list[ProcessedDocument]:
+    def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument|list[ProcessedDocument]:
         out = []
 
         doc_objects = []
@@ -599,7 +617,7 @@ class MongoSession(DatabaseSession):
     
         #Create clusters
         for doc_obj in doc_objects:
-           out.append(self._restore_clusters(doc_obj, doc_to_clusters[doc_obj.id], params, skip_missing_docs=skip_missing_docs))
+           out.append(self._restore_clusters(doc_obj, doc_to_clusters[doc_obj.id], params, skip_missing_docs=skip_missing_docs, reject_list=reject_list))
 
         #Return results
         if isinstance(docs, list):

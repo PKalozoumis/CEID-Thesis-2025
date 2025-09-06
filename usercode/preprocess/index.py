@@ -27,6 +27,7 @@ from mypackage.elastic import elasticsearch_client
 from mypackage.elastic.index import empty_index, create_index
 from mypackage.helper.collection_helper import generate_examples, to_bulk_format
 from mypackage.helper import line_count, batched, DEVICE_EXCEPTION
+from mypackage.experiments import ExperimentManager
 
 console = Console()
 
@@ -65,8 +66,11 @@ if __name__ == "__main__":
         #Add docs to elasticsearch
         create_index(client, index_name, mapping_path)
 
+        #Exclude these docs
+        reject_list = ExperimentManager.rejected_docs(index_name)
+
         t = time.time()
-        bulk = to_bulk_format(generate_examples(dataset_path, doc_limit=args.doc_limit, remove_duplicates=args.remove_duplicates))
+        bulk = to_bulk_format(generate_examples(dataset_path, doc_limit=args.doc_limit, remove_duplicates=args.remove_duplicates), reject_list=reject_list)
         batches = batched(bulk, 2*batch_size)
 
         with Progress() as progress:

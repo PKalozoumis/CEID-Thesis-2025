@@ -17,6 +17,7 @@ from collections import defaultdict
 import time
 from flask_socketio import SocketIO
 from rich.console import Console
+import copy
 
 console = Console()
 message_sender = None
@@ -260,8 +261,9 @@ def pipeline(
     #--------------------------------------------------------------------------
     returned_docs = retrieval_stage(sess, query, **kwargs)
     encode_query(query, db, **kwargs)
-    selected_clusters= retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
+    selected_clusters = retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
     evaluator = calculate_cross_scores(query, selected_clusters, **kwargs)
+    original_selected_clusters = copy.deepcopy(selected_clusters)
     expand_context(selected_clusters, **kwargs)
 
     #Summarization
@@ -280,4 +282,4 @@ def pipeline(
 
     #Store results (for future evaluation)
     if store_as is not None:
-        RealTimeResults.store_results(store_as, sess, query, evaluator, args.to_namespace(), returned_docs, selected_clusters, summaries, times)
+        RealTimeResults.store_results(store_as, sess, query, evaluator, args.to_namespace(), returned_docs, original_selected_clusters, selected_clusters, summaries, times)

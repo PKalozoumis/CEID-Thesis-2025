@@ -82,10 +82,12 @@ def generate_examples(path,*, doc_limit: int|None = None, byte_offsets=None, rem
 
 #===============================================================================================
 
-def to_bulk_format(docs):
+def to_bulk_format(docs, reject_list: list[int] = []):
     for i, doc in enumerate(docs):
         if 'usepackage' in doc['article']:
             #print(f"Document {i} has latex")
+            continue
+        if i in reject_list:
             continue
 
         yield {"index": {"_id": i}}

@@ -1,3 +1,8 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..elastic import ElasticDocument
+
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances, cosine_similarity
 from itertools import pairwise, chain
@@ -12,6 +17,20 @@ from .classes import SentenceChain
 from matplotlib import pyplot as plt
 import seaborn as sns
 import pandas as pd
+
+from multiprocessing import Pool
+from rich.progress import Progress
+
+
+def chaining_ratio(chains: list[SentenceChain]) -> float:
+    count = 0
+    total = 0
+    for c in chains:
+        total += len(c)
+        if len(c) > 1:
+            count += len(c)
+
+    return count/total
 
 #================================================================================================
 
@@ -56,7 +75,7 @@ def chain_centroid_similarity(chain: SentenceChain):
 
 #================================================================================================
 
-def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1, max_size: int|None = None):
+def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1, max_size: int|None = None, vector=False):
     '''
     For each chain in the list, it calculates the average similarity between every sentence in the chain and the chain representative
     Then, it calculates the average of those values. 
@@ -81,10 +100,14 @@ def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1
         max_size = 6666
 
     vec = np.array([chain_centroid_similarity(a) for a in chains if len(a) >= min_size and len(a) <= max_size])
-    if len(vec) > 0:
-        return np.average(vec)
+
+    if vector:
+        return vec.tolist()
     else:
-        return np.nan
+        if len(vec) > 0:
+            return np.average(vec)
+        else:
+            return np.nan
 
 #================================================================================================
 
@@ -152,52 +175,6 @@ def avg_neighbor_chain_distance(chains: list[SentenceChain]):
 
 def avg_chain_length(chains: list[SentenceChain]):
     return np.average(np.array([len(c) for c in chains]))
-
-#================================================================================================
-
-
-#================================================================================================
-def within_chain_similarity_at_k(doc_chains: list[list[SentenceChain]]):
-    #Macro average
-    #robust
-
-    def single_doc_processing(chains: list[SentenceChain]) -> dict[int, float]:
-        fname = f"doc_{chains[0].doc.id}_scores.csv"
-
-        sizes = defaultdict(list[SentenceChain])
-        for c in chains:
-            sizes[len(c)].append(c)
-
-        max_chain_size = list(sizes.keys())[-1]
-        #print(max_chain_size)
-        score_at_k: dict[int, list[SentenceChain]] = {}
-        for k in range(1, max_chain_size+1):
-            temp = avg_within_chain_similarity(chains, min_size=k, max_size=k, size_index=sizes)
-            if not np.isnan(temp):
-                score_at_k[k] = temp
-
-        
-
-        return score_at_k
-    
-    #-------------------------------------------------------------------
-
-    multiple_doc_results = defaultdict(list)
-
-    for chains in doc_chains:
-        local_results = single_doc_processing(chains)
-        for k,v in local_results.items():
-            multiple_doc_results[k].append(v)
-
-    #Average scores per k
-    for k in multiple_doc_results:
-        #print(f"k={k}: {len(multiple_doc_results[k])}")
-        multiple_doc_results[k] = np.nanmean(multiple_doc_results[k])
-
-    keys = list(multiple_doc_results.keys())
-    values = list(multiple_doc_results.values())
-
-    return pd.DataFrame(values, index=keys).sort_index()
 
 #================================================================================================
 

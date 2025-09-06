@@ -2,11 +2,7 @@
     "index_defaults": {
         "pubmed": {
             "docs": [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 1106],
-            "source": ["summary", "article"],
-            "text_path": "article"
-        },
-        "pubmed_new": {
-            "docs": [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 1106],
+            "rejected_docs": [2267],
             "source": ["summary", "article"],
             "text_path": "article"
         }
@@ -14,12 +10,8 @@
 
     "queries": [
         {
-            "id": "1",
+            "id": "0",
             "query": "What are the primary behaviours and lifestyle factors that contribute to childhood obesity"
-        },
-        {
-            "id": "2",
-            "query": "who is dista1"
         }
     ],
 

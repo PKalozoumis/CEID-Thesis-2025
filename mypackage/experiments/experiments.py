@@ -62,7 +62,7 @@ class ExperimentManager():
             docs_to_retrieve = self._get_docs_for_index(sess.index_name, list(range(10)))
             return [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
         elif docs_list == "-1":
-            return ScrollingCorpus(sess, batch_size=scroll_batch_size, limit=scroll_limit, scroll_time=scroll_time, doc_field="article")
+            return ScrollingCorpus(sess, batch_size=scroll_batch_size, limit=scroll_limit, scroll_time=scroll_time, doc_field="article", reject_list=self.rejected_docs(sess.index_name))
         else:
             docs_to_retrieve = []
             for doc_set in docs_list.split(","):
@@ -71,7 +71,7 @@ class ExperimentManager():
                 else:
                     docs_to_retrieve += [int(doc_set)]
             
-            res = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve]
+            res = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve if doc not in self.rejected_docs(sess.index_name)]
 
             '''
             if fetch:
@@ -220,3 +220,6 @@ class ExperimentManager():
         Return all experiment names
         '''
         return set(self.experiments)
+    
+    def rejected_docs(self, index_name: str) -> list[int]:
+        return self.index_defaults[index_name]['rejected_docs']

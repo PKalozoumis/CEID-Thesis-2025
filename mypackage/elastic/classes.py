@@ -330,6 +330,7 @@ class ScrollingCorpus:
     fields_to_keep: list[str]
     doc_field: str
     limit: int
+    reject_list: list[int]
 
     def __init__(self,   
             session: Session,
@@ -338,7 +339,8 @@ class ScrollingCorpus:
             scroll_time: str="5s",
             doc_field: str,
             fields_to_keep: list[str] = [],
-            limit: int|None = None
+            limit: int|None = None,
+            reject_list: list[int]
         ):
         '''
         Receives batches of documents from Elasticsearch.
@@ -366,6 +368,7 @@ class ScrollingCorpus:
         self.fields_to_keep = fields_to_keep
         self.doc_field = doc_field
         self.limit = limit
+        self.reject_list = reject_list
 
         if self.doc_field:
             self.fields_to_keep.append(self.doc_field)
@@ -397,8 +400,12 @@ class ScrollingCorpus:
                 for doc in docs:
                     if self.limit and num_docs == self.limit: return
 
+                    if int(doc['_id']) in self.reject_list:
+                        continue
+
                     doc_obj = Document(doc['_source'][self.doc_field], int(doc['_id']))
                     num_docs += 1
+                    
                     yield doc_obj
 
                 if self.limit and num_docs == self.limit: return
