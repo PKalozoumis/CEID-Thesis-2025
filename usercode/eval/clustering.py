@@ -237,6 +237,21 @@ if __name__ == "__main__":
 
     metrics = args.metrics.split(",")
 
+    allowed_metrics = [
+        'silhouette',
+        'dbcv',
+        'flat_silhouette',
+        'avg_centroid_sim',
+        'avg_cluster_size',
+        'avg_cluster_count',
+        'avg_flat_centroid_sim',
+        'avg_flat_cluster_size'
+    ]
+
+    for m in metrics:
+        if m not in allowed_metrics:
+            raise Exception(f"Unknown metric {m}")
+
     reducer = dimensionality_reducer()
     #reducer = None
 
@@ -261,14 +276,14 @@ if __name__ == "__main__":
             if args.columns:
                 metric_dfs = metric_dfs.T
 
-            console.print(f"\n{metric_dfs}\n")
+            #console.print(f"\n{metric_dfs}\n")
             
             if args.compare:
                 exp_dfs.append(metric_dfs)
 
         if args.compare:
             #Each experiment is its own row
-            exp_dfs = pd.concat(exp_dfs, axis=0 if not args.columns else 1)
+            exp_dfs = pd.concat(exp_dfs, axis=0 if not args.columns else 1).round(3)
             console.print(exp_dfs)
 
             latex = exp_dfs.to_latex(

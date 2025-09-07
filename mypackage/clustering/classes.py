@@ -119,6 +119,14 @@ class ChainCluster:
         return np.array([x.vector for x in self.chains])
     
     #---------------------------------------------------------------------------
+
+    def sentence_matrix(self) -> np.ndarray:
+        '''
+        Converts the cluster into a matrix, where each row is a sentence. Order is maintained
+        '''
+        return np.array([sent.vector for chain in self.chains for sent in chain])
+    
+    #---------------------------------------------------------------------------
         
     def __getitem__(self, i: int) -> SentenceChain:
         return self.chains[i]

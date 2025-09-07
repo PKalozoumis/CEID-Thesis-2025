@@ -58,24 +58,24 @@ def within_chain_similarity(chain: SentenceChain) -> float:
 
 #================================================================================================
 
-def chain_centroid_similarity(chain: SentenceChain):
+def chain_centroid_similarity(chain: SentenceChain, *, allow_self_similarity: bool = False):
     '''
     Calculates the average similarity between every sentence in the chain and the chain representative
     '''
     if len(chain) == 1:
-        return 1
+        return 1.0
 
     mat = chain.sentence_matrix()
     sim = cosine_similarity(mat, chain.vector.reshape((1,-1)))
 
-    if chain.pooling_method in SentenceChain.EXEMPLAR_BASED_METHODS:
+    if not allow_self_similarity and chain.pooling_method in SentenceChain.EXEMPLAR_BASED_METHODS:
         return (np.sum(sim) - 1) / (len(chain) - 1)
     else:
         return np.average(sim)
 
 #================================================================================================
 
-def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1, max_size: int|None = None, vector=False):
+def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1, max_size: int|None = None, vector=False, *, allow_self_similarity: bool = False):
     '''
     For each chain in the list, it calculates the average similarity between every sentence in the chain and the chain representative
     Then, it calculates the average of those values. 
@@ -99,7 +99,7 @@ def avg_chain_centroid_similarity(chains: list[SentenceChain], min_size: int = 1
     if max_size is None:
         max_size = 6666
 
-    vec = np.array([chain_centroid_similarity(a) for a in chains if len(a) >= min_size and len(a) <= max_size])
+    vec = np.array([chain_centroid_similarity(a, allow_self_similarity=allow_self_similarity) for a in chains if len(a) >= min_size and len(a) <= max_size])
 
     if vector:
         return vec.tolist()

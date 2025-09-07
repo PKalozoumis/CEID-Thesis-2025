@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--batch-size", action="store", type=int, default=200, help="Number of processed documents per batch")
     parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     parser.add_argument("--columns", action="store_true", default=False, help="Experiments at the columns")
-    parser.add_argument("--what", action="store", help="What to compare", choices=["sim@k", "length", "table"])
+    parser.add_argument("--what", action="store", help="What to compare", choices=["sim@k", "centroid_sim@k", "length", "table"])
     parser.add_argument("--type", action="store", help="Comparison type (for sim_at_k and chain_length)")
     parser.add_argument("-m", "--metrics", action="store", type=str, required=False, help="Comma-separated metrics to present")
     args = parser.parse_args()
@@ -88,7 +88,7 @@ def gather_processed_batch(batch):
 
 #================================================================================================
 
-def sim_at_k_worker(doc: ProcessedDocument) -> dict[int, float]:
+def sim_at_k_worker(doc: ProcessedDocument, sim_type: str) -> dict[int, float]:
     '''
     For a single document, return similarity scores of chains at each size k
     '''
@@ -102,7 +102,11 @@ def sim_at_k_worker(doc: ProcessedDocument) -> dict[int, float]:
         #print(max_chain_size)
         score_at_k: dict[int, float] = {}
         for k in range(1, max_chain_size+1):
-            temp = avg_within_chain_similarity(doc.chains, min_size=k, max_size=k, size_index=sizes)
+
+            if sim_type == "overall":
+                temp = avg_within_chain_similarity(doc.chains, min_size=k, max_size=k, size_index=sizes)
+            elif sim_type == "centroid":
+                temp = avg_chain_centroid_similarity(doc.chains, vector=False, min_size=k, max_size=k, allow_self_similarity=True)
             if not np.isnan(temp):
                 score_at_k[k] = temp
 
@@ -115,17 +119,19 @@ def sim_at_k_worker(doc: ProcessedDocument) -> dict[int, float]:
 def worker(doc: ProcessedDocument) -> dict:
     return {
         'doc': doc.doc.id,
-        'sim_at_k': None, #sim_at_k_worker(doc),
+        'sim_at_k': sim_at_k_worker(doc, "overall"),
+        'centroid_sim_at_k': sim_at_k_worker(doc, "centroid"),
         'chain_length': [len(c) for c in doc.chains],
-        'chain_centroid_sim': avg_chain_centroid_similarity(doc.chains, vector=True, min_size=2),
+        'chain_centroid_sim': avg_chain_centroid_similarity(doc.chains, vector=True, min_size=2, allow_self_similarity=True),
         'chaining_ratio': chaining_ratio(doc.chains) 
     }
 
 #================================================================================================
 
-def calculate_metrics(docs: list[ElasticDocument], metrics = ["sim_at_k", "chain_length", "chain_centroid_sim", "chaining_ratio"]):
+def calculate_metrics(docs: list[ElasticDocument], metrics = ["sim_at_k", "centroid_sim_at_k" "chain_length", "chain_centroid_sim", "chaining_ratio"]):
 
     similarity_at_k = defaultdict(list)
+    centroid_similarity_at_k = defaultdict(list)
     records = defaultdict(list)
 
     with Pool(processes=5) as pool:
@@ -151,6 +157,11 @@ def calculate_metrics(docs: list[ElasticDocument], metrics = ["sim_at_k", "chain
                     for k,v in res['sim_at_k'].items():
                         similarity_at_k[k].append(v)
 
+                #Gather centroid similarity at k
+                if res['centroid_sim_at_k'] is not None:
+                    for k,v in res['centroid_sim_at_k'].items():
+                        centroid_similarity_at_k[k].append(v)
+
                 records['chain_length'].append({'doc': res['doc'], 'chain_length': res['chain_length']})
                 records['chain_centroid_sim'].append({'doc': res['doc'], 'chain_centroid_sim': res['chain_centroid_sim']})
                 records['chaining_ratio'].append({'doc': res['doc'], 'chaining_ratio': res['chaining_ratio']})
@@ -158,8 +169,12 @@ def calculate_metrics(docs: list[ElasticDocument], metrics = ["sim_at_k", "chain
     #Average scores per k
     #-------------------------------------------------------------------------
     if len(similarity_at_k) > 0:
-        with open(f"metrics/{exp}/sim_at_k.json", "w") as f:
+        with open(f"metrics/{exp}/overall_sim_at_k.json", "w") as f:
             json.dump(dict(similarity_at_k), f, indent="\t")
+
+    if len(centroid_similarity_at_k) > 0:
+        with open(f"metrics/{exp}/centroid_sim_at_k.json", "w") as f:
+            json.dump(dict(centroid_similarity_at_k), f, indent="\t")
 
     #Average lengths, centroid sims and chaining ratios
     #-------------------------------------------------------------------------
@@ -174,7 +189,7 @@ def calculate_metrics(docs: list[ElasticDocument], metrics = ["sim_at_k", "chain
 
 #=========================================================================================================
 
-def similarity_at_k_presentation(comparison_type: str):
+def similarity_at_k_presentation(comparison_type: str, similarity_type: str):
     dframes=[]
 
     match comparison_type:
@@ -185,7 +200,7 @@ def similarity_at_k_presentation(comparison_type: str):
         case _: raise Exception
 
     for exp in db.available_experiments(experiments):
-        with open(f"metrics/{exp}/sim_at_k.json") as f:
+        with open(f"metrics/{exp}/{similarity_type}_sim_at_k.json") as f:
             similarity_at_k = json.load(f)
 
         for k in similarity_at_k:
@@ -212,8 +227,8 @@ def similarity_at_k_presentation(comparison_type: str):
     plt.legend()
     plt.grid(color="b", alpha=0.25)
     plt.xlabel("Μήκος αλυσίδας")
-    plt.ylabel("Μέση ομοιότητα μεταξύ των προτάσεων")
-    plt.savefig(f"{store_path}/sim_at_k_{comparison_type}.png", dpi=300)
+    plt.ylabel("Μέση ομοιότητα μεταξύ των προτάσεων" if similarity_type=="overall" else "Μέση ομοιότητα με αντιπρόσωπο")
+    plt.savefig(f"{store_path}/{similarity_type}_sim_at_k_{comparison_type}.png", dpi=300)
     plt.show(block=True)
 
 #=========================================================================================================
@@ -282,11 +297,23 @@ def metric_to_df(exp: str, metric:str):
     
 
     if metric == "avg_chain_centroid_sim":
+        micro_avg = False
+
         with open(f"metrics/{exp}/chain_centroid_sim.json", "r") as f: data = json.load(f)
-        temp = np.mean(list(chain.from_iterable(d['chain_centroid_sim'] for d in data)))
+
+        if micro_avg:
+            temp = np.mean(list(chain.from_iterable(d['chain_centroid_sim'] for d in data)))
+        else:
+            temp = [np.mean(d['chain_centroid_sim']) for d in data if len(d['chain_centroid_sim']) > 0]
+            temp = np.mean(temp)
     elif metric == "avg_chain_length":
         with open(f"metrics/{exp}/chain_length.json", "r") as f: data = json.load(f)
         temp = np.mean(list(chain.from_iterable(d['chain_length'] for d in data)))
+
+    elif metric == "max_chain_length":
+        with open(f"metrics/{exp}/chain_length.json", "r") as f: data = json.load(f)
+        temp = np.max(list(chain.from_iterable(d['chain_length'] for d in data)))
+        
     elif metric == "avg_chaining_ratio":
         with open(f"metrics/{exp}/chaining_ratio.json", "r") as f: data = json.load(f)
         temp = np.mean([d['chaining_ratio'] for d in data])
@@ -352,7 +379,8 @@ if __name__ == "__main__":
     elif args.mode == "present":
 
         match args.what:
-            case "sim@k": similarity_at_k_presentation(args.type)
+            case "sim@k": similarity_at_k_presentation(args.type, "overall")
+            case "centroid_sim@k": similarity_at_k_presentation(args.type, "centroid")
             case "length": chain_length_plot_presentation(args.type)
             case "table": table_presentation(args.x.split(","), args.metrics.split(","))
 

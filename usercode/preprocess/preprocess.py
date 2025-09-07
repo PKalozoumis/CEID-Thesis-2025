@@ -32,11 +32,11 @@ if __name__ == "__main__":
     parser.add_argument("-st", "--scroll-time", action="store", type=str, default="1000s", help="Scroll time for scrolling corpus")
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     parser.add_argument("-w", "--warnings", action="store_true", default=False, help="Show warnings")
-    group.add_argument("--no-times", action="store_true", default=False, help="Do not store times")
+    parser.add_argument("--no-times", action="store_true", default=False, help="Do not store times")
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--cache-embeddings", action="store_true", default=False, help="Cache sentence embeddings")
-    group.add_argument("--use-embedding-cache", action="store_true", default=False, help="Use cached sentence embeddings")
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument("--cache-embeddings", action="store_true", default=False, help="Cache sentence embeddings")
+    group2.add_argument("--use-embedding-cache", action="store_true", default=False, help="Use cached sentence embeddings")
 
     parser.add_argument("-a", "--append", action="store_true", default=False, help="Insert document into database without deleting previous results")
     
@@ -130,10 +130,13 @@ def work(doc: ElasticDocument):
 
     #Try to load embeddings from cache first
     if args.use_embedding_cache:
-        with open(os.path.join(cache_path, f"{doc.id}.pkl"), "rb") as f:
-            sentence_vectors = pickle.load(f)
-        sentences = doc_to_sentences(doc, model, sep="\n", precalculated_embeddings=sentence_vectors)
-        record['sent_t'] = 0
+        try:
+            with open(os.path.join(cache_path, f"{doc.id}.pkl"), "rb") as f:
+                sentence_vectors = pickle.load(f)
+            sentences = doc_to_sentences(doc, model, sep="\n", precalculated_embeddings=sentence_vectors)
+            record['sent_t'] = 0
+        except:
+            return None
 
     #If cache is disabled, calculate on the spot
     else:
@@ -201,7 +204,9 @@ def serial_execution(progress, experiment, index, args, cpu_model, docs, batch_s
         task = progress.add_task(f"Processing documents for batch {i}...", total=batch_size, start=True)
 
         for doc in batch:
-            time_records.append(work(doc))
+            res = work(doc)
+            if res is not None:
+                time_records.append(res)
             progress.update(task, advance=1)
 
     return time_records
@@ -236,7 +241,8 @@ def parallel_execution(progress, experiment, index, args, cpu_model, docs, batch
 
                 #Distribute work
                 for res in pool.imap_unordered(work, workload):
-                    time_records.append(res)
+                    if res is not None:
+                        time_records.append(res)
                     progress.update(task, advance=1)
 
             return time_records

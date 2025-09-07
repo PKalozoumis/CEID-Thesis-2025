@@ -14,7 +14,7 @@ from .clustering import group_chains_by_label
 
 #================================================================================================
 
-def within_cluster_similarity(cluster: ChainCluster) -> float:
+def within_cluster_similarity(cluster: ChainCluster, flat: bool = False) -> float:
     '''
     Caclculates the average similarity of every pair of sentences in the cluster. 
 
@@ -31,14 +31,18 @@ def within_cluster_similarity(cluster: ChainCluster) -> float:
     if len(cluster) == 1:
         return 1
     
-    mat = cluster.chain_matrix()
+    if flat:
+        mat = cluster.sentence_matrix()
+    else:
+        mat = cluster.chain_matrix()
+    
     sim = cosine_similarity(mat, mat)
     res = (np.sum(sim, axis=1) - 1) / (len(cluster) - 1)
     return np.average(res)
 
 #================================================================================================
 
-def avg_within_cluster_similarity(clustering: ChainClustering):
+def avg_within_cluster_similarity(clustering: ChainClustering, flat: bool = False):
     '''
     Caclculates the average similarity within each cluster in the list.
     Then, it calculates the average of those values. 
@@ -57,7 +61,7 @@ def avg_within_cluster_similarity(clustering: ChainClustering):
         Average within-cluster similarity
     '''
 
-    vec = np.array([within_cluster_similarity(cluster) for key, cluster in clustering.clusters.items() if key >= 0])
+    vec = np.array([within_cluster_similarity(cluster, flat=flat) for key, cluster in clustering.clusters.items() if key >= 0])
     if len(vec) > 0:
         return np.average(vec)
     else:
@@ -65,22 +69,26 @@ def avg_within_cluster_similarity(clustering: ChainClustering):
     
 #================================================================================================
 
-def cluster_centroid_similarity(cluster: ChainCluster):
+def cluster_centroid_similarity(cluster: ChainCluster, *, allow_self_similarity: bool = False, flat: bool = False):
     if len(cluster) == 1:
         return 1
 
-    mat = cluster.chain_matrix()
+    if flat:
+        mat = cluster.sentence_matrix()
+    else:
+        mat = cluster.chain_matrix()
+    
     sim = cosine_similarity(mat, cluster.vector.reshape((1,-1)))
 
-    if cluster.pooling_method in ChainCluster.EXEMPLAR_BASED_METHODS:
+    if not allow_self_similarity and cluster.pooling_method in ChainCluster.EXEMPLAR_BASED_METHODS:
         return (np.sum(sim) - 1) / (len(cluster) - 1)
     else:
         return np.average(sim)
     
 #================================================================================================
 
-def avg_cluster_centroid_similarity(clustering: ChainClustering):
-    vec = np.array([cluster_centroid_similarity(cluster) for cluster in clustering if cluster.label > -1])
+def avg_cluster_centroid_similarity(clustering: ChainClustering, *, allow_self_similarity: bool = False, flat: bool = False):
+    vec = np.array([cluster_centroid_similarity(cluster, allow_self_similarity=allow_self_similarity, flat=flat) for cluster in clustering if cluster.label > -1])
     if len(vec) > 0:
         return np.average(vec)
     else:
@@ -88,7 +96,7 @@ def avg_cluster_centroid_similarity(clustering: ChainClustering):
     
 #================================================================================================
 
-def chain_clustering_silhouette_score(clustering: ChainClustering, reducer=None):
+def chain_clustering_silhouette_score(clustering: ChainClustering, reducer=None, flat: bool = False):
 
     #Filter out outliers
     chains = [chain for chain, label in zip(clustering.chains, clustering.labels) if label >= 0]
@@ -96,10 +104,12 @@ def chain_clustering_silhouette_score(clustering: ChainClustering, reducer=None)
 
     if len(chains) == 0:
         return None #How did we get here
-
-    #From each chain in the list, get its representative vector
-    #Crete a matrix from these vectors
-    mat = np.array([chain.vector for chain in chains])
+    
+    if flat:
+        labels, sentences = zip(*[(label, sentence) for label, chain in zip(labels, chains) for sentence in chain])
+        mat = np.array([s.vector for s in sentences])
+    else:
+        mat = np.array([chain.vector for chain in chains])
 
     if reducer:
         mat = reducer.fit_transform(mat)
@@ -125,38 +135,18 @@ def dbi(clustering: ChainClustering, reducer = None):
 
 #================================================================================================
 
-def chain_clustering_flat_silhouette_score(clustering: ChainClustering, reducer=None):
-
-    #Filter out outliers
-    chains = [chain for chain, label in zip(clustering.chains, clustering.labels) if label >= 0]
-    labels = [label for label in clustering.labels if label >= 0]
-
-    if len(chains) == 0:
-        return None
-
-    #We need to expand each chain to its sentences
-    labels, sentences = zip(*[(label, sentence) for label, chain in zip(labels, chains) for sentence in chain])
-
-    mat = np.array([s.vector for s in sentences])
-
-    #Reduce sentence dimensionality
-    if reducer:
-        mat = reducer.fit_transform(mat)
-        return silhouette_score(mat, labels, metric='euclidean')
-    else:
-        return silhouette_score(mat, labels, metric='cosine')
-
-#================================================================================================
-
 VALID_METRICS = ["silhouette", "flat_silhouette"]
 
 def clustering_metrics(clustering: ChainClustering, metrics_list: list[str] = None, *, reducer=None, value=False, render=False, return_renderable=False) -> dict | tuple[dict, Table]:
     metrics = {
         'silhouette': {'name': "Silhouette Score", 'value': lambda: chain_clustering_silhouette_score(clustering, reducer)},
-        'flat_silhouette': {'name': "Flat Silhouette Score", 'value': lambda: chain_clustering_flat_silhouette_score(clustering, reducer)},
+        'flat_silhouette': {'name': "Flat Silhouette Score", 'value': lambda: chain_clustering_silhouette_score(clustering, reducer, flat=True)},
         'avg_sim': {'name': "Average Within-Cluster Similarity", 'value': lambda: avg_within_cluster_similarity(clustering)},
         'dbcv': {'name': "DBCV", 'value': lambda: dbcv(clustering, reducer)},
-        'avg_centroid_sim': {'name': "Average Similarity to Centroid", 'value': lambda: avg_cluster_centroid_similarity(clustering)},
+        'avg_centroid_sim': {'name': "Average Similarity to Centroid", 'value': lambda: avg_cluster_centroid_similarity(clustering, allow_self_similarity=True)},
+        'avg_flat_centroid_sim': {'name': "Average Similarity to Centroid", 'value': lambda: avg_cluster_centroid_similarity(clustering, allow_self_similarity=True, flat=True)},
+        'avg_flat_sim': {'name': "Average Within-Cluster Similarity", 'value': lambda: avg_within_cluster_similarity(clustering, flat=True)},
+        'avg_flat_cluster_size': {'name': 'Flat Cluster Size', 'value': lambda: np.average([len(cl.sentence_matrix()) for cl in clustering.clusters.values()])}
     }
 
     #Run requested results
