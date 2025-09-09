@@ -198,7 +198,7 @@ async def main_loop():
         if receiving_fragments:
             live.update(panel_print(full_text, return_panel=True))
         if end:
-            tree = create_time_tree(times)
+            tree,_ = create_time_tree(times)
             console.print(tree)
             print()
             print("Stopping...")

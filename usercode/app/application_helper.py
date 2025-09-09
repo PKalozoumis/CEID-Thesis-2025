@@ -144,18 +144,29 @@ class Arguments():
 
 def create_time_tree(times: dict):
     mytimes = defaultdict(float, {k:round(v, 3) for k,v in times.items()})
+    result = {
+        'elastic': mytimes['elastic'],
+        'query_encode': mytimes['query_encode'],
+        'cluster_retrieval': mytimes['cluster_retrieval']
+    }
 
     tree = Tree(f"[green]Total time: [cyan]{sum(mytimes.values()):.3f}s[/cyan]")
     tree.add(f"[green]Elasticsearch time: [cyan]{mytimes['elastic']:.3f}s[/cyan]")
     tree.add(f"[green]Query encoding: [cyan]{mytimes['query_encode']:.3f}s[/cyan]")
     tree.add(f"[green]Cluster retrieval: [cyan]{mytimes['cluster_retrieval']:.3f}s[/cyan]")
 
-    score_tree = tree.add(f"[green]Cross-scores: [cyan]{sum(v for k,v in mytimes.items() if k.startswith('cross_score')):.3f}s[/cyan]")
+    #Cross-score times
+    temp = sum(v for k,v in mytimes.items() if k.startswith('cross_score'))
+    result['cross_scores'] = temp
+    score_tree = tree.add(f"[green]Cross-scores: [cyan]{temp:.3f}s[/cyan]")
     for k,v in mytimes.items():
         if k.startswith('cross_score'):
             score_tree.add(f"[green]Cluster {k[12:]}: [cyan]{v:.3f}s[/cyan]")
 
-    context_tree = tree.add(f"[green]Context expansion: [cyan]{sum(v for k,v in mytimes.items() if k.startswith('context_expansion')):.3f}s[/cyan]")
+    #Context expansion times
+    temp = sum(v for k,v in mytimes.items() if k.startswith('context_expansion'))
+    result['context_expansion'] = temp
+    context_tree = tree.add(f"[green]Context expansion: [cyan]{temp:.3f}s[/cyan]")
     for k,v in mytimes.items():
         if k.startswith('context_expansion'):
             context_tree.add(f"[green]Cluster {k[18:]}: [cyan]{v:.3f}s[/cyan]")
@@ -163,4 +174,9 @@ def create_time_tree(times: dict):
     summary_tree = tree.add(f"[green]Summarization[/green]: [cyan]{mytimes['summary_time']}s[/cyan]")
     summary_tree.add(f"[green]Response time[/green]: [cyan]{mytimes['summary_response_time']:.3f}s[/cyan]")
 
-    return tree
+    result['summary_time'] = mytimes['summary_time']
+    result['summary_response_time'] = mytimes['summary_response_time']
+    
+    result['total'] = sum(v for v in result.values())
+
+    return tree, result

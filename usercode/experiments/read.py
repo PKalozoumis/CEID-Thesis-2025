@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", action="store", type=str, help="Comma-separated list of document IDs")
     parser.add_argument("-x", action="store", type=str, help="Experiment", default="default")
     parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+    parser.add_argument("-q", "--query", action="store", type=str, default=None, help="Numeric query ID or query string")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--cache", action="store_true", help="Use the cache")
@@ -54,10 +55,13 @@ from mypackage.cluster_selection import RelevanceEvaluator, SummaryCandidate
 from mypackage.query import Query
 from sentence_transformers import CrossEncoder
 from mypackage.sentence import SimilarityPair
+from mypackage.experiments import ExperimentManager
 
 from rich.console import Console
 from rich.rule import Rule
 from rich.padding import Padding
+
+import warnings
 
 console = Console()
 
@@ -65,11 +69,10 @@ console = Console()
 
 if __name__ == "__main__":
 
-    #--------------------------------------------------------------------------------------
-
     os.makedirs("cache", exist_ok=True)
     sess = Session(args.i, base_path="../common", cache_dir=("../cache" if args.cache else None), use="cache" if args.cache else "client")
 
+    #Setup database
     if args.db == "pickle":
         db = PickleSession(os.path.join(sess.index_name, "pickles"), args.x)
     else:
@@ -79,7 +82,10 @@ if __name__ == "__main__":
         raise DEVICE_EXCEPTION("BUT, THERE WAS NOTHING TO READ")
     
     if args.score_chains:
-        query = Query(0, "What are the primary behaviours and lifestyle factors that contribute to childhood obesity", source=["summary", "article"], text_path="article")
+        queries = ExperimentManager("../common/experiments.json").get_queries(args.query, args.i)
+        if len(queries) > 1:
+            warnings.warn("Specified more than one query. Only the first one will be used.")
+        query = queries[0]
         evaluator = RelevanceEvaluator(query, 'cross-encoder/ms-marco-MiniLM-L12-v2')
     
     docs = [ElasticDocument(sess, id=id, text_path="article") for id in args.d.split(",")]

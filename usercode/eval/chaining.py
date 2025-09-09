@@ -24,6 +24,7 @@ if __name__ == "__main__":
     parser.add_argument("--what", action="store", help="What to compare", choices=["sim@k", "centroid_sim@k", "length", "table"])
     parser.add_argument("--type", action="store", help="Comparison type (for sim_at_k and chain_length)")
     parser.add_argument("-m", "--metrics", action="store", type=str, required=False, help="Comma-separated metrics to present")
+    parser.add_argument("--no-store", action="store_true", default=False, help="Do not store plots")
     args = parser.parse_args()
 
 #=================================================================================================================
@@ -228,7 +229,9 @@ def similarity_at_k_presentation(comparison_type: str, similarity_type: str):
     plt.grid(color="b", alpha=0.25)
     plt.xlabel("Μήκος αλυσίδας")
     plt.ylabel("Μέση ομοιότητα μεταξύ των προτάσεων" if similarity_type=="overall" else "Μέση ομοιότητα με αντιπρόσωπο")
-    plt.savefig(f"{store_path}/{similarity_type}_sim_at_k_{comparison_type}.png", dpi=300)
+
+    if not args.no_store:
+        plt.savefig(f"{store_path}/{similarity_type}_sim_at_k_{comparison_type}.png", dpi=300)
     plt.show(block=True)
 
 #=========================================================================================================
@@ -241,7 +244,7 @@ def chain_length_plot_presentation(comparison_type: str):
         case "thres": experiments = db.available_experiments("thres_55,default,thres_65,thres_70,thres_75")
         case "models": experiments = db.available_experiments("default,mpnet")
         case "pooling": experiments = db.available_experiments("default,most_similar_pooling")
-        case _: raise Exception
+        case _: raise Exception(f"Unknown comparison type {comparison_type}")
 
     if os.path.exists(f"metrics/{comparison_type}.parquet"):
         df = pd.read_parquet(f"metrics/{comparison_type}.parquet")
@@ -288,7 +291,9 @@ def chain_length_plot_presentation(comparison_type: str):
     ax.set_ylabel('Ποσοστό συνολικών αλυσίδων')
     plt.xticks(rotation=0)
     plt.grid(color="b", alpha=0.25)
-    plt.savefig(f"{store_path}/chain_length_{comparison_type}.png", dpi=300)
+
+    if not args.no_store:
+        plt.savefig(f"{store_path}/chain_length_{comparison_type}.png", dpi=300)
     plt.show()
 
 #=========================================================================================================
@@ -317,6 +322,9 @@ def metric_to_df(exp: str, metric:str):
     elif metric == "avg_chaining_ratio":
         with open(f"metrics/{exp}/chaining_ratio.json", "r") as f: data = json.load(f)
         temp = np.mean([d['chaining_ratio'] for d in data])
+    
+    else:
+        raise Exception(f"Unknown metric {metric}")
 
     df = pd.DataFrame({'exp': exp, metric: temp}, index=["exp"]).set_index("exp")
     df.index.names = [None]
@@ -343,7 +351,7 @@ def table_presentation(experiments: list[str], metrics: list[str]):
         caption="Μετρικές συσταδοποίησης", 
         label="tab:cluster", 
         float_format="%.3f",
-        position="h"
+        position="H"
     )
     format_latex_table(latex, name="Μετρικές συσταδοποίησης")
 

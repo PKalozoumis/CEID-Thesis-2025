@@ -292,7 +292,7 @@ if __name__ == "__main__":
                 caption="Μετρικές συσταδοποίησης", 
                 label="tab:cluster", 
                 float_format="%.3f",
-                position="h"
+                position="H"
             )
             format_latex_table(latex, name="Μετρικές συσταδοποίησης")
         

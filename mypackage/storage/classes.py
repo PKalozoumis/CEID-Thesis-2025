@@ -42,6 +42,7 @@ class RealTimeResults():
 
     #Result objects
     returned_docs: list[ElasticDocument]
+    original_selected_clusters: list[SelectedCluster]
     selected_clusters: list[SelectedCluster]
     summaries: list[SummaryUnit]
     times: list[dict] #We can gather the times from multiple runs (by merging different files)

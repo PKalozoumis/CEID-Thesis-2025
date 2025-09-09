@@ -30,7 +30,7 @@ class SummaryUnit():
     The input and ouput of the summarization system. Contains all the candidates, as well as the final summary with its citations
     '''
 
-    sorted_candidates: list[list[SummaryCandidate]] #What this represents depends on the sorting method
+    sorted_candidates: list[SummaryCandidate]
     summary: str
     citations: list[int]
     clusters: list[SelectedCluster]
@@ -77,46 +77,63 @@ class SummaryUnit():
             #Sort document lists by the sum of cluster scores
             clusters_per_doc.sort(key=lambda cluster_list: sum(c.cross_score for c in cluster_list), reverse=True)
 
-            #From each cluster, extract selected candidates and sort them by either relevance or appearance
-            self.sorted_candidates = [
-                sorted(
-                    chain.from_iterable([c.candidates for c in cluster_list]),
-                    key=lambda candidate: candidate.score,
-                    reverse=True
-                ) if 'relevance' in self.sorting_method else sorted (
-                    chain.from_iterable([c.candidates for c in cluster_list]),
-                    key=lambda candidate: candidate.first_index,
-                    reverse=False
-                )
-                for cluster_list in clusters_per_doc
-            ]
+            self.sorted_candidates = []
 
+            #From each cluster, extract selected candidates and sort them by either relevance or appearance
+            for cluster_list in clusters_per_doc:
+                local_candidates = list(chain.from_iterable(c.candidates for c in cluster_list))
+                if 'relevance' in self.sorting_method:
+                    self.sorted_candidates += sorted(local_candidates, key=lambda c: c.score, reverse=True)
+                else:
+                    self.sorted_candidates += sorted(local_candidates, key=lambda c: c.first_index, reverse=False)
         #------------------------------------------------------------------------------------
 
         elif self.sorting_method.startswith("cluster"):
             #Sort clusters by their selected candidate cross-score
             sorted_clusters = sorted(clusters, key=lambda c: c.cross_score, reverse=True)
 
+            self.sorted_candidates = []
+
             #From each cluster, extract selected candidates and sort them by either relevance or appearance
-            self.sorted_candidates = [
-                sorted(
-                    cluster.candidates,
-                    key=lambda candidate: candidate.score,
-                    reverse=True
-                ) if 'relevance' in self.sorting_method else sorted (
-                    cluster.candidates,
-                    key=lambda candidate: candidate.first_index,
-                    reverse=False
-                )
-                for cluster in sorted_clusters
-            ]
+            for cluster in sorted_clusters:
+                if 'relevance' in self.sorting_method:
+                    self.sorted_candidates += sorted(cluster.candidates, key=lambda c: c.score, reverse=True)
+                else:
+                    self.sorted_candidates += sorted(cluster.candidates, key=lambda c: c.first_index)
 
         #------------------------------------------------------------------------------------
         elif self.sorting_method == "flat_relevance":
-            self.sorted_candidates = [sorted(chain.from_iterable([cluster.candidates for cluster in clusters]), key=lambda candidate: candidate.score, reverse=True)]
+            self.sorted_candidates = sorted(chain.from_iterable([cluster.candidates for cluster in clusters]), key=lambda candidate: candidate.score, reverse=True)
 
+        self.sorted_candidates = self._resolve_overlaps(self.sorted_candidates)
+    
+    #------------------------------------------------------------------------------------
 
-        self.sorted_candidates = list(filter(lambda x: len(x) > 0, self.sorted_candidates))
+    @staticmethod
+    def _resolve_overlaps(candidates: list[SummaryCandidate]) -> list[SummaryCandidate]:
+            #Give each element a global position in the sorted list of candidates
+            #This will help us resolve overlaps in a single document, while also maintaining the original sort order
+            candidates: list[tuple[int, SummaryCandidate]] = list(enumerate(candidates))
+
+            #Group candidates by document
+            groups = defaultdict(list)
+            for pos,c in candidates:
+                groups[c.chain.doc.id].append((pos,c))
+            groups: list[list[tuple[int, SummaryCandidate]]] = list(groups.values())
+
+            marked_for_deletion = [False] * len(candidates)
+
+            #Resolve overlaps for each group
+            for group in groups:
+                seen_chains = set()
+                for pos, c in group:
+                    index_set = set(c.index_range)
+                    if seen_chains & index_set:
+                        marked_for_deletion[pos] = True
+                    else:
+                        seen_chains |= index_set
+                
+            return [c for pos,c in candidates if not marked_for_deletion[pos]]
     
     #------------------------------------------------------------------------------------
 
@@ -148,23 +165,14 @@ class SummaryUnit():
         if len(self.sorted_candidates) == 0:
             panel = panel_print("But, there was nothing to print", title="Summarization input text (formatted)", return_panel=return_text)
         else:
-            def candidate_list_pretty_text(candidate_list: list[SummaryCandidate]):
-                return "\n\n".join([c.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes) for c in candidate_list])
-
             to_print = []
 
-            if self.sorting_method == "flat_relevance":
-                for candidate in self.sorted_candidates[0]:
-                    id = candidate.citation
-                    #id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
-                    #FF6A00 -> orange
-                    #FF64DC -> pink
-                    to_print += [f"[#FF6A00]{id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
-            else:
-                for candidate_list in self.sorted_candidates:
-                    to_print.append(Rule(f"Document {candidate_list[0].chain.doc.id}" if self.sorting_method.startswith("document") else f"Cluster {candidate_list[0].chain.parent_cluster.id}"))
-                    to_print += [candidate_list_pretty_text(candidate_list)]
-                    to_print.append("")
+            for candidate in self.sorted_candidates:
+                id = candidate.citation
+                #id = f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>"
+                #FF6A00 -> orange
+                #FF64DC -> pink
+                to_print += [f"[#FF6A00]{id}[/#FF6A00] [#FF64DC]({candidate.score:.3f})[/#FF64DC] [red]->[/red] {candidate.pretty_text(show_added_context=show_added_context, show_chain_indices=show_chain_indices, show_chain_sizes=show_chain_sizes)}\n"]
 
             panel = panel_print(to_print, title="Summarization input text (formatted)", return_panel=return_text)
 
@@ -178,9 +186,8 @@ class SummaryUnit():
     @property
     def text(self) -> str:
         txt = ""
-        for candidate_list in self.sorted_candidates:
-            for candidate in candidate_list:
-                txt += f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>: {candidate.text}\n\n"
+        for candidate in self.sorted_candidates:
+            txt += f"<{candidate.chain.doc.id}_{candidate.first_sentence_index}-{candidate.last_sentence_index}>: {candidate.text}\n\n"
         return txt
     
     #------------------------------------------------------------------------------------
@@ -188,9 +195,8 @@ class SummaryUnit():
     @property
     def reference(self) -> str:
         txt = ""
-        for candidate_list in self.sorted_candidates:
-            for candidate in candidate_list:
-                txt += candidate.text
+        for candidate in self.sorted_candidates:
+            txt += candidate.text
         return txt
     
     #------------------------------------------------------------------------------------
@@ -200,6 +206,7 @@ class SummaryUnit():
             'summary': self.summary,
             'citations': self.citations,
             'sorting_method': self.sorting_method
+            #Sorted candidates are not included, because they can be recreated from the selected clusters and the sorting method
         }
     
     @classmethod

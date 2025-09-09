@@ -21,6 +21,7 @@ from ..elastic import Document
 from .helper import print_candidates, print_candidate_states
 
 import time
+import copy
 
 console = Console()
 
@@ -73,6 +74,16 @@ class SummaryCandidate():
     #Candidate Filtering can disable this candidate if no improvement is seen
     expandable: bool
 
+    #---------------------------------------------------------------------------------------------------
+
+    def copy_candidate(self) -> SummaryCandidate:
+        '''
+        Creates a new candidate, with everything the same, but independent state
+        '''
+        new_obj = copy.copy(self)
+        new_obj.history = [SummaryCandidate.State.from_state(s) for s in self.history]
+        return new_obj
+    
     #---------------------------------------------------------------------------------------------------
 
     @dataclass
@@ -487,23 +498,10 @@ class SelectedCluster():
     candidates: list[SummaryCandidate] = field(default=None, kw_only=True) #Looks confusing, but it's essentially the chains of the cluster, sorted by score
     evaluator: RelevanceEvaluator = field(default=None, kw_only=True)
 
-    #Temporary. For debugging only. Please never use
-    #---------------------------------------------------------------------------
-    def store_scores(self, base_path:str) -> dict:
-        res = {}
-        for candidate in self.candidates:
-            res[candidate.chain.index] = candidate.score
-
-        with open(os.path.join(base_path, f"{self.id}.pkl"), "wb") as f:
-            pickle.dump(res, f)
-
-    def load_scores(self, base_path:str) -> dict:
-        with open(os.path.join(base_path, f"{self.id}.pkl"), "rb") as f:
-            data = pickle.load(f)
-
-        temp = [(data[chain.index], chain) for chain in self.cluster.chains]
-
-        self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(temp, reverse=True)]
+    def copy_selected_cluster(self) -> SelectedCluster:
+        new_obj = copy.copy(self)
+        new_obj.candidates = [c.copy_candidate() for c in self.candidates]
+        return new_obj
 
     #---------------------------------------------------------------------------
 
@@ -633,25 +631,24 @@ class SelectedCluster():
 
         #Merge remaining candidates
         if len(good_candidates) > 0:
-            return self._merge_candidates()
+            self.candidates = self._merge_candidates(self.candidates)
+            self.rescore_candidates().rerank_candidates()
         return self
     #---------------------------------------------------------------------------
     
-    def _merge_candidates(self) -> SelectedCluster:
+    def _merge_candidates(self, candidates_list: list[SummaryCandidate]) -> list[SummaryCandidate]:
         '''
         Merges neighboring chains into one
 
         Merges candidates that contain overlapping chains. A merge only happens between candidates whose scores
         have the same sign (both positive or negative)
-
-        NOTE: Maybe this won't be necessary, since the context expansion no longer generates overlapping chains
         '''
         
-        self.candidates = sorted(self.candidates, key=lambda x: x.first_index, reverse=False)
+        candidates_list = sorted(candidates_list, key=lambda x: x.first_index, reverse=False)
 
-        prev = self.candidates[0]
+        prev = candidates_list[0]
         keep = []
-        for candidate in self.candidates[1:]:
+        for candidate in candidates_list[1:]:
             #There is overlap
             #I don't think this can happen anymore...
             if candidate.index_range.start in prev.index_range:
@@ -668,10 +665,7 @@ class SelectedCluster():
 
         keep.append(prev)
 
-        self.candidates = keep
-        self.rescore_candidates().rerank_candidates()
-
-        return self
+        return keep
     
     #---------------------------------------------------------------------------
 

@@ -46,6 +46,8 @@ import time
 import pandas as pd
 import numpy as np
 
+from collections import defaultdict
+
 console = Console()
 
 #=================================================================================================================
@@ -57,9 +59,10 @@ def test(sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
         results = RealTimeResults.load(file, sess, db, exp_manager)
         if args.verbose: console.print(f"[green]Loaded results in[/green] [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")
 
-        #Print arguments and times
-        panel_print(results.args.__dict__, title="Client args")
-        console.print(create_time_tree(results.times))
+        #Print original clusters
+        console.print(Rule("Original clusters"))
+        for focused_cluster in results.original_selected_clusters:
+            print_candidates(focused_cluster, title=f"Original candidates for cluster {focused_cluster.id}", current_state_only=True)
 
         #Print cluster selection results
         console.print(Rule("Final clusters"))
@@ -69,11 +72,19 @@ def test(sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
         #Print text that was selected for summarization
         results.summaries[0].pretty_print(show_added_context=True, show_chain_indices=True, return_text=False)
 
+        #Assign test summaries
+        if args.num_test_summaries > 0 and results.summaries[0].summary is None:
+            assign_test_summaries(results)
+
         #Raw input and output
         console.print(Rule("Summaries"))
         panel_print(results.summaries[0].reference, title="Reference")
         for i, s in enumerate(results.summaries):
             panel_print(s.summary, title="Summary" + (f" ({i+1}/{len(results.summaries)})" if len(results.summaries) > 1 else ""))
+
+        #Print arguments and times
+        panel_print(results.args.__dict__, title="Client args")
+        console.print(create_time_tree(results.times[0]))
 
 #=================================================================================================================
 
@@ -173,16 +184,31 @@ def assign_test_summaries(results: RealTimeResults):
 
 #=================================================================================================================
 
-def times(sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
+def average_times(times):
+    # Initialize a defaultdict to sum values
+    sums = defaultdict(float)
 
+    for d in times:
+        for k, v in d.items():
+            sums[k] += v
+
+    # Compute averages
+    return {k: sums[k]/len(times) for k in sums}
+
+def times(sess: Session, db: DatabaseSession, exp_manager: ExperimentManager):
     for file in args.files.split(","):
         t = time.time()
         results = RealTimeResults.load(file, sess, db, exp_manager)
-        if args.verbose: console.print(f"[green]Loaded results in[/green] [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")
+        if args.verbose: console.print(f"[green]Loaded results in[/green] [cyan]{round(time.time() - t, 3):.3f}s[/cyan]\n")        
+        for i, t in enumerate(results.times):
+            console.print(Rule(f"Times {i}"))
+            tree, _ = create_time_tree(t)
+            console.print(tree)
 
-        for t in results.times:
-            console.print(Rule())
-            console.print(create_time_tree(t))
+        console.print(Rule(f"Average times"))
+        tree, times_dict = create_time_tree(average_times(results.times))
+        console.print(tree)
+        console.print(pd.DataFrame(times_dict, index=["0"]))
 
 #=================================================================================================================
 

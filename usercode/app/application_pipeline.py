@@ -263,7 +263,12 @@ def pipeline(
     encode_query(query, db, **kwargs)
     selected_clusters = retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
     evaluator = calculate_cross_scores(query, selected_clusters, **kwargs)
-    original_selected_clusters = copy.deepcopy(selected_clusters)
+
+    #Make a copy of the selected clusters that has an independent state
+    #After we expand the context of our clusters, this original state stays the same
+    original_selected_clusters = [sc.copy_selected_cluster() for sc in selected_clusters]
+    #original_selected_clusters = None
+
     expand_context(selected_clusters, **kwargs)
 
     #Summarization
