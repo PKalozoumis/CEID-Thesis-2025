@@ -33,7 +33,7 @@ console = Console()
 
 def initializer():
     global conn, evaluator
-    conn = MongoSession(db_name=f"experiments_{args.index}", collection="test")
+    conn = MongoSession(db_name=f"experiments_{args.index}", collection="default")
     evaluator = RelevanceEvaluator(query, 'cross-encoder/ms-marco-MiniLM-L12-v2')
 
 #=====================================================================================
@@ -43,7 +43,7 @@ def work(args):
 
     try:
         conn.load(sess, args[1])
-        score = single_document_cross_score(args[1], evaluator)
+        score, _ = single_document_cross_score(args[1], evaluator)
         return {
             'idx': args[0],
             'query': query.id,

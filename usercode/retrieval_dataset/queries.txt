@@ -977,3 +977,1298 @@
 {"doc": 1179, "q1": "men and bicycle riding", "q2": "Does cycling harm men's urinary health?"}
 {"doc": 1180, "q1": "plexiform angiomyxoid myofibroblastic tumor", "q2": "what causes plexiform angiomyxoid myofibroblastic tumor"}
 {"doc": 1181, "q1": "myelodysplastic syndrome elderly", "q2": "Can myelodysplastic syndrome occur in older adults?"}
+
+{"doc": 2000, "q1": "turtle nasal cavity anatomy", "q2": "how do turtles sense smells?"}
+{"doc": 2001, "q1": "cerebral venous thrombosis in children", "q2": "what causes cerebral venous thrombosis in kids"}
+{"doc": 2002, "q1": "Afatinib CNS metastasis", "q2": "Is Afatinib effective in treating brain cancer?"}
+
+{"doc": 2003, "q1": "GIP GLP-1 insulin secretion", "q2": "What affects incretin hormone levels in Japanese people?"}
+{"doc": 2004, "q1": "gaba receptor expression hepatitis c", "q2": "do people with hepatitis c have altered gaba receptors?"}
+{"doc": 2005, "q1": "river blindness treatment", "q2": "Can river blindness be eliminated?"}
+{"doc": 2006, "q1": "Root canal characteristics", "q2": "How many canals do mandibular incisors have?"}
+{"doc": 2007, "q1": "Cardiovascular disease in Sub-Saharan Africa", "q2": "What causes cardiovascular disease in Sub-Saharan Africa?"}
+{"doc": 2008, "q1": "childhood obesity dental caries", "q2": "Does childhood obesity affect tooth decay?"}
+{"doc": 2009, "q1": "ciprofloxacin resistant salmonella", "q2": "Is Ciprofloxacin still effective against Salmonella?"}
+{"doc": 2010, "q1": "VLBW children nutrition study", "q2": "What is the impact of VLBW on child growth?"}
+{"doc": 2011, "q1": "Bourgelatia diducta South Korea", "q2": "Is Bourgelatia diducta found in wild boars?"}
+{"doc": 2012, "q1": "legionella pneumonia adalimumab", "q2": "Can Adalimumab cause Legionella pneumonia?"}
+{"doc": 2013, "q1": "beauveria bassiana specimen", "q2": "What is Beauveria bassiana?"}
+{"doc": 2014, "q1": "epistasis genetic interactions", "q2": "How do non-additive genetic interactions affect evolution?"}
+{"doc": 2015, "q1": "Mimivirus genome sequencing", "q2": "What is Mimivirus?"}
+{"doc": 2016, "q1": "ahr inflammation regulation", "q2": "Does AHR play a role in inflammation?"}
+{"doc": 2017, "q1": "infectious disease new compounds", "q2": "what are new treatments for infectious diseases?"}
+{"doc": 2018, "q1": "psychological distress among dental patients", "q2": "do dental patients experience more stress"}
+{"doc": 2019, "q1": "maternal stress gabaergic synapse", "q2": "How does maternal stress affect brain development?"}
+{"doc": 2020, "q1": "cancer survivorship care plans", "q2": "Are cancer survivorship care plans effective?"}
+{"doc": 2021, "q1": "Hydatidosis Prevalence Iran", "q2": "How common is hydatidosis in Iran?"}
+{"doc": 2022, "q1": "circulating plasma cells multiple myeloma", "q2": "Does circulating plasma cells predict survival for multiple myeloma?"}
+{"doc": 2023, "q1": "diaphragmatic hernia symptoms", "q2": "What causes a lung to herniate through the chest wall?"}
+{"doc": 2024, "q1": "image analysis in 2D GE", "q2": "How to automate image analysis of 2D gel electrophoresis?"}
+{"doc": 2025, "q1": "exercise impact on daily activity", "q2": "Does regular exercise increase daily energy expenditure?"}
+{"doc": 2026, "q1": "cyclic loading and screw retightening", "q2": "Does retightening affect implant stability?"}
+{"doc": 2027, "q1": "dravet syndrome symptoms", "q2": "What is dravet syndrome?"}
+{"doc": 2028, "q1": "stroke patient rehabilitation", "q2": "effective treatment for stroke patients neglect"}
+{"doc": 2029, "q1": "sox9 function in testes development", "q2": "Can sox9 cause male development in XX individuals?"}
+{"doc": 2030, "q1": "osteoporosis treatment options", "q2": "What are the best treatments for preventing hip fractures?"}
+{"doc": 2031, "q1": "meniscus tear repair", "q2": "Is arthroscopic repair of meniscal injuries effective?"}
+{"doc": 2032, "q1": "ureteral access sheath effectiveness", "q2": "Is a postoperative stent needed after flexible ureteroscopy?"}
+{"doc": 2033, "q1": "orbital apex lesion diagnosis", "q2": "Can orbital apex lesions be treated?"}
+{"doc": 2034, "q1": "stress influence tumor growth", "q2": "Can stress cause tumors to grow?"}
+{"doc": 2035, "q1": "splenectomy indications", "q2": "Is splenectomy used to diagnose Gaucher's disease?"}
+{"doc": 2036, "q1": "rare genetic disorder", "q2": "What causes osteopetrosis?"}
+{"doc": 2037, "q1": "ocular trauma prevention", "q2": "Can ocular trauma be prevented in the industrial workplace?"}
+{"doc": 2038, "q1": "bioabsorbable screws in knee surgery", "q2": "can screws fail after knee reconstruction"}
+{"doc": 2039, "q1": "anesthesia safety improvements", "q2": "Has anesthesia become safer globally?"}
+{"doc": 2040, "q1": "sepsis immunosuppression treatment", "q2": "Can steroids worsen sepsis outcomes?"}
+{"doc": 2041, "q1": "Total Body Irradiation Dosimeters", "q2": "What dosimeters are used in Total Body Irradiation?"}
+{"doc": 2042, "q1": "anorexia nervosa EEG study", "q2": "Can anorexia nervosa affect brain wave activity?"}
+{"doc": 2043, "q1": "tnf involvement in psoriasis", "q2": "Does TNF play a role in psoriasis?"}
+{"doc": 2044, "q1": "Jejunal obstruction bands", "q2": "What causes intestinal obstruction in children?"}
+{"doc": 2045, "q1": "Generalized Ligamentous Laxity", "q2": "Can ligament laxity cause shoulder injuries?"}
+{"doc": 2046, "q1": "cisred database", "q2": "what is cisred?"}
+{"doc": 2047, "q1": "nano hybrid composites vs low shrinkage composites", "q2": "Can nano hybrid and low shrinkage composite restorations provide good clinical results?"}
+{"doc": 2048, "q1": "heme biosynthesis defects", "q2": "What causes heme synthesis defects?"}
+{"doc": 2049, "q1": "Immune Checkpoint Receptor Blockade", "q2": "What are the side effects of immune checkpoint receptor blockade?"}
+{"doc": 2050, "q1": "prion disorder in cattle", "q2": "Do cattle have a different prion disease than BSE?"}
+{"doc": 2051, "q1": "oncologists viewpoints on end-of-life decisions", "q2": "Do Iranian oncologists face ethical dilemmas?"}
+{"doc": 2052, "q1": "Open tibial fractures in children management", "q2": "What is the best treatment for open tibia fractures in kids?"}
+{"doc": 2053, "q1": "xrism implicit solvent model", "q2": "Can xrism accurately predict solvation free energy?"}
+{"doc": 2054, "q1": "Autoimmune hepatitis with immune thrombocytopenic purpura", "q2": "Can autoimmune hepatitis cause low platelet count?"}
+{"doc": 2055, "q1": "16s rRNA methylases RMTA", "q2": "What is the significance of 16S RNA methylase emergence?"}
+{"doc": 2056, "q1": "awake brain stimulation anesthesia", "q2": "Can deep brain stimulation be done with the patient awake?"}
+{"doc": 2057, "q1": "Cardiac Electrophysiologic Study", "q2": "Is Radiofrequency Ablation Effective For Atrial Fibrillation Treatment?"}
+{"doc": 2058, "q1": "aeroallergen allergy study", "q2": "What causes most allergies?"}
+{"doc": 2059, "q1": "il-6 role in colorectal cancer", "q2": "Can interleukin-6 cause colorectal cancer?"}
+{"doc": 2060, "q1": "autogenous tooth bone graft", "q2": "Is autogenous tooth bone graft effective?"}
+{"doc": 2061, "q1": "Chikungunya transmission Europe", "q2": "Can Chikungunya virus emerge in Europe?"}
+{"doc": 2062, "q1": "cell surface interactions proteins", "q2": "How do cell surface proteins regulate cellular functions?"}
+{"doc": 2063, "q1": "dentine bonding agent cytotoxicity", "q2": "Are dentine bonding agents harmful?"}
+{"doc": 2064, "q1": "metoclopramide vs ondansetron", "q2": "Is metoclopramide more effective than ondansetron for nausea and vomiting after head trauma?"}
+{"doc": 2065, "q1": "isocitrate dehydrogenase mutations", "q2": "What causes IDH enzyme dysfunction?"}
+{"doc": 2066, "q1": "rhabdomyosarcoma", "q2": "What is rhabdomyosarcoma disease?"}
+{"doc": 2067, "q1": "LMO2 gene expression", "q2": "What is the function of the LMO2 gene?"}
+{"doc": 2068, "q1": "coccidiostats regulation 574/2011/ec", "q2": "What are maximum levels of coccidiostats in animal feed?"}
+{"doc": 2069, "q1": "oral squamous cell carcinoma", "q2": "What is oral squamous cell carcinoma?"}
+{"doc": 2070, "q1": "pulse pressure proteinuria diabetes", "q2": "Is high pulse pressure linked to proteinuria in people with diabetes?"}
+{"doc": 2071, "q1": "Encephalitozoon cuniculi seroprevalence", "q2": "Do humans get E. cuniculi from rabbits?"}
+{"doc": 2072, "q1": "homeostatic plasticity GABA neurons", "q2": "What happens to GABAergic inhibition during chronic activity blockade?"}
+{"doc": 2073, "q1": "Lake Malawi cichlid phylogeny", "q2": "What are the evolutionary relationships between Lake Malawi cichlids?"}
+{"doc": 2074, "q1": "therapeutic equivalence in diabetes treatment", "q2": "Can different diabetes treatments be considered equally effective?"}
+{"doc": 2075, "q1": "diabetic retinopathy causes blindness", "q2": "What are the main factors causing vision loss in diabetic patients?"}
+{"doc": 2076, "q1": "microleakage beneath metallic brackets", "q2": "Does direct illumination reduce microleakage in orthodontic brackets?"}
+{"doc": 2077, "q1": "april tumor growth", "q2": "does april promote tumor growth"}
+{"doc": 2078, "q1": "small intestine hemangioma complications", "q2": "Can a small intestine hemangioma cause intestinal obstruction in infants?"}
+{"doc": 2079, "q1": "prostate cancer in egypt", "q2": "what is the age of onset for prostate cancer"}
+{"doc": 2081, "q1": "somatic confusion diagnosis", "q2": "What is somatic confusion?"}
+{"doc": 2082, "q1": "fixed drug eruption", "q2": "What causes fixed drug eruptions?"}
+{"doc": 2083, "q1": "Transvaginal cholecystectomy model", "q2": "Is transvaginal cholecystectomy safe?"}
+{"doc": 2084, "q1": "Chlorella Vulgaris Anticancer Effects", "q2": "Can Chlorella Vulgaris Kill Cancer Cells?"}
+{"doc": 2085, "q1": "amplatzer duct occluder complications", "q2": "can an amplatzer device be removed"}
+{"doc": 2086, "q1": "schizophrenia brain abnormalities", "q2": "Do people with schizophrenia have brain problems?"}
+{"doc": 2087, "q1": "Intensity modulated radiation therapy gynecologic malignancies", "q2": "Is IMRT effective for cervical cancer treatment?"}
+{"doc": 2088, "q1": "maternal depression impact on offspring", "q2": "Does maternal depression affect child development?"}
+{"doc": 2089, "q1": "social relationships and aging in place", "q2": "Is social connection important with aging?"}
+{"doc": 2090, "q1": "Lotus stem starch consumption trends", "q2": "What are consumer preferences driving lotus stem starch sales?"}
+{"doc": 2091, "q1": "hereditary breast cancer", "q2": "What causes hereditary ovarian cancer?"}
+{"doc": 2092, "q1": "measles mumps rubella vaccine", "q2": "How effective is the MMR vaccine?"}
+{"doc": 2093, "q1": "gallstones prevalence in adults", "q2": "How common are gallstones in men and women?"}
+{"doc": 2094, "q1": "Cardiac Resynchronization Therapy", "q2": "Can CRT improve heart function in HF patients?"}
+{"doc": 2095, "q1": "mitral regurgitation treatment", "q2": "Can mitral regurgitation occur after heart attack?"}
+{"doc": 2096, "q1": "membrane glycolipid cancer markers", "q2": "Can membrane glycolipids detect cancer?"}
+{"doc": 2097, "q1": "breast cancer and antihypertensive agents", "q2": "Do antihypertensive medications increase breast cancer risk?"}
+{"doc": 2098, "q1": "ureteral rupture chemoradiotherapy", "q2": "Can chemoradiotherapy cause ureteral rupture?"}
+{"doc": 2099, "q1": "high white blood cell count and abdominal pain", "q2": "Can a high white blood cell count cause abdominal pain?"}
+{"doc": 2100, "q1": "supracondylar fracture treatment in children", "q2": "What is the best way to treat supracondylar fractures in kids?"}
+{"doc": 2101, "q1": "brachytherapy impact on bladder and rectum", "q2": "How does respiration affect doses in cervical brachytherapy?"}
+{"doc": 2102, "q1": "impact of education on obesity", "q2": "Does education affect blood pressure levels?"}
+{"doc": 2103, "q1": "Rectal Surgery Tying Methods", "q2": "Is Low Tie Better in Rectal Surgery?"}
+{"doc": 2104, "q1": "dental material cytotoxicity", "q2": "Do dental materials harm teeth pulp?"}
+{"doc": 2105, "q1": "anterior spinal artery infarct", "q2": "What is anterior spinal artery infarct?"}
+{"doc": 2106, "q1": "iranian adolescents obesity study", "q2": "Does being overweight increase mental health problems in Iranian teens?"}
+{"doc": 2107, "q1": "chlorhexidine in dental bonding", "q2": "Does chlorhexidine affect bond strength in dentin?"}
+{"doc": 2108, "q1": "myosin binding protein C", "q2": "What is the function of MyBP-C in muscle contraction?"}
+{"doc": 2109, "q1": "LHPP gene polymorphism depression", "q2": "Does LHPP gene variant affect depression?"}
+{"doc": 2110, "q1": "chiropractic philosophy roots", "q2": "What is the origin of chiropractic's philosophical ideas?"}
+{"doc": 2111, "q1": "genetic basis of cystinuria", "q2": "What causes cystinuria?"}
+{"doc": 2112, "q1": "iranian veterans wives well being", "q2": "what is the mental health of iranian veterans' wives like?"}
+{"doc": 2113, "q1": "magnesium diet benefits", "q2": "Does a Mediterranean diet increase magnesium levels?"}
+{"doc": 2114, "q1": "HPV and Bacterial Vaginosis", "q2": "Can HPV cause Bacterial Vaginosis?"}
+{"doc": 2115, "q1": "psychobehavioral therapy epilepsy", "q2": "Is psychobehavioral therapy effective for epilepsy?"}
+{"doc": 2116, "q1": "Atypical antipsychotic treatment", "q2": "Are atypical antipsychotics more effective?"}
+{"doc": 2117, "q1": "scgb3a2 and asthma", "q2": "Do SCGB3A2 polymorphisms increase asthma risk?"}
+{"doc": 2118, "q1": "syphilis epidemiology Trinidad and Tobago", "q2": "Is syphilis a major health concern in Trinidad?"}
+{"doc": 2119, "q1": "vibration stimulation in brain research", "q2": "Do vibration devices stimulate brain activity?"}
+
+{"doc": 2120, "q1": "v4c-icl treatment outcomes", "q2": "Does V4C-ICL implantation improve vision-related daily activities?"}
+{"doc": 2121, "q1": "monopsony vs monopoly in healthcare", "q2": "does greater buyer concentration increase hospital output"}
+{"doc": 2122, "q1": "PCOS hyperandrogenism study", "q2": "What causes hyperandrogenism in PCOS patients?"}
+{"doc": 2123, "q1": "rectal diclofenac ercp", "q2": "Does rectal diclofenac prevent pancreatitis after ERCP?"}
+{"doc": 2124, "q1": "Lupus Nephritis Chemokines", "q2": "Can chemokines be targeted for Lupus Nephritis treatment?"}
+{"doc": 2125, "q1": "Endometriosis treatment complications", "q2": "Can endometriosis cause infertility?"}
+{"doc": 2126, "q1": "HCV retreatment options", "q2": "What are HCV retreatment options?"}
+{"doc": 2127, "q1": "testosterone deficiency syndrome in indian men", "q2": "how common is low testosterone in indian men above 40?"}
+{"doc": 2128, "q1": "gnas1 gene and melanoma", "q2": "Is the gnas1 gene associated with melanoma prognosis?"}
+{"doc": 2129, "q1": "antibiotic resistance increase", "q2": "Is antibiotic resistance getting worse?"}
+{"doc": 2130, "q1": "non-invasive ventilation for atrial fibrillation", "q2": "Is non invasive ventilation safe during pulmonary vein isolation?"}
+{"doc": 2131, "q1": "surgical training in ophthalmology", "q2": "is ophthalmic surgery training sufficient"}
+{"doc": 2132, "q1": "vertical sleeve gastrectomy outcomes", "q2": "Is vertical sleeve gastrectomy as effective as duodenal switch?"}
+{"doc": 2133, "q1": "IGF signal transduction pathway", "q2": "Does IGF play a role in Ewing sarcoma?"}
+{"doc": 2134, "q1": "telomere function", "q2": "What is the role of telomeres in cell division?"}
+{"doc": 2135, "q1": "dermoid tumors associated with myelomeningocele", "q2": "Are dermoid tumors linked to myelomeningocele repair?"}
+{"doc": 2136, "q1": "histone deacetylases and obesity", "q2": "Do histone deacetylases play a role in obesity?"}
+{"doc": 2137, "q1": "mesenchymal stem cells radiation", "q2": "Do mesenchymal stem cells help with radiation damage?"}
+{"doc": 2138, "q1": "treatment apnea premature", "q2": "what causes apnea in premature babies"}
+{"doc": 2139, "q1": "hemophagocytic lymphohistiocytosis symptoms", "q2": "Can hemophagocytic lymphohistiocytosis be fatal"}
+{"doc": 2140, "q1": "coagulopathic disorders in orthopaedic surgery", "q2": "Can people with coagulopathy have successful surgeries?"}
+{"doc": 2141, "q1": "eosinophilic vs neutrophilic copd", "q2": "which copd exacerbation is worse"}
+{"doc": 2142, "q1": "Fibrillary Glomerulonephritis", "q2": "What is Fibrillary Glomerulonephritis?"}
+{"doc": 2143, "q1": "mtwa icd implantation survival benefit", "q2": "Does microvolt T-wave alternans improve ICD implantation outcomes?"}
+{"doc": 2144, "q1": "color fundus photography vs fluorescein angiography", "q2": "Which imaging technique detects age-related macular degeneration best?"}
+{"doc": 2145, "q1": "protein gene interactions", "q2": "What role do proteins play in gene interactions?"}
+{"doc": 2146, "q1": "ovotesticular disorder", "q2": "What is ovotesticular disorder?"}
+{"doc": 2147, "q1": "sialolith disease", "q2": "What is sialolith disease?"}
+{"doc": 2148, "q1": "adenosine tumor immunosuppression", "q2": "How does adenosine contribute to tumor evasion?"}
+{"doc": 2149, "q1": "oral cancer awareness among dental students", "q2": "Do dental students know the risks of oral cancer?"}
+{"doc": 2150, "q1": "household air pollution from solid fuel", "q2": "What causes household air pollution?"}
+{"doc": 2151, "q1": "calciphylaxis", "q2": "what is calciphylaxis"}
+{"doc": 2152, "q1": "antibiotic side effects", "q2": "do antibiotics have serious side effects?"}
+{"doc": 2153, "q1": "brasieres and back pain", "q2": "Do bras increase muscle activity?"}
+{"doc": 2154, "q1": "Orthotopic liver transplantation", "q2": "What is orthotopic liver transplantation used for?"}
+{"doc": 2155, "q1": "valproate side effects", "q2": "Is valproate linked to encephalopathy?"}
+{"doc": 2156, "q1": "aneurysmal bone cyst diagnosis", "q2": "Can aneurysmal bone cysts cause misdiagnosis?"}
+{"doc": 2157, "q1": "Knowledge attitude practice in healthcare", "q2": "What is the current state of medical knowledge on hypertension?"}
+{"doc": 2158, "q1": "cardiac device implantation", "q2": "Can you implant a heart device under the breast?"}
+{"doc": 2159, "q1": "Hippotherapy vs horseback riding simulator", "q2": "Can horseback riding simulators help kids with cerebral palsy?"}
+{"doc": 2160, "q1": "synchronous primary lung cancers", "q2": "Can people have multiple lung cancers at once?"}
+{"doc": 2161, "q1": "pavlovian fear conditioning", "q2": "how does pavlovian conditioning work"}
+{"doc": 2162, "q1": "obesity insulin resistance", "q2": "What causes insulin resistance in obese individuals?"}
+{"doc": 2163, "q1": "imported US food", "q2": "What percentage of US food is imported?"}
+{"doc": 2164, "q1": "blastocystis genetic variability", "q2": "what causes blastocystis?"}
+{"doc": 2165, "q1": "Factor V Inhibitor Disorder", "q2": "What is Factor V Inhibitor Syndrome?"}
+{"doc": 2166, "q1": "vwf factor viii prophylaxis cost", "q2": "Is vwf with low fviii content a cost-effective treatment for severe von willebrand disease?"}
+{"doc": 2167, "q1": "castleman's disease symptoms", "q2": "what are the effects of castleman's disease"}
+{"doc": 2168, "q1": "type 2 diabetes cell dysfunction", "q2": "What causes type 2 diabetes cell failure?"}
+{"doc": 2169, "q1": "antenatal ultrasonography prognostic significance", "q2": "Can antenatal ultrasound predict posterior urethral valves?"}
+{"doc": 2170, "q1": "Golgi Cox method modifications", "q2": "Is there a faster Golgi Cox method?"}
+{"doc": 2171, "q1": "pneumomediastinum causes", "q2": "What is pneumomediastinum?"}
+{"doc": 2172, "q1": "Madelung Deformity", "q2": "What causes Madelung Deformity in children?"}
+{"doc": 2173, "q1": "dark adaptometry maculopathy", "q2": "Can dark adaptometry detect age-related maculopathy?"}
+{"doc": 2174, "q1": "severe malaria simulation", "q2": "Is simulation effective in teaching severe malaria?"}
+{"doc": 2175, "q1": "hrHPV laboratory developed testing limitations", "q2": "What are the risks of HRHPV LDT?"}
+{"doc": 2176, "q1": "ibuprofen overdose symptoms", "q2": "What are the effects of taking too much ibuprofen?"}
+{"doc": 2177, "q1": "mesenchymal stem cells osteogenic potential", "q2": "Do mesenchymal stem cells promote bone regeneration?"}
+{"doc": 2178, "q1": "avian influenza virus characteristics", "q2": "What are the characteristics of an avian influenza virus?"}
+{"doc": 2179, "q1": "Muscle activation during isometric squat", "q2": "Does knee angle affect muscle activity in squats?"}
+{"doc": 2180, "q1": "lanthanide extraction procedure", "q2": "How do you extract lanthanides from uranium bearing samples?"}
+{"doc": 2181, "q1": "pancreatic panniculitis symptoms", "q2": "what is pancreatic panniculitis"}
+{"doc": 2182, "q1": "pediatric trauma care", "q2": "what is the best trauma score for children?"}
+{"doc": 2183, "q1": "Acute Respiratory Distress Syndrome Treatment", "q2": "What causes ARDS morbidity?"}
+{"doc": 2184, "q1": "treatment of pityriasis rubra pilaris", "q2": "can tnf blockers help with prp treatment"}
+
+{"doc": 2185, "q1": "Cornell Scale for Depression in Dementia", "q2": "What is the Cornell Scale for Depression in Dementia?"}
+{"doc": 2186, "q1": "soft palatal mass newborn", "q2": "what causes a soft palatal mass in a baby"}
+{"doc": 2187, "q1": "high efficiency air filters", "q2": "Can high efficiency air filters reduce asthma triggers?"}
+{"doc": 2188, "q1": "ste myocardial infarction", "q2": "What causes STE myocardial infarction?"}
+{"doc": 2189, "q1": "trismus treatment oral surgery", "q2": "Can trismus lead to serious complications?"}
+{"doc": 2190, "q1": "microalbuminuria measurement", "q2": "Is microalbuminuria a sign of kidney disease?"}
+{"doc": 2191, "q1": "diabetes mellitus complications", "q2": "Does diabetes mellitus cause cognitive impairment?"}
+{"doc": 2192, "q1": "retinoblastoma metastasis", "q2": "Can retinoblastoma spread to forearm?"}
+{"doc": 2193, "q1": "benign arm tumor", "q2": "what is parosteal lipoma"}
+{"doc": 2194, "q1": "moroccan ant species", "q2": "how many types of ants are found in morocco"}
+{"doc": 2195, "q1": "Gold nanoparticles in cancer treatment", "q2": "Can gold nanoparticles kill cancer cells?"}
+{"doc": 2196, "q1": "ros modified igg", "q2": "can ros modify igg"}
+{"doc": 2197, "q1": "glyoxylate dimerization", "q2": "Can glyoxylate form tartrates abiotically?"}
+{"doc": 2198, "q1": "primary circulating prostate cells cancer", "q2": "can pccs help diagnose prostate cancer"}
+{"doc": 2199, "q1": "rf therapy for facial wrinkles", "q2": "Does RF therapy reduce facial wrinkles?"}
+{"doc": 2200, "q1": "impact of ct reconstruction algorithms", "q2": "do different ct reconstruction methods affect image quality?"}
+{"doc": 2201, "q1": "expert feedback laparoscopic skills", "q2": "Does expert feedback improve laparoscopic skills?"}
+{"doc": 2202, "q1": "Staphylococcus aureus infections Saskatchewan", "q2": "What's causing high rates of MRSA in remote Canadian communities?"}
+{"doc": 2203, "q1": "paralympic athletics strength assessment methods", "q2": "what are the current methods used for paralympic athletics classification"}
+{"doc": 2204, "q1": "palliative chemotherapy esophageal cancer", "q2": "Is palliative chemotherapy effective for metastatic esophageal cancer?"}
+{"doc": 2205, "q1": "food allergy rates", "q2": "what causes high food allergy rates?"}
+{"doc": 2206, "q1": "hpa axis dysregulation", "q2": "Does childhood trauma affect HPA axis function?"}
+{"doc": 2207, "q1": "hemopericardium diagnosis", "q2": "What causes hemopericardium?"}
+{"doc": 2208, "q1": "diabetes treatment outcomes", "q2": "Is intensive treatment beneficial for patients with high hemoglobin glycation index?"}
+{"doc": 2209, "q1": "broken endodontic instrument", "q2": "Can you retrieve a broken file from a tooth?"}
+{"doc": 2210, "q1": "foreign bodies in children", "q2": "What happens if a child swallows something?"}
+{"doc": 2211, "q1": "inflammatory bowel disease in Middle Eastern children", "q2": "Is IBD more common in Middle Eastern kids?"}
+{"doc": 2212, "q1": "sequential pattern mining in molecular biology", "q2": "how does sequential pattern mining work in bioinformatics"}
+{"doc": 2213, "q1": "polygenic structure genome", "q2": "Can polygenic traits be explained by multiple genes?"}
+{"doc": 2214, "q1": "dengue control methods", "q2": "How can we use malaria control achievements to tackle dengue?"}
+{"doc": 2215, "q1": "toxoplasmosis and AIDS", "q2": "Can Toxoplasmosis cause neurological problems?"}
+{"doc": 2216, "q1": "microtubule dynamics regulation", "q2": "How do cells regulate microtubule dynamics?"}
+{"doc": 2217, "q1": "Beauveria bassiana fungal infection treatment", "q2": "How do you treat a fungal eye infection caused by Beauveria bassiana?"}
+{"doc": 2218, "q1": "mindfulness for pregnancy depression", "q2": "Can mindfulness help with pregnancy anxiety?"}
+{"doc": 2219, "q1": "pleomorphic giant cell pancreatic cancer", "q2": "what is pleomorphic giant cell pancreatic cancer?"}
+{"doc": 2220, "q1": "local anesthetic agents dentistry", "q2": "Are local anesthetics safe in dental procedures?"}
+{"doc": 2221, "q1": "Midazolam sedation children anxiety", "q2": "Does midazolam reduce anxiety in kids during dental procedures?"}
+{"doc": 2222, "q1": "Peyronie disease treatment", "q2": "What are common treatments for Peyronie's?"}
+{"doc": 2223, "q1": "ceccentral scotoma symptoms", "q2": "What causes a cecocentral scotoma?"}
+{"doc": 2224, "q1": "paclobutrazol detection methods", "q2": "How is paclobutrazol detected in potatoes?"}
+{"doc": 2225, "q1": "treatment of esd ulcers", "q2": "what is effective for esd ulcers"}
+{"doc": 2226, "q1": "korea child immunization schedule", "q2": "what is the recommended vaccination schedule for children in Korea?"}
+{"doc": 2227, "q1": "rural china cataract patients biometrics", "q2": "What is the ocular biometric distribution of adult cataract patients in rural China?"}
+{"doc": 2228, "q1": "p53 isoform pancreatic cell", "q2": "What role does P53 play in pancreatic cells?"}
+{"doc": 2229, "q1": "gingival fibromatosis treatment", "q2": "What is hereditary gingival fibromatosis?"}
+{"doc": 2230, "q1": "Korean Hereditary Tumor Registry", "q2": "What is the purpose of the Korean Hereditary Tumor Registry?"}
+{"doc": 2231, "q1": "ankle sprain treatment in children", "q2": "Can x-rays diagnose ankle injuries in kids?"}
+{"doc": 2232, "q1": "facioscapulohumeral muscular dystrophy", "q2": "What is facioscapulohumeral muscular dystrophy?"}
+{"doc": 2233, "q1": "technetium-99m methylene-diphosphonate bone scan", "q2": "What does a technetium-99m scan show?"}
+{"doc": 2234, "q1": "calcium loss from root dentin", "q2": "What causes calcium loss in root dentin?"}
+{"doc": 2235, "q1": "esophageal cancer incidence iran", "q2": "is esophageal cancer increasing in iran"}
+{"doc": 2236, "q1": "als and rural environments", "q2": "Does living in rural areas increase ALS risk?"}
+{"doc": 2237, "q1": "participatory research tobacco use youth", "q2": "Is participatory research effective for studying tobacco use among young people?"}
+{"doc": 2238, "q1": "procalcitonin and infection in ICU", "q2": "Is procalcitonin better than other indicators for infection?"}
+{"doc": 2239, "q1": "greenland ice sheet melt variations", "q2": "what causes melt episodes in greenland"}
+{"doc": 2240, "q1": "antenatal corticosteroids effects", "q2": "Do antenatal corticosteroids affect brain development?"}
+{"doc": 2241, "q1": "TMJ sound classification criteria", "q2": "What are the best methods for TMJ sound analysis?"}
+{"doc": 2242, "q1": "corneal collagen cross-linking complications", "q2": "Can corneal cross-linking cause eye pain?"}
+{"doc": 2243, "q1": "Hyperthermia effects on osteosarcoma", "q2": "Can hyperthermia treat osteosarcoma"}
+{"doc": 2244, "q1": "rg1 endurance swim training", "q2": "Does RG1 improve swimming performance?"}
+{"doc": 2245, "q1": "carotid atherosclerosis diabetes", "q2": "Is diabetes linked to carotid artery disease?"}
+{"doc": 2246, "q1": "digital radiographic image quality", "q2": "Does a delay affect digital radiograph quality?"}
+{"doc": 2247, "q1": "Weissella confusa new strain", "q2": "What is the newly discovered Weissella confusa bacterium?"}
+{"doc": 2248, "q1": "dexmethylphenidate adhd treatment", "q2": "Can dexmethylphenidate be used to treat ADHD?"}
+{"doc": 2249, "q1": "tenofovir and osteoporosis", "q2": "Does tenofovir increase the risk of fractures in HIV patients?"}
+{"doc": 2250, "q1": "paravalvular abscess complications", "q2": "What are the risks of paravalvular abscess in endocarditis?"}
+{"doc": 2251, "q1": "diabetes blood pressure decline", "q2": "Do people with diabetes have lower blood pressure before they die?"}
+{"doc": 2252, "q1": "quartz fiber post bond strength", "q2": "Does cyclic loading affect dental post bonding?"}
+{"doc": 2253, "q1": "810nm laser treatment in periodontics", "q2": "Can an 810nm diode laser treat peri-implantitis?"}
+{"doc": 2254, "q1": "amyloid precursor protein structure", "q2": "what is the structure of amyloid precursor protein?"}
+{"doc": 2255, "q1": "mammographic BI-RADS 3 lesion", "q2": "What are the chances of cancer in a BI-RADS 3 breast lesion?"}
+{"doc": 2256, "q1": "nasal calcitonin osteoporosis", "q2": "Can nasal calcitonin improve quality of life in women with osteoporosis?"}
+{"doc": 2257, "q1": "beauveria bassiana coffee berry borer", "q2": "Which Beauveria bassiana strains control coffee pests?"}
+{"doc": 2258, "q1": "avian influenza h5n1 afghanistan", "q2": "Can socioeconomic status affect bird flu risk?"}
+{"doc": 2259, "q1": "fev1 cut off points preschool children", "q2": "What are normal bronchodilator responses in healthy 3-5 year olds?"}
+{"doc": 2260, "q1": "root canal treatment objectives", "q2": "What is the main goal of root canal treatment?"}
+{"doc": 2261, "q1": "fluorous dye synthesis lab module", "q2": "Can fluorous dyes be synthesized in an undergraduate lab?"}
+{"doc": 2262, "q1": "bromocriptine qr and cvd risk", "q2": "Does bromocriptine reduce heart disease risk?"}
+{"doc": 2263, "q1": "Pentastomiasis symptoms in children", "q2": "Can Pentastomiasis affect children's livers?"}
+{"doc": 2264, "q1": "oral calcium supplementation adherence", "q2": "How common is oral calcium nonadherence?"}
+{"doc": 2265, "q1": "aneurysmal bone cysts condyle treatment", "q2": "What is the best treatment for aneurysmal bone cysts affecting the jaw?"}
+{"doc": 2266, "q1": "ceftriaxone spectroscopic assay", "q2": "How is ceftriaxone sodium assayed?"}
+{"doc": 2268, "q1": "smoking risks for seniors", "q2": "Is smoking a risk factor for cardiovascular disease in older adults?"}
+{"doc": 2269, "q1": "sma syndrome symptoms", "q2": "what are the symptoms of sma syndrome"}
+{"doc": 2270, "q1": "effects of endomorphins on cardiovascular health", "q2": "Do endomorphins protect against endothelial cell damage?"}
+{"doc": 2271, "q1": "gastric cancer incidence", "q2": "Why is gastric cancer more common in Marrakech?"}
+{"doc": 2272, "q1": "obesity rates in US adults", "q2": "Has obesity increased in American adults since 2010?"}
+{"doc": 2273, "q1": "healthcare infections perceptions study", "q2": "What causes differences in perceptions of patient safety among hospital staff?"}
+{"doc": 2274, "q1": "bronchoscope complications", "q2": "What are the risks of bronchoscopy?"}
+{"doc": 2275, "q1": "iron deficiency pregnancy", "q2": "Does iron deficiency in pregnant women affect their children's blood pressure?"}
+{"doc": 2276, "q1": "renal angiomyolipoma pediatric", "q2": "Can kids have renal AML?"}
+{"doc": 2277, "q1": "head up tilt test vasovagal syndrome", "q2": "Is head-up tilt test useful for diagnosing vasovagal syndrome?"}
+{"doc": 2278, "q1": "glioma genetic basis", "q2": "What causes familial susceptibility to glioma?"}
+{"doc": 2279, "q1": "spike timing dependent plasticity", "q2": "What is Spike Timing Dependent Plasticity?"}
+{"doc": 2280, "q1": "ethanol solvent dentin bonding agent", "q2": "Does ethanol affect dentin bonding?"}
+{"doc": 2281, "q1": "involutional entropion vs ectropion", "q2": "What are the differences between involutional entropion and ectropion?"}
+{"doc": 2282, "q1": "Craniopharyngioma treatment in children", "q2": "What is the best treatment for craniopharyngioma in kids?"}
+{"doc": 2283, "q1": "autoimmune hepatitis igg levels", "q2": "Can high igg levels cause autoimmune hepatitis?"}
+{"doc": 2284, "q1": "phospholipases and asthma", "q2": "What role do phospholipases play in chronic obstructive pulmonary disease?"}
+{"doc": 2285, "q1": "slap protein functions", "q2": "What is the role of SLAP proteins?"}
+{"doc": 2286, "q1": "psoriasis symptoms", "q2": "What is linear psoriasis?"}
+{"doc": 2287, "q1": "Thyroid abnormalities PET CT scans", "q2": "What happens when a PET CT scan detects thyroid problems?"}
+{"doc": 2288, "q1": "breast sarcoma statistics", "q2": "What percentage of breast tumors are sarcomas?"}
+{"doc": 2289, "q1": "accessory parotid gland tumors", "q2": "What are the symptoms of accessory parotid gland tumors?"}
+{"doc": 2290, "q1": "pedv south korea", "q2": "what is pedv in pigs"}
+{"doc": 2291, "q1": "mayer rokitansky kuster hauser syndrome", "q2": "what is mayer rokitansky kuster hauser syndrome"}
+{"doc": 2292, "q1": "fovea centralis evolution", "q2": "How does the fovea centralis change?"}
+{"doc": 2293, "q1": "calcified juxtafacet cyst", "q2": "What is a calcified juxtafacet cyst?"}
+{"doc": 2294, "q1": "dentato olivary projections interruption", "q2": "what happens when dentate nucleus is overactive"}
+{"doc": 2295, "q1": "carbapenem resistant bacteremia treatment", "q2": "Is carbapenem-resistant bacteremia fatal?"}
+{"doc": 2296, "q1": "metagenome sequencing technologies", "q2": "Can metagenomic data identify novel microbial species?"}
+{"doc": 2297, "q1": "malignant melanoma in Indians", "q2": "What is the incidence of malignant melanoma among Indians?"}
+{"doc": 2298, "q1": "Langerhans cell histiocytosis diagnosis", "q2": "How is Langerhans cell histiocytosis diagnosed in children?"}
+{"doc": 2299, "q1": "femoral artery access complications", "q2": "Can femoral artery compression devices cause pressure ulcers?"}
+{"doc": 2300, "q1": "anterior mediastinum mass", "q2": "What causes an anterior mediastinum mass to compress a main bronchus?"}
+{"doc": 2301, "q1": "endometriosis symptoms", "q2": "What are the symptoms of endometriosis?"}
+{"doc": 2302, "q1": "Molecular Typing Public Health", "q2": "How do scientists use DNA subtyping?"}
+{"doc": 2303, "q1": "mitochondrial enzyme dysfunction", "q2": "what causes mitochondrial enzyme malfunction"}
+{"doc": 2304, "q1": "testicular germ cell tumors in cryptorchidism", "q2": "Can cryptorchidism increase testicular cancer risk?"}
+{"doc": 2305, "q1": "pregnancy breast cancer risk", "q2": "Does pregnancy increase breast cancer risk?"}
+{"doc": 2306, "q1": "oral soft tissue enlargement", "q2": "What causes soft tissue growth in the mouth?"}
+{"doc": 2307, "q1": "simple socioeconomic status assessment", "q2": "How do you simplify socioeconomic status evaluation?"}
+{"doc": 2308, "q1": "acute lung injury causes", "q2": "Can blocking endothelins help with acute lung injury?"}
+{"doc": 2309, "q1": "chemotherapy skin side effects", "q2": "Can chemotherapy cause nail changes?"}
+{"doc": 2310, "q1": "granuloma annulare symptoms", "q2": "What causes granuloma annulare in children?"}
+{"doc": 2311, "q1": "impulse oscillometry COPD", "q2": "Can impulse oscillometry diagnose small airway disease in COPD?"}
+{"doc": 2312, "q1": "immunopathology diseases", "q2": "What causes immunopathological disorders?"}
+{"doc": 2313, "q1": "bicycling safety in urban areas", "q2": "What makes a bike intersection safe?"}
+{"doc": 2314, "q1": "glucose tolerance cystic fibrosis", "q2": "Does impaired glucose tolerance affect people with cystic fibrosis?"}
+{"doc": 2315, "q1": "Descemet's Stripping Endothelial Keratoplasty (DSEK) Complications", "q2": "What are common DSEK complications in eye surgery?"}
+{"doc": 2316, "q1": "human rabies chile 1996", "q2": "what caused first human rabies case in chile"}
+{"doc": 2317, "q1": "radioactive iodine cancer treatment effects", "q2": "Does radioactive iodine therapy improve mental health?"}
+{"doc": 2318, "q1": "HIV replication mechanisms", "q2": "How does HIV escape host defenses?"}
+{"doc": 2319, "q1": "poliosis eyelid lashes", "q2": "What is poliosis of the eyelid lashes?"}
+{"doc": 2320, "q1": "tissue inflammation rejection", "q2": "Can reducing inflammation improve organ transplant outcomes?"}
+{"doc": 2321, "q1": "dna replication mechanisms", "q2": "How does chromosomal replication affect DNA damage tolerance?"}
+{"doc": 2322, "q1": "Streptococcus mutans genotyping PCR", "q2": "Can Streptococcus mutans be identified by PCR?"}
+{"doc": 2323, "q1": "aberrant right hepatic artery", "q2": "What is an aberrant right hepatic artery?"}
+{"doc": 2324, "q1": "insulin resistance vitamin d levels", "q2": "Does Vitamin D affect Insulin Resistance?"}
+{"doc": 2325, "q1": "ultra high risk schizophrenia markers", "q2": "Can ultra-high-risk individuals develop schizophrenia?"}
+{"doc": 2326, "q1": "respiratory responses exercise", "q2": "What happens to respiratory rate during exercise?"}
+{"doc": 2327, "q1": "cystic artery pseudoaneurysm complications", "q2": "What causes cystic artery pseudoaneurysms?"}
+{"doc": 2328, "q1": "land use adaptation climate change", "q2": "What are the effects of adapting to climate change through land use modifications?"}
+{"doc": 2329, "q1": "acute cholecystitis imaging techniques", "q2": "Can SM I diagnose severe gallbladder inflammation?"}
+{"doc": 2330, "q1": "clopidogrel side effects", "q2": "Can clopidogrel cause loss of taste"}
+{"doc": 2331, "q1": "Nitrogen dioxide levels in Samsun Turkey", "q2": "What are the average NO2 concentrations in Samsun, Turkey?"}
+{"doc": 2332, "q1": "human microbiota health benefits", "q2": "Does microbiota impact vaccine effectiveness?"}
+{"doc": 2333, "q1": "Intracavitary brachytherapy dose estimation", "q2": "Does non-isocentric X-ray unit affect brachytherapy doses?"}
+{"doc": 2334, "q1": "epidural morphine effectiveness", "q2": "Is epidural morphine good for chronic pain?"}
+{"doc": 2335, "q1": "vasovagal response", "q2": "what causes a vasovagal response"}
+{"doc": 2336, "q1": "coats disease laser treatment", "q2": "Is laser photocoagulation effective for Coats disease?"}
+{"doc": 2337, "q1": "duodenal gastric metaplasia", "q2": "What causes duodenal gastric metaplasia?"}
+{"doc": 2338, "q1": "primary amenorrhea diagnosis", "q2": "What causes primary amenorrhea?"}
+{"doc": 2339, "q1": "Cervical laminectomies with transpedicular fixation", "q2": "Is transpedicular screw placement safe in cervical spine surgery?"}
+{"doc": 2340, "q1": "oval window congenital anomaly", "q2": "What causes oval window birth defects?"}
+{"doc": 2341, "q1": "diode laser in laryngeal disorders", "q2": "Is the diode laser effective for treating laryngeal diseases?"}
+{"doc": 2342, "q1": "sealing ability in teeth", "q2": "Do resin-based and zinc oxide-eugenol sealers work?"}
+{"doc": 2343, "q1": "touch preparation technique", "q2": "Is touch preparation an accurate diagnosis method?"}
+{"doc": 2344, "q1": "tai chi and hydrotherapy benefits", "q2": "Is tai chi in water effective for musculoskeletal disorders?"}
+{"doc": 2345, "q1": "phosphocreatine benefits", "q2": "Can phosphocreatine prevent ischemia-reperfusion injury?"}
+{"doc": 2346, "q1": "Catheter Insertion Methods APBI", "q2": "What are the best methods for catheter insertion in breast cancer treatment?"}
+{"doc": 2347, "q1": "vitamin d and type 2 diabetes", "q2": "Does vitamin D prevent type 2 diabetes?"}
+{"doc": 2348, "q1": "bovine extra-embryonic cultured cells", "q2": "Can bovine extra-embryonic cells support embryo development?"}
+{"doc": 2349, "q1": "protein folding in cells", "q2": "how do proteins fold into 3d structures"}
+{"doc": 2350, "q1": "diaphyseal femur fracture", "q2": "Can diaphyseal femur fractures be associated with hip replacement complications?"}
+{"doc": 2351, "q1": "cellulose degrading bacteria", "q2": "Can cellulose be broken down by certain types of bacteria?"}
+{"doc": 2352, "q1": "heterotopic ossification cervical radiculopathy", "q2": "Can heterotopic ossification occur after cervical disc replacement?"}
+{"doc": 2353, "q1": "Paget's disease bone treatment", "q2": "What is Paget's disease of bone?"}
+{"doc": 2354, "q1": "Th1 Th2 cells", "q2": "What is the role of TH1 and TH2 cells?"}
+{"doc": 2355, "q1": "dna base damage and cag repeat sequences", "q2": "How does DNA repair affect CAG repeat sequences?"}
+{"doc": 2356, "q1": "multidrug resistant acinetobacter", "q2": "What are the effects of multidrug-resistant Acinetobacter infections?"}
+{"doc": 2357, "q1": "losartan potassium controlled release tablets", "q2": "Can losartan potassium be released slowly from tablets?"}
+{"doc": 2358, "q1": "Azureomycin genome sequence", "q2": "What is the Azureomycin antibiotic producing strain's genome?"}
+{"doc": 2359, "q1": "uk diabetes quality of life scale", "q2": "Is there a validated UK version of the Diabetes-Specific Quality-of-Life Scale?"}
+{"doc": 2360, "q1": "rare coronary artery anomalies", "q2": "What are rare coronary artery anomalies?"}
+{"doc": 2361, "q1": "complex midfoot fractures treatment", "q2": "what are the complications of complex midfoot fractures?"}
+{"doc": 2362, "q1": "nordic walking effects on breast cancer survivors", "q2": "Can nordic walking reduce arm swelling in breast cancer patients?"}
+{"doc": 2363, "q1": "ceramide insulin resistance", "q2": "can ceramides cause insulin resistance?"}
+{"doc": 2364, "q1": "PNPLA3 gene association study", "q2": "Does PNPLA3 variant affect liver fat?"}
+{"doc": 2365, "q1": "schwannomas colon", "q2": "Can schwannomas occur in the colon?"}
+{"doc": 2366, "q1": "Transaminase biocatalysts", "q2": "Can transaminases replace chemical methods?"}
+{"doc": 2367, "q1": "Sitting time and mental health association", "q2": "Is sitting at work bad for your mental health?"}
+{"doc": 2368, "q1": "bilateral crescent fractures", "q2": "Can a fall cause pelvis fractures?"}
+{"doc": 2369, "q1": "Phenytoin Side Effects", "q2": "Can Phenytoin Cause Brain Damage"}
+{"doc": 2370, "q1": "dyschromatosis skin condition", "q2": "What is dyschromatosis universalis hereditaria?"}
+{"doc": 2371, "q1": "hepatitis c women differences", "q2": "do hepatitis c symptoms differ between men and women?"}
+{"doc": 2372, "q1": "differential expression analysis interpretation", "q2": "How do scientists interpret differential gene expression results?"}
+{"doc": 2373, "q1": "cancer treatment using immune system", "q2": "can the immune system fight cancer?"}
+{"doc": 2374, "q1": "endothelial cell compartments", "q2": "What are the distinct parts of an endothelial cell?"}
+{"doc": 2375, "q1": "umbilical hernia and cirrhosis", "q2": "Can cirrhosis cause umbilical hernias?"}
+{"doc": 2376, "q1": "spinal metastases treatment", "q2": "Can spinal cord metastasis be mistaken for tumors?"}
+{"doc": 2377, "q1": "influenza b infections italy", "q2": "Is the risk of severe illness from Influenza B high in Italy?"}
+{"doc": 2378, "q1": "alveolar rhabdomyosarcoma cytology", "q2": "Can alveolar rhabdomyosarcoma be detected in body fluids?"}
+{"doc": 2379, "q1": "cau treatment efficacy", "q2": "Does autologous serum injections help with chronic autoimmune urticaria?"}
+{"doc": 2380, "q1": "haemophilia gastrointestinal bleeding", "q2": "Can Haemophilia Cause Intestinal Bleeding?"}
+{"doc": 2381, "q1": "proton pump inhibitors gerd treatment", "q2": "Is proton pump inhibitor effective for GERD?"}
+{"doc": 2382, "q1": "serum amyloid a inflammation marker", "q2": "What is serum amyloid a used for?"}
+{"doc": 2383, "q1": "quadricuspid aortic valve", "q2": "What causes quadricuspid aortic valve?"}
+{"doc": 2384, "q1": "intestinal parasites prevalence", "q2": "how common are intestinal parasites in children"}
+{"doc": 2385, "q1": "contrast induced nephropathy diagnosis", "q2": "Can cystatin C diagnose kidney damage from contrast dye?"}
+{"doc": 2386, "q1": "epigenetics critical care", "q2": "Can epigenetics improve critical care outcomes?"}
+{"doc": 2387, "q1": "motivational interviewing vs structured education", "q2": "Is motivational interviewing more effective than structured education for adolescents with Type 1 Diabetes?"}
+{"doc": 2389, "q1": "lung transplantation prognostic factors", "q2": "Can abnormal heart function predict lung transplant outcomes?"}
+{"doc": 2390, "q1": "HVrBase database", "q2": "What is HVrBase?"}
+{"doc": 2391, "q1": "diabetic nephropathy glycoproteins", "q2": "Can glycoproteins prevent diabetic kidney damage?"}
+{"doc": 2392, "q1": "scapular stability exercises effectiveness", "q2": "Can scapular stability exercises improve shoulder stability?"}
+{"doc": 2393, "q1": "finasteride sexual side effects", "q2": "does finasteride cause erectile dysfunction"}
+{"doc": 2394, "q1": "roc curve analysis", "q2": "What is ROC curve?"}
+{"doc": 2395, "q1": "selenium levels in humans", "q2": "What affects selenium levels in people?"}
+{"doc": 2396, "q1": "diagnosing endometriosis", "q2": "Can you diagnose endometriosis with CRP levels?"}
+{"doc": 2397, "q1": "pre eclampsia inflammatory response", "q2": "Is pre-eclampsia linked to inflammation?"}
+{"doc": 2398, "q1": "hepatorenal syndrome cirrhosis", "q2": "What is hepatorenal syndrome in patients with cirrhosis?"}
+{"doc": 2399, "q1": "food allergy increase", "q2": "why are food allergies on the rise"}
+{"doc": 2400, "q1": "pulmonary embolism symptoms", "q2": "can a pulmonary embolism cause syncope"}
+{"doc": 2401, "q1": "obesity prevalence in Iranian adolescents", "q2": "how common is being overweight among teenagers in Iran?"}
+{"doc": 2402, "q1": "vitamin d deficiency united arab emirates", "q2": "What percentage of Emiratis with obesity and type 2 diabetes have vitamin D deficiency?"}
+{"doc": 2403, "q1": "radix scutellariae environmental stresses", "q2": "How do environmental stresses affect Radix Scutellariae?"}
+{"doc": 2404, "q1": "cnpd vs icd in lower lumbar surgery", "q2": "Is intermittent clamped drainage better than continuous negative pressure drainage after lower lumbar internal fixation?"}
+{"doc": 2405, "q1": "adhd persistence into adulthood", "q2": "does ADHD persist into adulthood"}
+{"doc": 2406, "q1": "esophageal cancer iran demographics", "q2": "what is the common age range for esophageal cancer in Iran?"}
+{"doc": 2407, "q1": "free floating iris cyst", "q2": "What is the purpose of a free-floating iris cyst?"}
+{"doc": 2408, "q1": "thumb sucking habit websites reliability", "q2": "Are websites about thumb sucking reliable?"}
+{"doc": 2409, "q1": "meningioma recurrence rate", "q2": "do atypical meningiomas recur frequently"}
+{"doc": 2410, "q1": "salt plains oklahoma microbial diversity", "q2": "What bacteria live in Oklahoma's Salt Plains?"}
+{"doc": 2411, "q1": "composite mechanical properties storage condition energy dose", "q2": "Do temperature conditions affect the mechanical properties of dental composites?"}
+{"doc": 2412, "q1": "Neonatal volvulus without malrotation", "q2": "Can a neonate survive terminal ileum volvulus?"}
+{"doc": 2413, "q1": "corneal elasticity measurement", "q2": "How does corneal elasticity vary across different areas?"}
+{"doc": 2414, "q1": "patient experience data", "q2": "does patient data improve healthcare"}
+{"doc": 2415, "q1": "CT Navigation System Accuracy", "q2": "Is CT navigation accurate in cervical instrumentation?"}
+{"doc": 2416, "q1": "Glucagon levels in type 1 diabetes", "q2": "Does type 1 diabetes affect glucagon secretion?"}
+{"doc": 2417, "q1": "leptin deficiency diabetes effects", "q2": "Does leptin deficiency contribute to insulin resistance?"}
+{"doc": 2418, "q1": "pelvic digit anomaly", "q2": "What causes a rare pelvic growth?"}
+{"doc": 2419, "q1": "Amniotic Band Syndrome", "q2": "What causes amniotic band syndrome?"}
+{"doc": 2420, "q1": "diagnosing COPD with spirometry", "q2": "Can spirometry diagnose COPD effectively?"}
+{"doc": 2421, "q1": "dentofacial asymmetry treatment", "q2": "How is dentofacial asymmetry treated?"}
+{"doc": 2422, "q1": "amino acid profiles in female rats", "q2": "Do amino acid levels change during pregnancy?"}
+{"doc": 2423, "q1": "Hepatosplenic T-cell leukemia", "q2": "What is Hepatosplenic Gamma Delta T-cell Leukemia?"}
+{"doc": 2424, "q1": "Rare fungal infections", "q2": "Can healthy people get mucormycosis"}
+{"doc": 2425, "q1": "mortality risk hemodialysis", "q2": "What causes death in hemodialysis patients?"}
+{"doc": 2426, "q1": "Tauopathies diagnosis", "q2": "Can tauopathies be diagnosed through cerebrospinal fluid analysis?"}
+{"doc": 2427, "q1": "atrial fibrillation screening with handheld ECG", "q2": "Is handheld ECG effective for atrial fibrillation detection?"}
+{"doc": 2428, "q1": "Rosai-Dorfman Disease Symptoms", "q2": "What are the symptoms of Rosai-Dorfman Disease?"}
+{"doc": 2429, "q1": "antibody mediated rejection kidney transplantation", "q2": "Can antibody-mediated rejection be treated with plasmapheresis and IVIG?"}
+{"doc": 2430, "q1": "gene duplication molecular innovation", "q2": "What role does gene duplication play in molecular evolution?"}
+{"doc": 2431, "q1": "craniosynostosis genetics", "q2": "What causes craniosynostosis in rabbits?"}
+{"doc": 2432, "q1": "Sayre syndrome", "q2": "What is Sayre syndrome?"}
+{"doc": 2433, "q1": "valproic acid cancer therapy", "q2": "Does valproic acid treat prostate cancer?"}
+{"doc": 2434, "q1": "pneumonia etiology hospital", "q2": "What causes community-acquired pneumonia?"}
+{"doc": 2435, "q1": "Stargardt's Disease", "q2": "What causes Stargardt's macular dystrophy?"}
+{"doc": 2436, "q1": "hypertension in children with kidney disease", "q2": "Can high blood pressure cause seizures in kids?"}
+{"doc": 2437, "q1": "asd percutaneous closure", "q2": "What are the risks of ASD percutaneous closure?"}
+{"doc": 2438, "q1": "small cell bladder cancer", "q2": "what is the prognosis for small cell bladder cancer"}
+{"doc": 2439, "q1": "ERCP methods", "q2": "Which ERCP method is most effective for bile duct stones?"}
+{"doc": 2440, "q1": "voltage gated sodium channels", "q2": "What are voltage-gated sodium channels used for?"}
+{"doc": 2441, "q1": "Toe Grasping Strength in Older Adults", "q2": "Is Toe Grasping Strength Related to Physical Activity?"}
+{"doc": 2442, "q1": "Metabolic syndrome and breast cancer", "q2": "Does metabolic syndrome increase the risk of breast cancer?"}
+{"doc": 2443, "q1": "MRSA corneal ulcers treatment", "q2": "Can MRSA cause eye infections?"}
+{"doc": 2444, "q1": "gastric cancer treatment resistance", "q2": "Can autophagy contribute to gastric cancer treatment failure?"}
+{"doc": 2445, "q1": "cost effectiveness of auto-disable syringes", "q2": "Is introducing auto-disable syringes worth the cost?"}
+{"doc": 2446, "q1": "everolimus vs chemotherapy breast cancer", "q2": "Is everolimus more effective in treating breast cancer than chemotherapy?"}
+{"doc": 2447, "q1": "parkinson's disease therapeutic tai chi", "q2": "Does tai chi help Parkinson's disease patients?"}
+{"doc": 2448, "q1": "nucleolar ubiquitin proteasome system", "q2": "does the ubiquitin proteasome system exist in plant nucleoli?"}
+{"doc": 2449, "q1": "Gh secretion and insulin resistance", "q2": "Does gh deficiency cause insulin resistance?"}
+{"doc": 2450, "q1": "Rho GTPase regulators", "q2": "What regulates Rho GTPases?"}
+{"doc": 2451, "q1": "b1 blockers neurocardiogenic syncope", "q2": "Do b1 blockers work for neurocardiogenic syncope?"}
+{"doc": 2452, "q1": "pain management in dentistry", "q2": "What is the best pain relief method for irreversible pulpitis?"}
+{"doc": 2453, "q1": "emotional arousal and learning", "q2": "How does emotional arousal affect learning?"}
+{"doc": 2454, "q1": "Fluorescein Angiography vs OCTA", "q2": "Can OCTA replace Fluorescein Angiography for Diabetic Macular Ischemia?"}
+{"doc": 2455, "q1": "elderly spine surgery complications", "q2": "What are the risks of spine surgery for elderly patients?"}
+{"doc": 2456, "q1": "apexification in immature teeth", "q2": "What is the best way to treat necrotic teeth with open apex?"}
+{"doc": 2457, "q1": "bifurcation stenting models", "q2": "Can bifurcation QCA analysis be improved?"}
+{"doc": 2458, "q1": "malaria helminths prevalence", "q2": "Do asymptomatic malaria and helminth infections occur in Nigerian schoolchildren?"}
+{"doc": 2459, "q1": "family influence on psychiatric ward stay", "q2": "Does family support reduce length of stay in psychiatric hospitals?"}
+{"doc": 2460, "q1": "gossybipoma symptoms", "q2": "What are the signs of retained surgical sponge?"}
+{"doc": 2461, "q1": "colonic lipoma", "q2": "What is colonic lipoma?"}
+{"doc": 2462, "q1": "limb length change after TKA", "q2": "Does total knee arthroplasty lead to increased limb length?"}
+{"doc": 2463, "q1": "multiple sclerosis tnf microsatellite", "q2": "Is TNF microsatellite associated with multiple sclerosis?"}
+{"doc": 2464, "q1": "thyroid hormone cancer development", "q2": "does thyroid hormone affect cancer growth"}
+{"doc": 2465, "q1": "Diabetic nephropathy genetic factors", "q2": "What are the genetic causes of diabetic nephropathy?"}
+{"doc": 2466, "q1": "glutamatergic neurotransmission disorders", "q2": "do glutamate receptor mutations cause psychiatric disorders"}
+{"doc": 2467, "q1": "gender differences in type 2 diabetes treatment", "q2": "Does gender affect response to exenatide in type 2 diabetes?"}
+{"doc": 2468, "q1": "gender influence on intracerebral hemorrhage outcome", "q2": "Does gender affect intracerebral hemorrhage survival rate?"}
+{"doc": 2469, "q1": "vb4-845 bladder cancer study", "q2": "Is VB4-845 safe and effective for nonmuscle-invasive bladder cancer?"}
+{"doc": 2470, "q1": "pneumonia in children", "q2": "What causes high child mortality due to pneumonia?"}
+{"doc": 2471, "q1": "evidence-based medicine hierarchy", "q2": "Is the evidence-based medicine pyramid outdated?"}
+{"doc": 2472, "q1": "Skull base osteosarcoma", "q2": "Can osteosarcoma occur in the skull?"}
+{"doc": 2473, "q1": "Fungal infections in healthy people", "q2": "Can a fungus cause a brain tumor?"}
+{"doc": 2474, "q1": "nephrotic syndrome in children", "q2": "Can nephrotic syndrome cause blood clots?"}
+{"doc": 2475, "q1": "tissue engineered heart valves", "q2": "can you replace an aortic valve with a tissue engineered one"}
+{"doc": 2476, "q1": "biaxial flexural strength of ceramic materials", "q2": "Does thermocycling affect the strength of ceramic implants?"}
+{"doc": 2477, "q1": "Salep effects on the liver", "q2": "Does Salep help liver health?"}
+{"doc": 2478, "q1": "-hcg elevation in non-pregnant women", "q2": "What causes high beta hCG levels in non-pregnant females?"}
+{"doc": 2479, "q1": "sulforaphane and lung cancer", "q2": "Does sulforaphane increase lung cancer risk?"}
+{"doc": 2480, "q1": "18f-choline parathyroid adenoma detection", "q2": "Is 18F-choline better than MIBI for parathyroid tumors?"}
+{"doc": 2481, "q1": "hospital patient bill of rights", "q2": "Can patients understand hospital rights documents?"}
+{"doc": 2482, "q1": "interferon treatment for RCC", "q2": "Can interferon cure kidney cancer?"}
+{"doc": 2483, "q1": "periodontitis and heart disease", "q2": "Can treating periodontal disease reduce heart attack risk?"}
+{"doc": 2484, "q1": "fetal gallbladder reference ranges", "q2": "What are normal sizes of a fetus's gallbladder?"}
+{"doc": 2485, "q1": "Kras gene function", "q2": "What is the role of the Kras gene?"}
+{"doc": 2486, "q1": "palisaded encapsulated neuroma", "q2": "What are palisaded encapsulated neuromas"}
+{"doc": 2487, "q1": "EEC syndrome treatment", "q2": "Is EEC syndrome treatable?"}
+{"doc": 2488, "q1": "ethanol in injectable anticancer drugs", "q2": "Is ethanol safe in cancer medication?"}
+{"doc": 2489, "q1": "cml cd34+ quiescent cell gene expression", "q2": "What are the key differences between normal and CML CD34+ quiescent cells?"}
+{"doc": 2490, "q1": "hsv prevalence in pregnant women", "q2": "What is the rate of hsv-2 infection during pregnancy?"}
+{"doc": 2491, "q1": "mediastinal mass symptoms", "q2": "What are the symptoms of a mediastinal mass?"}
+{"doc": 2492, "q1": "Acute Respiratory Infections India", "q2": "What are the causes of acute respiratory infections in Indian children?"}
+{"doc": 2493, "q1": "split spinal cord malformation", "q2": "What is split spinal cord malformation?"}
+{"doc": 2494, "q1": "coping mechanisms for smoking", "q2": "what motivates smokers with COPD to quit"}
+{"doc": 2495, "q1": "pancreas cancer causes", "q2": "What causes pancreas cancer?"}
+{"doc": 2496, "q1": "air pollution effect on stroke", "q2": "Does air pollution increase stroke risk?"}
+{"doc": 2497, "q1": "venoarterial p ecl", "q2": "Is venoarterial P-ECLS safe for patients with dilated cardiomyopathy?"}
+{"doc": 2498, "q1": "Pediatric inguinal hernia repair", "q2": "Is laparoscopy effective in treating pediatric inguinal hernias?"}
+{"doc": 2499, "q1": "diabetic retinopathy prevention", "q2": "Can we prevent diabetic retinopathy?"}
+{"doc": 2500, "q1": "precision medicine plan and malignant tumors", "q2": "Can precision medicine help diagnose malignant tumors?"}
+{"doc": 2501, "q1": "adult hearing loss management", "q2": "How is adult-onset hearing loss typically diagnosed?"}
+{"doc": 2502, "q1": "pulmonary surfactant proteins and respiratory distress", "q2": "Do pulmonary surfactant protein polymorphisms increase RDS risk?"}
+{"doc": 2503, "q1": "apical plug sealing materials", "q2": "What are the best materials for creating apical plugs?"}
+{"doc": 2504, "q1": "cardiovascular risk type 2 diabetes", "q2": "Are people with diabetes at higher heart attack risk?"}
+{"doc": 2505, "q1": "Hypertension and phosphorus mortality", "q2": "Can high phosphorus levels worsen hypertension effects?"}
+{"doc": 2506, "q1": "myofascial pain syndrome causes", "q2": "what triggers myofascial trigger points"}
+{"doc": 2507, "q1": "pilomatricoma symptoms", "q2": "What is pilomatricoma?"}
+{"doc": 2508, "q1": "ovarian carcinoma breast metastasis", "q2": "Can ovarian cancer spread to the breast?"}
+{"doc": 2509, "q1": "20th century medical advancements", "q2": "What are the key medical breakthroughs of the 20th century?"}
+{"doc": 2510, "q1": "Mokola virus in South Africa", "q2": "Has Mokola virus been found in dogs or cats?"}
+{"doc": 2511, "q1": "lumbar spinal stenosis treatment", "q2": "what are the best treatments for lumbar spinal stenosis"}
+{"doc": 2512, "q1": "benign phyllodes tumor diagnosis", "q2": "How is benign phyllodes tumor diagnosed?"}
+{"doc": 2513, "q1": "anticardiolipin antibodies and periodontal disease", "q2": "Can smoking increase the risk of cardiovascular disease through periodontal infections?"}
+{"doc": 2514, "q1": "clavicle fractures in children", "q2": "Can children's clavicles heal properly?"}
+{"doc": 2515, "q1": "nb325 safety study", "q2": "Is NB325 a safe vaginal microbicide?"}
+{"doc": 2516, "q1": "sarcoidosis complications", "q2": "Can sarcoidosis be caused by hepatitis C treatment?"}
+{"doc": 2517, "q1": "sodium intake and stroke", "q2": "Can high sodium intake cause strokes?"}
+{"doc": 2518, "q1": "County Heat Preparedness Programs", "q2": "Do US counties have heat response plans?"}
+{"doc": 2519, "q1": "periapical lesion ultrasound diagnosis", "q2": "Can ultrasound help diagnose periapical cysts and granulomas?"}
+{"doc": 2520, "q1": "histological criteria for endometritis", "q2": "What are the specific markers of endometritis?"}
+{"doc": 2521, "q1": "peginterferon for hepatitis C", "q2": "What is the best interferon treatment for hepatitis C?"}
+{"doc": 2522, "q1": "laplacian invariants lattice", "q2": "what are laplacian invariants for different lattices?"}
+{"doc": 2523, "q1": "chronic heart failure tnf", "q2": "Can chronic heart failure cause TNF elevation?"}
+{"doc": 2524, "q1": "co2 embolism laparoscopic surgery", "q2": "can co2 gas cause cardiac arrest"}
+{"doc": 2525, "q1": "multidrug resistance in cancer", "q2": "What causes multidrug resistance in cancer?"}
+{"doc": 2526, "q1": "public health decision making", "q2": "How do experts make decisions in public health?"}
+{"doc": 2527, "q1": "Castleman's Disease Complications", "q2": "What are the complications of Castleman's disease?"}
+{"doc": 2528, "q1": "ff14ipq force field", "q2": "What is the ff14ipq force field used for?"}
+{"doc": 2529, "q1": "Shewanella in aquatic systems", "q2": "How do Shewanellae adapt to changing environments"}
+{"doc": 2530, "q1": "Angioleiomyoma treatment", "q2": "Can angioleiomyomas be removed surgically?"}
+{"doc": 2531, "q1": "marine bacteria bioactive compounds", "q2": "Do marine bacteria produce useful chemicals?"}
+{"doc": 2532, "q1": "insomnia treatment options", "q2": "What is the best way to treat insomnia?"}
+{"doc": 2533, "q1": "sleep duration diabetes developing countries", "q2": "Can short sleep duration increase the risk of diabetes?"}
+{"doc": 2534, "q1": "streptomyces sp jaj06 antibiotic production", "q2": "Can seawater be replaced in Streptomyces sp. JAJ06 cultivation?"}
+{"doc": 2535, "q1": "body image issues in children", "q2": "Do children experience body image problems?"}
+{"doc": 2536, "q1": "obese children orexin levels", "q2": "do obese kids have more orexin?"}
+{"doc": 2537, "q1": "cesarean section under hemodialysis", "q2": "Is it safe to have a cesarean section with chronic renal failure?"}
+{"doc": 2538, "q1": "bisphosphonate therapy side effects", "q2": "can long-term bisphosphonates cause fractures?"}
+{"doc": 2539, "q1": "Rothia Aeria Endocarditis", "q2": "What are the risks of Rothia Aeria infection?"}
+{"doc": 2540, "q1": "PICA aneurysms treatment", "q2": "How to treat PICA aneurysm"}
+{"doc": 2541, "q1": "Dengue Fever Complications", "q2": "What are the complications of dengue fever?"}
+{"doc": 2542, "q1": "Ultrasound guided core needle biopsy", "q2": "Is ultrasound guided biopsy effective in breast cancer diagnosis?"}
+{"doc": 2543, "q1": "comparative cognition research", "q2": "how does animal behavior evolve?"}
+{"doc": 2544, "q1": "Heart Valve Bacteria", "q2": "Do heart valves have oral bacteria?"}
+{"doc": 2545, "q1": "protein folding errors", "q2": "what happens to misfolded proteins in cells"}
+{"doc": 2546, "q1": "cellular redox state", "q2": "what regulates cellular homeostasis"}
+{"doc": 2547, "q1": "Primary Spinal Epidural Hodgkin's Lymphoma", "q2": "What is primary spinal epidural Hodgkin's lymphoma?"}
+{"doc": 2548, "q1": "HLA mismatch complications", "q2": "Can HLA mismatches cause transplant failure?"}
+{"doc": 2549, "q1": "HIV-1 immune activation profiles", "q2": "Can HIV-1 subtype C infection be predicted?"}
+{"doc": 2550, "q1": "Pseudascarophis species Brazil", "q2": "What are the characteristics of Pseudascarophis found in Brazilian waters?"}
+{"doc": 2551, "q1": "ovarian cancer muscle wasting", "q2": "Can muscle loss worsen ovarian cancer outcomes?"}
+{"doc": 2552, "q1": "centrioles function", "q2": "What is the role of centrioles in cells?"}
+{"doc": 2553, "q1": "radioiodine treatment failure rates", "q2": "Does long-term CMZ treatment affect radioiodine success rate?"}
+{"doc": 2554, "q1": "genomic island detection framework", "q2": "Can we detect genomic islands in query genomes?"}
+{"doc": 2555, "q1": "omega-6 fatty acids inflammation", "q2": "Do omega-6 fatty acids cause inflammation?"}
+{"doc": 2556, "q1": "radioiodine therapy side effects", "q2": "Can radioiodine cause leukemia?"}
+{"doc": 2557, "q1": "RAS treatment", "q2": "What causes RAS?"}
+{"doc": 2558, "q1": "penis cancer treatment", "q2": "Can penis cancer be treated without losing potency?"}
+{"doc": 2559, "q1": "Quantum Dot Interference", "q2": "What are the effects of non-aligned energy levels in a Double AB interferometer?"}
+{"doc": 2560, "q1": "brown sequard syndrome causes", "q2": "what is brown sequard syndrome symptoms"}
+{"doc": 2561, "q1": "remote medical service framework", "q2": "Is there a secure remote medical service framework?"}
+{"doc": 2562, "q1": "2000 Hajj meningitis outbreak", "q2": "What caused the meningitis outbreak after the 2000 Hajj?"}
+{"doc": 2563, "q1": "iron chelation therapy thalassemia", "q2": "Is iron overload a major problem for people with non-transfusion-dependent thalassemia?"}
+{"doc": 2564, "q1": "honey vinegar syrup effects", "q2": "does honey vinegar syrup lower blood sugar"}
+{"doc": 2565, "q1": "copper works facility lead exposure", "q2": "What are the effects of lead exposure in a copper factory?"}
+{"doc": 2566, "q1": "HCV and normal ALT", "q2": "Can HCV patients have normal liver enzymes?"}
+{"doc": 2567, "q1": "ciprofloxacin resistant e. coli", "q2": "what causes ciprofloxacin resistance in e. coli?"}
+{"doc": 2568, "q1": "Human Papillomavirus Infection", "q2": "What causes human papillomavirus infection?"}
+{"doc": 2569, "q1": "amblyopia treatment binocular combination", "q2": "Can amblyopia be treated with a binocular approach?"}
+{"doc": 2570, "q1": "csf examination sensitivity", "q2": "Can CSF tests detect cancer?"}
+{"doc": 2571, "q1": "pcl reconstruction techniques", "q2": "What is the best way to reconstruct a posterior cruciate ligament?"}
+{"doc": 2572, "q1": "osteosarcoma antibodies", "q2": "Can osteosarcoma be treated with targeted antibodies?"}
+{"doc": 2573, "q1": "probiotic non-viable components", "q2": "Can non-viable probiotics stimulate the immune system?"}
+{"doc": 2574, "q1": "prostatic leiomyoma symptoms", "q2": "Can prostatic leiomyomas occur with prostate cancer?"}
+{"doc": 2575, "q1": "enantioselective lewis base catalysis", "q2": "What is the process for forming stereodefined oxazolidin-4-ones?"}
+{"doc": 2576, "q1": "hypoglycemia fear survey", "q2": "Is the HFS-II a reliable measure?"}
+{"doc": 2577, "q1": "ncha bone graft effectiveness", "q2": "Is nanocrystalline hydroxyapatite effective for periodontal defects?"}
+{"doc": 2578, "q1": "exercise and osteoarthritis treatment", "q2": "Does exercise help with spinal cord damage from osteoarthritis?"}
+{"doc": 2579, "q1": "babesiosis in new jersey", "q2": "Is babesiosis a problem in New Jersey?"}
+{"doc": 2580, "q1": "ventilator induced lung injury", "q2": "what causes ventilator induced lung injury"}
+{"doc": 2581, "q1": "Childhood Obesity India", "q2": "Is childhood obesity a growing problem in India?"}
+{"doc": 2582, "q1": "dyspnea brain mechanisms", "q2": "What causes dyspnea anxiety?"}
+{"doc": 2583, "q1": "Phage Therapy Cronobacter", "q2": "Is Phage Therapy Effective Against Urinary Tract Infections?"}
+{"doc": 2584, "q1": "endodontic sealer techniques comparison", "q2": "What is the best method for placing an endodontic sealer?"}
+{"doc": 2585, "q1": "diabetes natural remedies", "q2": "What is a natural treatment for diabetes?"}
+{"doc": 2586, "q1": "cr2o3 surface structure", "q2": "what is the surface structure of cr2o3"}
+{"doc": 2587, "q1": "Liver Fibrosis Tests Variability", "q2": "Is Fibrotest reliable for liver fibrosis assessment?"}
+{"doc": 2588, "q1": "bioactive glass nanoparticles", "q2": "Are bioactive glass nanoparticles safe to use?"}
+{"doc": 2589, "q1": "japanese pancreatitis management guidelines", "q2": "What are the current guidelines for acute pancreatitis in Japan?"}
+{"doc": 2590, "q1": "bacillus cereus hospital outbreak", "q2": "Can bacillus cereus be spread by hospital equipment?"}
+{"doc": 2591, "q1": "api lung cancer disparities", "q2": "Do Asian Pacific Islanders have better lung cancer outcomes?"}
+{"doc": 2592, "q1": "probiotics for diabetes", "q2": "Can probiotics help control diabetes?"}
+{"doc": 2593, "q1": "holy grail of mental health", "q2": "can brain activity predict depression treatment"}
+{"doc": 2594, "q1": "x-ray tomography reconstruction", "q2": "How do you improve x-ray imaging in medical sciences?"}
+{"doc": 2595, "q1": "massage therapy low back pain", "q2": "Does massage help chronic low back pain?"}
+{"doc": 2596, "q1": "methotrexate iontophoresis", "q2": "Does iontophoresis increase methotrexate skin permeation?"}
+{"doc": 2597, "q1": "birth weight and type 2 diabetes", "q2": "Does low birth weight increase risk for type 2 diabetes?"}
+{"doc": 2598, "q1": "Cobbler's iridodialysis repair technique", "q2": "Can you fix an eye with traumatic iridodialysis?"}
+{"doc": 2599, "q1": "cvd risk prediction in ckd", "q2": "Can biomarkers predict cardiovascular disease in chronic kidney disease?"}
+{"doc": 2600, "q1": "Gitelman Syndrome Genetics", "q2": "What causes Gitelman syndrome?"}
+{"doc": 2601, "q1": "stomach peptide regulation", "q2": "what regulates stomach peptides"}
+{"doc": 2602, "q1": "Comparison of C-MAC VL and Airtraq Laryngoscope", "q2": "Which laryngoscope is best for easy intubation?"}
+{"doc": 2603, "q1": "Partial Cystectomy Neoadjuvant Chemotherapy", "q2": "Is Partial Cystectomy Effective for Bladder Cancer?"}
+{"doc": 2604, "q1": "crisis resolution home treatment teams", "q2": "what is the role of crisis resolution teams in mental health?"}
+{"doc": 2605, "q1": "physical activity and metabolic syndrome", "q2": "Can sedentary jobs cause health problems?"}
+{"doc": 2606, "q1": "insulin resistance dogs treatment", "q2": "can you treat insulin resistance in dogs"}
+{"doc": 2607, "q1": "Low-carb diet cognitive function", "q2": "Do low-carb diets affect brain function?"}
+{"doc": 2608, "q1": "bariatric surgery weight loss", "q2": "How does bariatric surgery affect weight loss?"}
+{"doc": 2609, "q1": "chlamydia trachomatis diagnosis", "q2": "How do you diagnose PID?"}
+{"doc": 2610, "q1": "histoplasmosis symptoms", "q2": "Can histoplasmosis cause cancer-like symptoms?"}
+{"doc": 2611, "q1": "trastuzumab chemotherapy breast cancer", "q2": "Is trastuzumab effective for HER2-positive breast cancer?"}
+{"doc": 2612, "q1": "coronary artery calcium diabetes", "q2": "Does coronary artery calcium predict cardiovascular death in type 2 diabetes?"}
+{"doc": 2613, "q1": "GLP-1 receptor agonists benefits", "q2": "Do GLP-1 agonists improve blood sugar control?"}
+{"doc": 2614, "q1": "Parkinson's disease gait obstacles", "q2": "Can Parkinson's disease affect walking around obstacles?"}
+{"doc": 2615, "q1": "adult onset retinoblastoma treatment", "q2": "Can adult-onset retinoblastoma be treated without removing the eye?"}
+{"doc": 2616, "q1": "cellulose face masks for dry skin", "q2": "Do cellulose masks help with dry skin?"}
+{"doc": 2617, "q1": "mitochondrial dna inheritance", "q2": "Why is mitochondrial DNA inherited differently than nuclear genome?"}
+{"doc": 2618, "q1": "delayed diagnosis of chronic mesenteric ischaemia", "q2": "why was mesenteric ischemia misdiagnosed?"}
+{"doc": 2619, "q1": "v tachycardia in sarcoidosis", "q2": "Is ventricular tachycardia a symptom of sarcoidosis?"}
+{"doc": 2620, "q1": "neonatal diabetes treatment", "q2": "can sulfonylureas replace insulin in neonatal diabetes"}
+{"doc": 2621, "q1": "abfn02 osteoarthritis treatment", "q2": "Is abfn02 effective for osteoarthritis?"}
+{"doc": 2622, "q1": "fear of falling elderly", "q2": "Can exercise reduce fear of falling?"}
+{"doc": 2623, "q1": "pcnl kidney stone treatment", "q2": "Complications of pcnl surgery"}
+{"doc": 2624, "q1": "Crohn's disease", "q2": "What causes Crohn's disease"}
+{"doc": 2625, "q1": "exercise and anxiety", "q2": "can exercise reduce anxiety"}
+{"doc": 2626, "q1": "cold exposure and obesity", "q2": "does cold weather help with weight loss"}
+{"doc": 2627, "q1": "micron scale vessel anastomosis", "q2": "how to reconnect small blood vessels"}
+{"doc": 2628, "q1": "neurofeedback therapy stroke", "q2": "Is neurofeedback effective for stroke patients?"}
+{"doc": 2629, "q1": "hyperprolactinemia effects on menstrual cycles", "q2": "can prolactinoma cause irregular periods"}
+{"doc": 2630, "q1": "nephrogenic adenoma", "q2": "What is nephrogenic adenoma of the bladder?"}
+{"doc": 2631, "q1": "genetic risk factors in psychiatric disorders", "q2": "do genetic risks contribute to major mental illnesses"}
+{"doc": 2632, "q1": "multicystic dysplastic kidney", "q2": "What are the symptoms of multicystic dysplastic kidney?"}
+{"doc": 2633, "q1": "Chronic subdural hematoma", "q2": "What causes chronic subdural hematomas?"}
+{"doc": 2634, "q1": "esophageal GIST", "q2": "Can GIST occur in the esophagus?"}
+{"doc": 2635, "q1": "sle atherosclerosis risk factors", "q2": "What causes atherosclerosis in people with systemic lupus erythematosus?"}
+{"doc": 2636, "q1": "psoriasis and celiac disease link", "q2": "Is there a higher risk of celiac disease in people with psoriasis?"}
+{"doc": 2637, "q1": "Deep brain stimulation movement disorders", "q2": "Can deep brain stimulation help with Parkinson's disease?"}
+{"doc": 2638, "q1": "minocycline side effects", "q2": "Is minocycline causing skin discoloration?"}
+{"doc": 2639, "q1": "Canal isthmus treatment", "q2": "What is the importance of detecting canal isthmuses?"}
+{"doc": 2640, "q1": "health worker motivation tools", "q2": "What motivates health workers?"}
+{"doc": 2641, "q1": "Meningococcal disease epidemic Spain", "q2": "What caused the meningitis outbreak in Spain?"}
+{"doc": 2642, "q1": "hip extensor strengthening exercises", "q2": "Can hip exercises improve walking after a stroke?"}
+{"doc": 2643, "q1": "Low-cost ADHD therapy for children", "q2": "Is there affordable ADHD treatment for kids?"}
+{"doc": 2644, "q1": "Structured physical education and body fat reduction", "q2": "Does structured physical education reduce body fat in girls?"}
+{"doc": 2645, "q1": "Rotavirus infection severity", "q2": "How severe is rotavirus infection?"}
+{"doc": 2646, "q1": "Ergonomic challenges in minimally invasive surgery", "q2": "Can minimally invasive surgery cause ergonomic problems?"}
+{"doc": 2647, "q1": "viscosity of refrigerated adhesives", "q2": "Can refrigeration affect adhesive viscosity?"}
+{"doc": 2648, "q1": "Korean mandibular third molars root anatomy", "q2": "What is the typical number of roots in Korean mandibular third molars?"}
+{"doc": 2649, "q1": "breast cancer recurrence rates", "q2": "Can breast cancer subtype affect recurrence after chemotherapy?"}
+{"doc": 2650, "q1": "18F-FDG PET-CT diagnosis", "q2": "Can 18F-FDG PET-CT accurately diagnose soft tissue sarcomas?"}
+{"doc": 2651, "q1": "metformin lactic acidosis", "q2": "does metformin cause lactic acidosis"}
+{"doc": 2652, "q1": "Cisplatin toxicity reduction", "q2": "Can Paris saponin I reduce Cisplatin side effects?"}
+{"doc": 2653, "q1": "moyamoya brain scans", "q2": "What does moyamoya disease show on brain scan?"}
+{"doc": 2654, "q1": "off-pump coronary artery bypass", "q2": "Is off-pump heart surgery safer?"}
+{"doc": 2655, "q1": "myocardial infarction immune response", "q2": "what causes inflammation after heart attack"}
+{"doc": 2656, "q1": "interdisciplinary team working in healthcare", "q2": "Can team-based care improve patient outcomes?"}
+{"doc": 2657, "q1": "kidney transplantation rejection risk factors", "q2": "What causes kidney transplant rejection?"}
+{"doc": 2658, "q1": "occupational slip trip fall accidents causes", "q2": "What causes occupational slip, trip, and fall accidents?"}
+{"doc": 2659, "q1": "Digital Pathology Techniques", "q2": "Can Digital Pathology Improve Clinical Practice?"}
+{"doc": 2660, "q1": "gestational diabetes pregnancy risks", "q2": "What are the risks of gestational diabetes during pregnancy?"}
+{"doc": 2661, "q1": "anti TNF therapy for Crohn's disease", "q2": "Is anti TNF therapy effective for Crohn's disease?"}
+{"doc": 2662, "q1": "Epithelial Mesenchymal Transition Peritoneal Fibrosis", "q2": "How does EMT contribute to peritoneal fibrosis in dialysis?"}
+{"doc": 2663, "q1": "adult brain plasticity", "q2": "Can the adult brain still change after development?"}
+{"doc": 2664, "q1": "procalcitonin levels in cardiogenic shock", "q2": "Can procalcitonin predict survival after cardiac arrest?"}
+{"doc": 2665, "q1": "autophagy Saccharomyces cerevisiae", "q2": "How does autophagy work in yeast?"}
+{"doc": 2666, "q1": "e. coli adaptation to food additives", "q2": "does e. coli adapt to different food additives?"}
+{"doc": 2667, "q1": "laparoscopic surgery complications", "q2": "Is laparoscopic surgery safe?"}
+{"doc": 2668, "q1": "tetrodotoxin sodium channels", "q2": "What are the effects of tetrodotoxin on voltage-gated sodium channels?"}
+{"doc": 2669, "q1": "post transplant lymphoproliferative disease", "q2": "What is post transplant lymphoproliferative disease?"}
+{"doc": 2670, "q1": "Natural Oral Hygiene Products", "q2": "Can natural products prevent oral infections?"}
+{"doc": 2671, "q1": "atrophic dermatofibrosarcoma protuberans", "q2": "what are the symptoms of atrophic DFSP"}
+{"doc": 2672, "q1": "heart failure clinic", "q2": "Does heart failure clinic reduce hospital readmissions?"}
+{"doc": 2673, "q1": "viral metagenomics virology", "q2": "How does metagenomics impact virus research?"}
+{"doc": 2674, "q1": "postoperative cognitive dysfunction", "q2": "Can surgery cause long-term brain damage?"}
+{"doc": 2675, "q1": "diabetic education impact on hypoglycemia awareness", "q2": "Does educating diabetics reduce hypoglycemia symptoms?"}
+{"doc": 2676, "q1": "disulfiram alcohol treatment", "q2": "Is disulfiram effective for treating alcohol dependence?"}
+{"doc": 2677, "q1": "fractalkine in human placenta", "q2": "Is fractalkine present in human placenta?"}
+{"doc": 2678, "q1": "familial adenomatous polyposis treatment", "q2": "what is the primary treatment for fap"}
+{"doc": 2679, "q1": "operative treatment for accessory navicular", "q2": "What are the complications of Kidner procedure?"}
+{"doc": 2680, "q1": "class iii ribonucleotide reductases", "q2": "What are class III ribonucleotide reductases used for?"}
+{"doc": 2681, "q1": "IUI success rates", "q2": "Is IUI more effective for female fertility issues?"}
+{"doc": 2682, "q1": "antimicrobial skin infections", "q2": "What is the best treatment for minor skin infections?"}
+{"doc": 2683, "q1": "Endoscopic Submucosal Dissection (ESD) Bleeding", "q2": "How to improve ESD visibility during bleeding?"}
+{"doc": 2684, "q1": "carbamazepine side effects", "q2": "Is carbamazepine safe to use?"}
+{"doc": 2685, "q1": "arterial adventitial cystic disease", "q2": "What causes arterial adventitial cystic disease?"}
+{"doc": 2686, "q1": "Pulmonary artery aneurysm", "q2": "Can a tumor cause an aneurysm in a lung?"}
+{"doc": 2687, "q1": "darunavir and immune recovery", "q2": "Does darunavir improve CD4+ cell count?"}
+{"doc": 2688, "q1": "chronic disease management tools", "q2": "What is effective chronic disease management?"}
+{"doc": 2689, "q1": "mechanical circulatory support heart failure prognosis", "q2": "Can MCS therapy improve long-term outcomes for end-stage heart failure patients?"}
+{"doc": 2690, "q1": "Waterhouse-Friderichsen syndrome complications", "q2": "Can Waterhouse-Friderichsen syndrome be treated?"}
+{"doc": 2691, "q1": "metformin bladder cancer prevention", "q2": "does metformin prevent bladder cancer recurrence"}
+{"doc": 2692, "q1": "oxygen desaturation during ECT", "q2": "Can ECT cause oxygen problems?"}
+{"doc": 2693, "q1": "neuropeptides temperature response", "q2": "Do neuropeptides play a role in temperature stress?"}
+{"doc": 2694, "q1": "diagnosing type 1 diabetes earlier", "q2": "Can we diagnose type 1 diabetes earlier?"}
+{"doc": 2695, "q1": "circadian rhythms eukaryotes", "q2": "What drives circadian rhythms in eukaryotes?"}
+{"doc": 2696, "q1": "Hepatitis A encephalitis", "q2": "Can Hepatitis A cause brain inflammation?"}
+{"doc": 2697, "q1": "antihypertensive drug prescribing patterns", "q2": "What are the common antihypertensive medications prescribed?"}
+{"doc": 2698, "q1": "cl-20 neurotoxic effects", "q2": "Can CL-20 cause neurological damage?"}
+{"doc": 2699, "q1": "clinical training for lao health professionals", "q2": "does formative evaluation improve clinical training programs?"}
+{"doc": 2700, "q1": "TNF inhibition in eye injuries", "q2": "Can TNF inhibitors help with corneal damage?"}
+{"doc": 2701, "q1": "tuberculosis prevalence in tribal communities", "q2": "How common is tuberculosis among India's tribal population?"}
+{"doc": 2702, "q1": "peptidyl prolyl cis trans isomerases", "q2": "how do ppiases catalyze protein conformation changes"}
+{"doc": 2703, "q1": "Living Systems Self Organization", "q2": "Can living organisms self organize like equilibrium systems?"}
+{"doc": 2704, "q1": "preeclampsia endothelial function", "q2": "Is preeclampsia associated with impaired endothelial function?"}
+{"doc": 2705, "q1": "barium retention in appendix", "q2": "Is it safe to have barium left in your appendix?"}
+{"doc": 2706, "q1": "estimating micronutrient intake", "q2": "How do you calculate high vitamin and mineral intake?"}
+{"doc": 2707, "q1": "Visian Toric ICL implantation", "q2": "Does Visian Toric ICL improve vision in keratoconus?"}
+{"doc": 2708, "q1": "boron carbonitride nanotube synthesis", "q2": "How were ternary boron carbonitride nanotubes created?"}
+{"doc": 2709, "q1": "hand-held dynamometer vs isokinetic dynamometer", "q2": "Is a hand-held dynamometer as accurate as an isokinetic dynamometer?"}
+{"doc": 2710, "q1": "gc content variation in genomes", "q2": "Does GC skew affect protein composition?"}
+{"doc": 2712, "q1": "Transcatheter Aortic Valve Implantation Complications", "q2": "What are the risks associated with TAVI procedure?"}
+{"doc": 2713, "q1": "micronuclei frequency", "q2": "Do patients with hepatitis B and C have abnormal chromosome counts?"}
+{"doc": 2714, "q1": "dopexamine effects", "q2": "Can dopexamine reduce inflammation?"}
+{"doc": 2715, "q1": "central nervous system development", "q2": "how does the central nervous system develop"}
+
+{"doc": 3000, "q1": "sa-am acupuncture effects", "q2": "does saam acupuncture lower blood pressure"}
+{"doc": 3001, "q1": "bronchiectasis causes", "q2": "what is bronchiectasis"}
+{"doc": 3002, "q1": "parathyroid hormone assays", "q2": "What is parathyroid hormone assay?"}
+{"doc": 3003, "q1": "Transient Thyroid Dysfunction Neonatal Screening", "q2": "Does genetic background affect transient thyroid dysfunction in newborns?"}
+{"doc": 3004, "q1": "forward head posture kinematics", "q2": "What are the effects of forward head posture on neck movement?"}
+{"doc": 3005, "q1": "P2X receptor ATP binding site", "q2": "How do P2X receptors bind to ATP?"}
+{"doc": 3006, "q1": "sialadenosis symptoms", "q2": "what is sialadenosis"}
+{"doc": 3007, "q1": "rcc spontaneous regression", "q2": "can rcc metastasis disappear on its own"}
+{"doc": 3008, "q1": "autophagy mechanisms", "q2": "What role does autophagy play?"}
+{"doc": 3009, "q1": "stroke patient cognitive rehabilitation", "q2": "Can cognitive therapy help stroke patients?"}
+{"doc": 3010, "q1": "Tramadol Ketorolac Stability Study", "q2": "Is tramadol hydrochloride stable with other pain medications?"}
+{"doc": 3011, "q1": "Transcanalicular diode laser dacryocystorhinostomy", "q2": "Does nasal deviation affect laser eye surgery success?"}
+{"doc": 3012, "q1": "bcg vaccine efficacy", "q2": "Does the BCG vaccine work when delivered through the lungs?"}
+{"doc": 3013, "q1": "angiokeratoma symptoms", "q2": "Can angiokeratoma present like a cutaneous horn?"}
+{"doc": 3014, "q1": "tibial plateau fracture classification", "q2": "What causes tibial plateau fractures?"}
+{"doc": 3015, "q1": "Dexmedetomidine in anesthesia", "q2": "Does dexmedetomidine reduce stress response during surgery?"}
+{"doc": 3016, "q1": "Paget's disease of bone", "q2": "What is Paget's disease of bone?"}
+{"doc": 3017, "q1": "parkinson's disease dementia symptoms", "q2": "what causes parkinson's disease dementia symptoms"}
+{"doc": 3018, "q1": "Natural killer cell receptors", "q2": "What triggers natural killer cells?"}
+{"doc": 3019, "q1": "immunoglobulin d multiple myeloma symptoms", "q2": "Can immunoglobulin d cause bone pain?"}
+{"doc": 3020, "q1": "early weaning risk factor", "q2": "Does early weaning lead to weight problems?"}
+{"doc": 3021, "q1": "marine biota contamination", "q2": "how does methylmercury affect marine life"}
+{"doc": 3022, "q1": "npeox degradation bacteria", "q2": "Can npeo15 be broken down by certain bacteria?"}
+{"doc": 3023, "q1": "Dunaliella salina carotenoids", "q2": "Can Dunaliella salina cells produce fluorescent carotenoids?"}
+{"doc": 3024, "q1": "pulmonary mucoepidermoid carcinoma suvmax", "q2": "Can high SUVmax in PET/CT predict poor outcomes for pulmonary mucoepidermoid carcinoma patients?"}
+{"doc": 3025, "q1": "calcium channels and lung cancer", "q2": "Is calcium channel variation associated with lung cancer risk?"}
+{"doc": 3026, "q1": "2D vs 3D pre-planning methods", "q2": "Is 3D pre-planning better than 2D for HDR brachytherapy?"}
+{"doc": 3027, "q1": "small bowel cancer diagnosis", "q2": "how to diagnose small bowel tumors"}
+{"doc": 3028, "q1": "stem cell mobilization", "q2": "How does stem cell mobilization work?"}
+{"doc": 3029, "q1": "elbow dislocation vascular injury", "q2": "Can an elbow dislocation cause blood vessel damage?"}
+{"doc": 3030, "q1": "sevoflurane anesthesia enhancement", "q2": "Does nitrous oxide improve sevoflurane anesthesia?"}
+{"doc": 3031, "q1": "Smear Layer Chemical Agents", "q2": "Which chemical agents affect the smear layer in dentistry?"}
+{"doc": 3032, "q1": "familial hypercholesterolemia diagnosis", "q2": "How is familial hypercholesterolemia diagnosed?"}
+{"doc": 3033, "q1": "emergency communication history", "q2": "how do natural disasters affect communication"}
+{"doc": 3034, "q1": "burns pain relief", "q2": "Can electrical nerve stimulation help with burns pain?"}
+{"doc": 3035, "q1": "noise effects on health", "q2": "Can loud noises cause heart disease?"}
+{"doc": 3036, "q1": "Campylobacter and duck liver", "q2": "Can you eat duck liver safely?"}
+{"doc": 3037, "q1": "facial muscle stimulation therapy", "q2": "Does neuromuscular electrical stimulation help stroke patients?"}
+{"doc": 3038, "q1": "Toxoplasmosis epidemiology", "q2": "What is the risk of toxoplasmosis infection?"}
+{"doc": 3039, "q1": "hydrogen peroxide teeth whitening", "q2": "Does hydrogen peroxide whiten teeth?"}
+{"doc": 3040, "q1": "treatment for osteonecrosis of the femoral head", "q2": "Can surgical intervention cure osteonecrosis?"}
+{"doc": 3041, "q1": "plica neuropathica causes", "q2": "what causes plica neuropathica"}
+{"doc": 3042, "q1": "MRSA infections", "q2": "Can people catch MRSA from other humans?"}
+{"doc": 3043, "q1": "Neuropathic Pain Muscle Gene Expression", "q2": "Does neuropathic pain affect gene expression in muscles?"}
+{"doc": 3044, "q1": "symmetric protein oligomers", "q2": "How to determine protein dimer structures"}
+{"doc": 3045, "q1": "Creutzfeldt-Jakob disease MRI", "q2": "Can MRI diagnose Creutzfeldt-Jakob disease?"}
+{"doc": 3046, "q1": "vitamin d deficiency in children", "q2": "Can vitamin D deficiency cause low bone density in kids?"}
+{"doc": 3047, "q1": "nonvenereal dermatoses", "q2": "Are nonvenereal dermatoses common?"}
+{"doc": 3048, "q1": "intramuscular myxoma", "q2": "what is intramuscular myxoma"}
+{"doc": 3049, "q1": "transmigrated canines in north india", "q2": "What is the prevalence of transmigrated canines in India?"}
+{"doc": 3050, "q1": "Dengue fever rise US", "q2": "Is there a growing trend in dengue fever cases in the United States?"}
+{"doc": 3051, "q1": "mhd viscoelastic fluid heat transfer", "q2": "What is the effect of MHD on viscoelastic fluids?"}
+{"doc": 3052, "q1": "stockholm creatinine measurement cohort", "q2": "what is the stockholm creatinine measurement cohort"}
+{"doc": 3053, "q1": "HDRB prostate cancer treatment", "q2": "Is HDRB effective for low risk prostate cancer?"}
+{"doc": 3054, "q1": "root canal sealer activation techniques", "q2": "What is the most effective way to activate dental sealers?"}
+{"doc": 3055, "q1": "ADHD prevalence Iran", "q2": "What is the prevalence of ADHD in children in Iran?"}
+{"doc": 3056, "q1": "radiosensitivity traits", "q2": "What causes increased radiation sensitivity?"}
+{"doc": 3057, "q1": "Caregiver experience in cancer treatment", "q2": "How do caregivers interact with cancer patients' medical teams?"}
+{"doc": 3058, "q1": "IVC filter complications", "q2": "Can IVC filters cause internal damage?"}
+{"doc": 3059, "q1": "irrigation techniques for bacterial biofilm elimination", "q2": "What is the most effective method for removing bacterial biofilms from teeth?"}
+{"doc": 3060, "q1": "The Cost of Multidrug-Resistant Bacteria", "q2": "How Much Does Multidrug-Resistance Affect Economy"}
+{"doc": 3061, "q1": "craniosynostosis treatment", "q2": "What causes craniosynostosis?"}
+{"doc": 3062, "q1": "air pollution effects on elderly mental health china", "q2": "Does air pollution impact elderly mental health in China?"}
+{"doc": 3063, "q1": "ncrnas and human disease", "q2": "What role do ncrnas play in human diseases?"}
+{"doc": 3064, "q1": "nasolabial cysts symptoms", "q2": "What causes painless jaw swelling?"}
+{"doc": 3065, "q1": "radioactive iodine treatment risks", "q2": "Can radioactive iodine therapy cause thyroid cancer?"}
+{"doc": 3066, "q1": "m. abscessus infections", "q2": "can m. abscessus cause endocarditis"}
+{"doc": 3067, "q1": "infiximab and rheumatoid arthritis", "q2": "Can infiximab treat resistant RA?"}
+{"doc": 3068, "q1": "immunotherapy small cell lung cancer", "q2": "Is immunotherapy effective for small cell lung cancer patients?"}
+{"doc": 3069, "q1": "LGS treatment options", "q2": "What is LGS epilepsy treatment?"}
+{"doc": 3070, "q1": "Karyomegalic interstitial nephritis", "q2": "What causes Karyomegalic Interstitial Nephritis?"}
+{"doc": 3071, "q1": "retromer pathway alzheimer's", "q2": "Does retromer play a role in Alzheimer's disease?"}
+{"doc": 3072, "q1": "hypertension in rural Cameroon", "q2": "What is the rate of hypertension in rural areas?"}
+{"doc": 3073, "q1": "McAndrews Leadership Lecture", "q2": "Who is behind the McAndrews Leadership Lecture?"}
+{"doc": 3074, "q1": "korean mistletoe extract antiobesity effects", "q2": "Does Korean mistletoe extract reduce obesity in mice?"}
+{"doc": 3075, "q1": "bilateral choroidal osteoma", "q2": "what are choroidal osteomas"}
+{"doc": 3076, "q1": "Point-of-Care Testing Risk Management", "q2": "How do I reduce errors in Point-of-Care testing?"}
+{"doc": 3077, "q1": "selective autophagy mechanisms", "q2": "What is the role of cargo receptors in autophagy?"}
+{"doc": 3078, "q1": "atrial fibrillation heart failure outcomes", "q2": "Does atrial fibrillation worsen heart failure outcomes?"}
+{"doc": 3079, "q1": "mrsa treatment patterns", "q2": "Is mrsa pneumonia treatment effective?"}
+{"doc": 3080, "q1": "Health Education Brochures Evaluation", "q2": "Are health education materials effective in primary healthcare?"}
+{"doc": 3081, "q1": "Clinical epidemiology of myocardial infarction in Iran", "q2": "What is the rate of myocardial infarction in Iranian men compared to women?"}
+{"doc": 3082, "q1": "full thickness skin wound treatment", "q2": "What is the best treatment for large full thickness burns?"}
+{"doc": 3083, "q1": "fruit and vegetable cancer prevention", "q2": "Can eating fruits and vegetables help prevent cancer?"}
+{"doc": 3084, "q1": "male fertility and infertility rates", "q2": "How common is male infertility?"}
+{"doc": 3085, "q1": "rock glaciers and lakes", "q2": "How do rock glaciers affect nearby lakes?"}
+{"doc": 3086, "q1": "allergen immunotherapy compliance", "q2": "Does electronic device improve allergy treatment adherence?"}
+{"doc": 3087, "q1": "nf-b inhibitors", "q2": "what are nf-b inhibitors?"}
+{"doc": 3088, "q1": "Efficient synthesis of 99mtc-n4-amt", "q2": "What is 99mtc-n4-amt used for?"}
+{"doc": 3089, "q1": "high-spin iron hydride complexes", "q2": "Can high-spin iron compounds form hydrides?"}
+{"doc": 3090, "q1": "statin use prevalence denmark", "q2": "how common is statin use in denmark"}
+{"doc": 3091, "q1": "Statin and UTUC prognosis", "q2": "Does statin use improve survival rates in UTUC patients?"}
+{"doc": 3092, "q1": "infratemporal fossa anatomy", "q2": "What are the variations in arteries and nerves of infratemporal fossa?"}
+{"doc": 3093, "q1": "brain abscess symptoms", "q2": "What are the signs of a brain abscess?"}
+{"doc": 3094, "q1": "ros treatment acute pancreatitis", "q2": "Does treating acute pancreatitis with ros work?"}
+{"doc": 3095, "q1": "lysosome function", "q2": "what is the role of lysosomes?"}
+{"doc": 3096, "q1": "acute q fever french guiana", "q2": "is acute q fever a severe disease"}
+{"doc": 3097, "q1": "hepatic hemangiomatosis", "q2": "What is hepatic hemangiomatosis in adults?"}
+{"doc": 3098, "q1": "actinic keratosis treatment", "q2": "What are the best treatments for actinic keratosis?"}
+{"doc": 3099, "q1": "Laparoscopic renal cryoablation efficacy", "q2": "Is laparoscopic renal cryoablation safe for kidney tumors?"}
+{"doc": 3100, "q1": "doxorubicin toxicity", "q2": "What causes doxorubicin side effects?"}
+{"doc": 3101, "q1": "diabetes kidney disease african americans", "q2": "do african americans get diabetes related kidney disease more often"}
+{"doc": 3102, "q1": "light therapy soviet union", "q2": "Why is light therapy still used in Russia?"}
+{"doc": 3103, "q1": "lung function and obesity cardiac effects", "q2": "does obesity affect lung capacity?"}
+{"doc": 3104, "q1": "inflammatory myofibroblastic tumor", "q2": "What causes inflammatory myofibroblastic tumors?"}
+{"doc": 3105, "q1": "Patient Satisfaction Cochlear Implants", "q2": "Do cochlear implants improve speech comprehension?"}
+{"doc": 3106, "q1": "geographic tongue pregnancy", "q2": "Can geographic tongue be related to hormonal changes during pregnancy?"}
+{"doc": 3107, "q1": "Iron Phosphide Nanowires Synthesis", "q2": "How to synthesize iron phosphide nanowires?"}
+{"doc": 3108, "q1": "Laparoscopic ventral hernia repair", "q2": "Is laparoscopic hernia repair safe?"}
+{"doc": 3109, "q1": "Keratoelastoidosis marginalis", "q2": "What is keratoelastoidosis marginalis?"}
+{"doc": 3110, "q1": "Al-Cu phase diagram", "q2": "What is the Al-Cu binary phase diagram?"}
+{"doc": 3111, "q1": "Iranian traditional medicine physical activity", "q2": "Does genetic makeup influence exercise habits?"}
+{"doc": 3112, "q1": "improving primary care physician training", "q2": "How can primary care physicians manage clinical uncertainties?"}
+{"doc": 3113, "q1": "ablation techniques in cancer treatment", "q2": "Is ablation a first line treatment for hepatocellular carcinoma?"}
+{"doc": 3114, "q1": "cancer metastasis evolutionary process", "q2": "How do cancers develop from single cells?"}
+{"doc": 3115, "q1": "unicystic ameloblastoma", "q2": "What is unicystic ameloblastoma?"}
+{"doc": 3116, "q1": "fyn tyrosine kinase role", "q2": "What is the function of Fyn in cell signaling?"}
+{"doc": 3117, "q1": "probabilistic data linkage techniques", "q2": "Can probabilistic data linkage improve research results?"}
+{"doc": 3118, "q1": "Cytotoxic agents QSAR investigation", "q2": "What are potent cytotoxic compounds that target cancer cells?"}
+{"doc": 3119, "q1": "Everolimus bioresorbable scaffold complications", "q2": "Can everolimus-eluting bioresorbable scaffolds be treated after restenosis?"}
+{"doc": 3120, "q1": "nigeria safe water access", "q2": "is there good water access in nigeria"}
+{"doc": 3121, "q1": "transportation planning and public health", "q2": "Can transportation planning improve public health?"}
+{"doc": 3122, "q1": "cerebellar space occupying lesions vestibular pathway", "q2": "What causes vertigo from cerebellar lesions?"}
+{"doc": 3123, "q1": "nuclear hormone receptors metabolism", "q2": "What is the role of nuclear hormone receptors in regulating metabolism?"}
+{"doc": 3124, "q1": "cartilage explant culture dynamics", "q2": "What happens to cartilage after extraction?"}
+{"doc": 3125, "q1": "NAFLD in postmenopausal women", "q2": "Is NAFLD linked to heart disease in older women?"}
+{"doc": 3126, "q1": "clindamycin resistance", "q2": "What causes clindamycin resistance in Staphylococcus aureus?"}
+{"doc": 3127, "q1": "neutrophil regulation", "q2": "How are neutrophils regulated?"}
+{"doc": 3128, "q1": "pneumocephalus complications", "q2": "What causes pneumocephalus?"}
+{"doc": 3129, "q1": "extracellular vesicles dna content", "q2": "Can DNA be transferred through extracellular vesicles?"}
+{"doc": 3130, "q1": "microparticles in infectious disease", "q2": "Do microparticles play a role in infectious diseases?"}
+{"doc": 3131, "q1": "malaria kidney damage treatment", "q2": "Can malaria cause kidney problems?"}
+{"doc": 3132, "q1": "eyedrop bottle design", "q2": "Can an upright eyedrop bottle help with eyedrop placement?"}
+{"doc": 3133, "q1": "hypersexuality in Parkinson's disease", "q2": "Can Parkinson's patients be hypersexual?"}
+{"doc": 3134, "q1": "kleine levin syndrome", "q2": "what causes kleine levin syndrome?"}
+{"doc": 3135, "q1": "Lyme disease symptoms in Himalayas", "q2": "What are the signs of Lyme disease in India?"}
+{"doc": 3136, "q1": "temporal pattern learning", "q2": "what influences learning and memory?"}
+{"doc": 3137, "q1": "overnight fasting before surgery", "q2": "Is overnight fasting necessary before elective surgery?"}
+{"doc": 3138, "q1": "satellite cell function", "q2": "What role do satellite cells play in muscle repair?"}
+{"doc": 3139, "q1": "malignant glaucoma diagnosis", "q2": "What causes bilateral malignant glaucoma?"}
+{"doc": 3140, "q1": "coronary calcium studies", "q2": "Does high coronary calcium indicate heart disease?"}
+{"doc": 3141, "q1": "Medical imaging software development", "q2": "Can medical images from different sources be combined?"}
+{"doc": 3142, "q1": "rice database wiki", "q2": "Is there a public rice gene database?"}
+{"doc": 3143, "q1": "Reducing unnecessary prostate biopsies", "q2": "Can prostatitis prevent cancer diagnosis?"}
+{"doc": 3144, "q1": "heart regeneration non-mammalian species", "q2": "Can hearts regenerate like fish?"}
+{"doc": 3145, "q1": "ohss prevention treatment", "q2": "What is the best way to prevent ovarian hyperstimulation syndrome?"}
+{"doc": 3146, "q1": "Guillain-Barre syndrome symptoms", "q2": "Can Guillain-Barre cause brain death?"}
+{"doc": 3147, "q1": "keratoacanthoma centrifugum marginatum", "q2": "What causes keratoacanthoma centrifugum marginatum?"}
+{"doc": 3148, "q1": "Congenital Infantile Fibrosarcoma", "q2": "What is Infantile Fibrosarcoma in infants?"}
+{"doc": 3149, "q1": "symmetry formation in biological organisms", "q2": "How does symmetry change during development?"}
+{"doc": 3150, "q1": "venous thromboembolism prevention ICU", "q2": "Can ICUs prevent venous thromboembolism effectively?"}
+{"doc": 3151, "q1": "intramuscular adipose tissue and sarcopenia", "q2": "What is the impact of intramuscular adipose tissue on mobility?"}
+{"doc": 3152, "q1": "fluoride varnish effects on bonding", "q2": "Does applying fluoride varnish before bonding procedures affect its strength?"}
+{"doc": 3153, "q1": "amaurosis fugax diagnosis", "q2": "What causes sudden loss of vision in one eye?"}
+{"doc": 3154, "q1": "secondary cancers after anticancer therapy", "q2": "Can chemotherapy cause a second type of cancer?"}
+{"doc": 3155, "q1": "phloroglucinol hydrate formation", "q2": "What affects phloroglucinol hydrate properties?"}
+{"doc": 3156, "q1": "tenascin-r modification after unilateral labyrinthectomy", "q2": "Does tenascin-r expression change after labyrinth removal?"}
+{"doc": 3157, "q1": "Mechanosensitive channel properties", "q2": "How do mechanosensitive channels work?"}
+{"doc": 3158, "q1": "Blastocystis subtype in cattle", "q2": "What are the common subtypes of Blastocystis found in infected cattle?"}
+{"doc": 3159, "q1": "pelvic exenteration surgery", "q2": "Is pelvic exenteration effective for gynecologic cancer?"}
+{"doc": 3160, "q1": "brca1 mutation breast cancer treatment", "q2": "Is a Brca1 mutation linked to increased risk of serous carcinoma?"}
+{"doc": 3161, "q1": "common iliac artery growth", "q2": "do common iliac arteries grow during pregnancy"}
+{"doc": 3162, "q1": "radial approach for single coronary artery PCI", "q2": "Can you perform PCI on a patient with a single coronary artery?"}
+{"doc": 3163, "q1": "biochemical analyte stability", "q2": "Can biochemical analytes remain stable after storage?"}
+{"doc": 3164, "q1": "horizontal gene transfer", "q2": "Can we reconstruct the tree of life?"}
+{"doc": 3165, "q1": "Detrended Fluctuation Analysis Diabetes", "q2": "Does DFA Predict Type 2 Diabetes?"}
+{"doc": 3166, "q1": "TTP and dengue fever treatment", "q2": "Can TTP be treated in patients with dengue?"}
+{"doc": 3167, "q1": "vomeronasal sensitivity", "q2": "What causes vomeronasal sensitivity?"}
+{"doc": 3168, "q1": "methotrexate in pci", "q2": "Is methotrexate safe for patients after PCI?"}
+{"doc": 3169, "q1": "endoscopic gastric resection technique", "q2": "Can endoscopy be used to remove entire stomach tumors?"}
+{"doc": 3170, "q1": "somatostatin receptor scintigraphy", "q2": "What is somatostatin receptor scintigraphy used for?"}
+{"doc": 3171, "q1": "electronic clinical data management", "q2": "Can electronic health records improve healthcare?"}
+{"doc": 3172, "q1": "Cardiac Surgery Outcome Reporting", "q2": "Are there standardized outcomes for cardiac surgery trials?"}
+{"doc": 3173, "q1": "16s rrna methyltransferases", "q2": "Can 16s rrna methyltransferases be prevented?"}
+{"doc": 3174, "q1": "Diels-Alder reaction catalysts", "q2": "What catalysts enhance Diels-Alder reactions?"}
+{"doc": 3175, "q1": "esthesioneuroblastoma symptoms", "q2": "What is the cause of death from esthesioneuroblastoma?"}
+{"doc": 3176, "q1": "first aid knowledge among university students", "q2": "Do university students know basic first aid?"}
+{"doc": 3177, "q1": "oxide stress and epilepsy treatment", "q2": "Can antioxidant therapy prevent seizures?"}
+{"doc": 3178, "q1": "capsaicin effects on bone health", "q2": "Does capsaicin help prevent osteoporosis?"}
+{"doc": 3179, "q1": "hyperglycemia infection risk", "q2": "Does high blood sugar increase infection risk?"}
+{"doc": 3180, "q1": "disulfiram side effects", "q2": "Can disulfiram cause eye movement problems?"}
+{"doc": 3181, "q1": "gstm1 and lung cancer association", "q2": "Does the GSTM1 null genotype increase lung cancer risk?"}
+{"doc": 3182, "q1": "Stationary Cycling Exercise Stroke Patients", "q2": "Can Cycling Help Stroke Recovery?"}
+{"doc": 3183, "q1": "Grace gravity data analysis", "q2": "What caused 4050% postseismic gravity increase?"}
+{"doc": 3184, "q1": "Thais clavigera nutritional values", "q2": "What are the health benefits of Thais clavigera?"}
+{"doc": 3185, "q1": "kinesio tape muscle function", "q2": "Does kinesio tape improve muscle strength?"}
+{"doc": 3186, "q1": "sepsis clinical burden", "q2": "What are the effects of sepsis on patients?"}
+{"doc": 3187, "q1": "robotic surgery in gynaecology", "q2": "can robotics be used for gynaecological operations"}
+{"doc": 3188, "q1": "statistics in urology", "q2": "why are doctors hesitant to use statistics"}
+{"doc": 3189, "q1": "Graves Orbitopathy Myasthenia Gravis", "q2": "Can Graves' disease cause muscle weakness?"}
+{"doc": 3190, "q1": "Longitudinal community-based medical education", "q2": "What does longitudinal community-based care teach students?"}
+{"doc": 3191, "q1": "basic fibroblast growth factor eye drops", "q2": "Do basic fibroblast growth factors speed up corneal healing?"}
+{"doc": 3192, "q1": "Caparinia mite infestation", "q2": "What causes dermatitis in four-toed hedgehogs?"}
+{"doc": 3193, "q1": "bilateral anterior shoulder dislocation", "q2": "What to do after a seizure with shoulder injury?"}
+{"doc": 3194, "q1": "pml immune cell composition", "q2": "What are the effects of pml on immune cells?"}
+{"doc": 3195, "q1": "microcystic adnexal carcinoma cheek", "q2": "what is microcystic adnexal carcinoma"}
+{"doc": 3196, "q1": "children's cancer presentation delay", "q2": "Is delayed cancer diagnosis common in children?"}
+{"doc": 3197, "q1": "livestock density and stec infection", "q2": "Does livestock farming contribute to STEC infections?"}
+{"doc": 3198, "q1": "extramedullary pulmonary hematopoiesis", "q2": "What causes extramedullary pulmonary hematopoiesis?"}
+{"doc": 3199, "q1": "Juglans Regia Antimicrobial Effects", "q2": "Does Juglans Regia have antibacterial properties?"}
+{"doc": 3200, "q1": "Follicular Dendritic Cells Lymphoma", "q2": "Do Follicular Dendritic Cells Exist in Oral Lymphomas?"}
+{"doc": 3201, "q1": "orbital plexiform neurofibroma", "q2": "can neurofibromas cause eye problems"}
+{"doc": 3202, "q1": "laser pointer safety", "q2": "can laser pointers cause eye damage"}
+{"doc": 3203, "q1": "oxytocin effects on dog behavior", "q2": "does oxytocin promote social play in dogs"}
+{"doc": 3204, "q1": "ctrp9 and atherosclerosis", "q2": "Does CTRP9 contribute to atherosclerosis in diabetics?"}
+{"doc": 3205, "q1": "cneupro biomarkers alzheimer", "q2": "Can CNEUPRO identify new Alzheimer's disease biomarkers?"}
+{"doc": 3206, "q1": "srna targets prediction tool", "q2": "What does SRNA regulate in bacteria?"}
+{"doc": 3207, "q1": "aggression in children", "q2": "how does aggression affect 36 years old children"}
+{"doc": 3208, "q1": "HIV in correctional facilities", "q2": "Can HIV be transmitted in prisons"}
+{"doc": 3209, "q1": "colistin toxicity treatment", "q2": "can hemofiltration remove colistin overdose"}
+{"doc": 3210, "q1": "methionine sulfoxide reductases regulation", "q2": "How are methionine sulfoxide reductase genes regulated?"}
+{"doc": 3211, "q1": "methylene dioxymethamphetamine overdose complications", "q2": "What are the risks of MDA overdose?"}
+{"doc": 3212, "q1": "Transumbilical single incision laparoscopic surgery", "q2": "Is transumbilical single incision cholecystectomy safe?"}
+{"doc": 3213, "q1": "e coli o157 turkey cattle", "q2": "Do cattle carry E Coli O157?"}
+{"doc": 3214, "q1": "Bowel Stricture Treatment", "q2": "What causes bowel narrowing?"}
+{"doc": 3215, "q1": "fetal endocardial fibroelastosis diagnosis", "q2": "Can fetal heart problems be caused by maternal poisoning?"}
+{"doc": 3216, "q1": "third molar extraction risks", "q2": "What are the risks associated with extracting a third molar?"}
+{"doc": 3217, "q1": "coronary heart disease risk factors", "q2": "What causes coronary artery disease?"}
+{"doc": 3218, "q1": "salt effects on blood vessels", "q2": "Does excessive salt consumption affect vascular system?"}
+{"doc": 3219, "q1": "Vitamin D deficiency India study", "q2": "What causes Vitamin D deficiency?"}
+{"doc": 3220, "q1": "dexamethasone vlbwi treatment", "q2": "Can dexamethasone reduce chronic lung disease in premature babies?"}
+{"doc": 3221, "q1": "mechanical ventilation lung injury", "q2": "Can mechanical ventilation cause systemic inflammation?"}
+{"doc": 3222, "q1": "commotio retinae diagnosis", "q2": "What causes commotio retinae?"}
+{"doc": 3223, "q1": "Sex Determination using Radiography", "q2": "Can Radiographs Determine Sex?"}
+{"doc": 3224, "q1": "r ode simulation", "q2": "how to simulate odes in r"}
+{"doc": 3225, "q1": "Peripheral artery disease physical activity", "q2": "Does exercise help peripheral artery disease?"}
+{"doc": 3226, "q1": "fat embolism syndrome symptoms", "q2": "what causes fat embolism"}
+{"doc": 3227, "q1": "Gastrointestinal Stromal Tumors", "q2": "Can GISTs be diagnosed through cytology?"}
+{"doc": 3228, "q1": "type 1 diabetes risk score", "q2": "What is a good type 1 diabetes risk score?"}
+{"doc": 3229, "q1": "laryngeal mask airway intubation techniques", "q2": "Can a Cook Airway Exchange Catheter assist in pediatric intubation?"}
+{"doc": 3230, "q1": "silicone rod infections", "q2": "Can silicone rods cause infections?"}
+{"doc": 3231, "q1": "leuconostoc lactis treatment", "q2": "Can leuconostoc be treated with antibiotics?"}
+{"doc": 3232, "q1": "wearable technology for research", "q2": "Can wearable devices be used for scientific studies?"}
+{"doc": 3233, "q1": "palate soft tissue tumor", "q2": "Can a chondroma occur on the palate?"}
+{"doc": 3234, "q1": "Fragile X Syndrome Protein", "q2": "What causes Fragile X Syndrome?"}
+{"doc": 3235, "q1": "intraoperative re-excision breast surgery", "q2": "Is intraoperative re-excision effective for breast cancer?"}
+{"doc": 3236, "q1": "intensive care reviews 2015", "q2": "What are the key findings of intensive care research in 2015?"}
+{"doc": 3237, "q1": "laparoscopy complications", "q2": "what are risks during laparoscopy"}
+{"doc": 3238, "q1": "total enbloc spondylectomy metastatic cancer", "q2": "Is total enbloc spondylectomy effective in treating metastatic spinal tumors?"}
+{"doc": 3239, "q1": "exercise induced asthma and nighttime symptoms", "q2": "can exercise induce asthma at night"}
+{"doc": 3240, "q1": "fr targeting cancer treatment", "q2": "Can FR targeting help with cancer diagnosis?"}
+{"doc": 3241, "q1": "fulvestrant breast cancer treatment", "q2": "Is fulvestrant effective for advanced breast cancer?"}
+{"doc": 3242, "q1": "Talar process fragment excision", "q2": "What happens after talar process excision?"}
+{"doc": 3243, "q1": "rare langerhans cell histiocytosis symptoms", "q2": "can LCH affect the thyroid gland"}
+{"doc": 3244, "q1": "geographic mosaic theory", "q2": "what is geographic mosaic theory"}
+{"doc": 3245, "q1": "international collaboration in medical research", "q2": "Is international collaboration increasing in medicine?"}
+{"doc": 3246, "q1": "hba1c mathematical model", "q2": "what is the purpose of hba1c testing"}
+{"doc": 3247, "q1": "curcumin malaria treatment", "q2": "Can curcumin be used as an antimalarial drug?"}
+{"doc": 3248, "q1": "ballast water discharge regulations", "q2": "What are the proposed standards for ballast water discharge?"}
+{"doc": 3249, "q1": "cachexia research updates", "q2": "What are the effects of cachexia on cancer patients?"}
+{"doc": 3250, "q1": "mpfl reconstruction without implants", "q2": "Is MPFL reconstruction with soft tissue fixation more effective?"}
+{"doc": 3251, "q1": "hiv therapy difficulties", "q2": "Do HIV patients struggle with treatment?"}
+{"doc": 3253, "q1": "lung cancer metastasizing to unusual sites", "q2": "Can lung cancer spread to unusual locations?"}
+{"doc": 3254, "q1": "hypothermia for cardiac arrest", "q2": "should cardiac arrest patients be cooled"}
+{"doc": 3255, "q1": "minimal change nephropathy treatment", "q2": "Can minimal change nephropathy be treated without steroids?"}
+{"doc": 3256, "q1": "kampo medicine for mental disorders", "q2": "Can kampo medicines treat dysthymia?"}
+{"doc": 3257, "q1": "Autoimmune disease prevalence china", "q2": "How common are autoimmune diseases in China?"}
+{"doc": 3258, "q1": "Totally Implantable Central Venous Port System", "q2": "Is the TICVP implantation procedure safe?"}
+{"doc": 3259, "q1": "miliary mottling chest radiography", "q2": "What causes miliary mottling on x-ray?"}
+{"doc": 3260, "q1": "protein purification using antibodies", "q2": "Can you purify proteins using antibody beads?"}
+{"doc": 3261, "q1": "self-poisoning adolescents", "q2": "Can teenagers self-poison?"}
+{"doc": 3262, "q1": "anemia transfusion mismatch", "q2": "can transfusions cause anemia"}
+{"doc": 3263, "q1": "carotid artery blood flow velocity age", "q2": "Does carotid artery blood flow change with age?"}
+{"doc": 3264, "q1": "intrauterine leiomyomatosis treatment", "q2": "What is intravenous leiomyomatosis surgery like?"}
+{"doc": 3265, "q1": "nanoparticle toxicity", "q2": "Are nanoparticles toxic?"}
+{"doc": 3266, "q1": "broad mite control", "q2": "how to get rid of broad mites"}
+{"doc": 3267, "q1": "preterm birth diabetes link", "q2": "Is preterm birth associated with developing diabetes later in life?"}
+{"doc": 3268, "q1": "critical care outreach services evaluation", "q2": "should critical care outreach services be discontinued?"}
+{"doc": 3269, "q1": "paclitaxel and myocardial infarction", "q2": "Can paclitaxel cause heart attack?"}
+{"doc": 3270, "q1": "ameloblastoma behavior", "q2": "Can ameloblastomas exhibit aggressive behavior?"}
+{"doc": 3271, "q1": "bacillus polyglutamic acid production", "q2": "Can Bacillus produce specific extracellular substances?"}
+{"doc": 3272, "q1": "colonic adenocarcinoma metastasis", "q2": "Can cancer from the colon spread to the thyroid?"}
+{"doc": 3273, "q1": "giant cell tumor olecranon", "q2": "can giant cell tumors occur in olecranon"}
+{"doc": 3274, "q1": "Malaysia health care reorganization", "q2": "What are the changes in Malaysia's healthcare system since 1957?"}
+{"doc": 3275, "q1": "parental influence on child physical activity", "q2": "do parents affect a childs exercise habits"}
+{"doc": 3276, "q1": "magnetization transfer imaging brain detection", "q2": "Can magnetization transfer imaging detect early brain changes?"}
+{"doc": 3277, "q1": "oxidative stress pancreatitis", "q2": "What is the role of IL-6 in acute pancreatitis?"}
+{"doc": 3278, "q1": "desensitizing laser treatment and crown bonding", "q2": "Does desensitizing laser affect crown cement adhesion?"}
+{"doc": 3279, "q1": "hemispheric asymmetry research", "q2": "Do animals exhibit hemispheric asymmetry?"}
+{"doc": 3280, "q1": "9p21 gene desert GWAS", "q2": "What is the role of 9p21 gene desert in coronary artery disease?"}
+{"doc": 3281, "q1": "medicine spread history", "q2": "what role did medicine play in modern healthcare?"}
+{"doc": 3282, "q1": "eosinophilic chronic rhinosinusitis", "q2": "Is eosinophilic chronic rhinosinusitis associated with optic neuropathy?"}
+{"doc": 3283, "q1": "dens invaginatus", "q2": "What is dens invaginatus?"}
+{"doc": 3284, "q1": "Malaria knowledge in Tanzania", "q2": "What is the current state of malaria knowledge in Geita District?"}
+{"doc": 3285, "q1": "oxidative stress in neurons", "q2": "What causes oxidative stress in brain cells?"}
+{"doc": 3286, "q1": "periodontal disease prevalence", "q2": "What is the most common oral disease in India?"}
+{"doc": 3287, "q1": "long fragment cloning limitations", "q2": "Is restriction-based multiple-fragment assembly better than traditional long fragment cloning?"}
+{"doc": 3288, "q1": "aplastic leukemia diagnosis", "q2": "What is the early sign of Acute Promyelocytic Leukemia?"}
+{"doc": 3289, "q1": "dcr3 cancer correlation", "q2": "Does DCR3 overexpression affect cancer prognosis?"}
+{"doc": 3290, "q1": "anthrax symptoms", "q2": "can you contract anthrax from animals"}
+{"doc": 3291, "q1": "t cell subsets in heart valve recipients", "q2": "Do T cell subsets change after heart valve replacement?"}
+{"doc": 3292, "q1": "small bowel obstruction causes", "q2": "What causes small bowel obstruction?"}
+{"doc": 3293, "q1": "Teicoplanin antibiotic effectiveness", "q2": "Is teicoplanin effective against gram-positive bacteria?"}
+{"doc": 3294, "q1": "cystatin c and cardiovascular disease", "q2": "Does cystatin c predict cardiovascular risk?"}
+{"doc": 3295, "q1": "bilateral ovarian tumors", "q2": "Can both ovaries have cancer?"}
+{"doc": 3296, "q1": "corneal neovascularization treatment", "q2": "Can you treat corneal neovascularization?"}
+{"doc": 3297, "q1": "Blunt trauma hemorrhage diagnosis", "q2": "Can blood tests diagnose blunt trauma bleeding?"}
+{"doc": 3298, "q1": "oral prednisone for spondyloarthritis", "q2": "Can oral prednisone help treat spondyloarthritis?"}
+{"doc": 3299, "q1": "cervical radiculopathy treatment", "q2": "What is the best treatment for cervical radiculopathy?"}
+{"doc": 3300, "q1": "Leishmania parasite", "q2": "What is Leishmania disease?"}
+{"doc": 3301, "q1": "Darier's disease symptoms", "q2": "Can Darier's disease cause skin lesions"}
+{"doc": 3302, "q1": "undernutrition prevalence in slum areas", "q2": "What is the prevalence of undernutrition among children in slum areas?"}
+{"doc": 3303, "q1": "Factors affecting student academic performance", "q2": "What causes students to fail academically?"}
+{"doc": 3304, "q1": "mycobacterium wolinskyi", "q2": "what is mycobacterium wolinskyi"}
+{"doc": 3305, "q1": "laparoscopic cholecystectomy bile duct injuries", "q2": "What are the risks of laparoscopic cholecystectomy?"}
+{"doc": 3306, "q1": "Bone Anchored Hearing Aid", "q2": "What is the Bone Anchored Hearing Aid used for?"}
+{"doc": 3307, "q1": "Medical education rural placements", "q2": "Do medical students perceive faculty as supportive of rural healthcare?"}
+{"doc": 3308, "q1": "sevoflurane malignant hyperthermia", "q2": "Can sevoflurane cause malignant hyperthermia?"}
+{"doc": 3309, "q1": "data mining algorithms for adverse events", "q2": "Can data mining detect drug-related side effects?"}
+{"doc": 3310, "q1": "sleep disturbances caused by acid reflux", "q2": "Does acid reflux affect sleep quality?"}
+{"doc": 3311, "q1": "echinococcus granulosus infection symptoms", "q2": "what causes echinococcus granulosus disease?"}
+{"doc": 3312, "q1": "Health Information Technology Adoption", "q2": "Is Health IT widely adopted in US Emergency Departments?"}
+{"doc": 3313, "q1": "emotional regulation FGID", "q2": "Can emotional regulation improve FGID symptoms?"}
+{"doc": 3314, "q1": "clopidogrel resistance stent thrombosis", "q2": "Can alternative anti-platelet agents prevent stent thrombosis?"}
+{"doc": 3315, "q1": "sirt1 diabetes treatment", "q2": "Can SIRT1 be used to prevent type 2 diabetes?"}
+{"doc": 3316, "q1": "malignant peripheral nerve sheath tumor", "q2": "What causes mpnst cancer"}
+{"doc": 3317, "q1": "Peritonitis causes in PD patients", "q2": "What causes peritonitis in dialysis patients"}
+{"doc": 3318, "q1": "trihydroxyflavone effects", "q2": "What is the impact of trihydroxyflavone on neuronal growth?"}
+{"doc": 3319, "q1": "solitary kidney anorectal malformation", "q2": "Can a single kidney affect children with anorectal malformation?"}
+{"doc": 3320, "q1": "Traditional medicine education in Korea and China", "q2": "Do Korean and Chinese traditional medicine doctors agree on modernizing their education?"}
+{"doc": 3321, "q1": "snakebite treatments", "q2": "Can snakebites be treated outside a hospital?"}
+{"doc": 3322, "q1": "laparoscopic urological surgery fellowship", "q2": "Is there a program for training in laparoscopic urology?"}
+{"doc": 3323, "q1": "monocular squint surgery results", "q2": "Is monocular squint surgery effective for horizontal strabismus?"}
+{"doc": 3324, "q1": "carbon monoxide poisoning effects", "q2": "what are the symptoms of delayed encephalopathy?"}
+{"doc": 3325, "q1": "ammonium determination reagent", "q2": "What is the best way to determine ammonium in water?"}
+{"doc": 3326, "q1": "Wheat Septoria Blotch Disease", "q2": "How to control wheat septoria blotch?"}
+{"doc": 3327, "q1": "sacralization low back pain", "q2": "Is sacralization a risk factor for low back pain?"}
+{"doc": 3328, "q1": "Activated Protein C", "q2": "What is Activated Protein C?"}
+{"doc": 3329, "q1": "midpalatal suture classification cbct", "q2": "Can CBCT images predict midpalatal suture maturity?"}
+{"doc": 3330, "q1": "light transmission through esthetic dental posts", "q2": "What is the effect of different esthetic dental posts on light transmission?"}
+{"doc": 3331, "q1": "NGAL and ICU patient outcomes", "q2": "Can NGAL levels predict SIRS patient mortality?"}
+{"doc": 3332, "q1": "aplastic anemia treatment", "q2": "Can aplastic anemia patients survive fungal infections?"}
+{"doc": 3333, "q1": "menopausal symptoms in india", "q2": "do menopausal women in india suffer from physical disorders"}
+{"doc": 3334, "q1": "Severe Obesity Daily Life Disability", "q2": "Can severe obesity affect daily activities?"}
+{"doc": 3335, "q1": "aosd symptoms", "q2": "what is adult onset still's disease"}
+{"doc": 3336, "q1": "blood flow velocity measurement", "q2": "What is the normal blood flow velocity in micropigs?"}
+{"doc": 3337, "q1": "wax reduction plant traits", "q2": "Do reduced plant waxes affect entire ecosystems?"}
+{"doc": 3338, "q1": "Zeb1 role in cancer progression", "q2": "How does Zeb1 contribute to tumor growth?"}
+{"doc": 3339, "q1": "ncor function in gene transcription", "q2": "What role do ncor and smrt play in ppar action?"}
+{"doc": 3340, "q1": "arterial patterns upper limb", "q2": "what are common arterial variations in the arm"}
+{"doc": 3341, "q1": "amygdala function in depression", "q2": "Does amygdala dysfunction cause depression?"}
+{"doc": 3342, "q1": "virtual screening methodologies", "q2": "Can virtual screens replace human researchers?"}
+{"doc": 3343, "q1": "Mucogingival surgery results", "q2": "Is mucogingival surgery effective for replanted teeth?"}
+{"doc": 3344, "q1": "endoplasmic reticulum quality control", "q2": "How does the endoplasmic reticulum ensure protein quality?"}
+{"doc": 3345, "q1": "vascular microenvironment systemic sclerosis", "q2": "what role does the vascular microenvironment play in systemic sclerosis?"}
+{"doc": 3346, "q1": "hba1c and heart failure", "q2": "Is elevated HbA1c linked to heart failure?"}
+{"doc": 3347, "q1": "aortic valve failure treatment", "q2": "Can aortic valve replacement cure mitral regurgitation?"}
+{"doc": 3348, "q1": "glassy carbon electrode modification", "q2": "How are glassy carbon electrodes coated for use?"}
+{"doc": 3349, "q1": "brucellosis eye symptoms", "q2": "can you get eye problems from brucellosis"}
+{"doc": 3350, "q1": "distinguishing thyroid and parathyroid neoplasms", "q2": "how to differentiate between thyroid and parathyroid tumors"}
+{"doc": 3351, "q1": "Ccarbohydrate database", "q2": "What is glycomedb?"}
+{"doc": 3352, "q1": "staghorn calculi hypercalcemia", "q2": "Can staghorn stones cause cancer?"}
+{"doc": 3353, "q1": "rheohemapheresis amd treatment effect", "q2": "Does rheohemapheresis improve macular degeneration outcomes?"}
+{"doc": 3354, "q1": "euglycemic diabetic ketoacidosis", "q2": "what is euglycemic diabetic ketoacidosis"}
+{"doc": 3355, "q1": "atad2 cancer prognosis", "q2": "Does ATAD2 influence cancer outcomes?"}
+{"doc": 3356, "q1": "polymerization composite resins", "q2": "Does adequate polymerization affect composite resin longevity?"}
+{"doc": 3357, "q1": "Homologous Recombination Repair Mechanism", "q2": "What is the role of Mre11 in Homologous Recombination?"}
+{"doc": 3358, "q1": "dexh/d protein function", "q2": "What is the role of Dexh/D proteins in RNA metabolism?"}
+{"doc": 3359, "q1": "chikungunya research", "q2": "What is being done about Chikungunya?"}
+{"doc": 3360, "q1": "public perception of cancer incidence rates", "q2": "how accurate are people's perceptions of cancer rates"}
+{"doc": 3361, "q1": "metachromatic leukodystrophy symptoms", "q2": "what causes metachromatic leukodystrophy"}
+{"doc": 3362, "q1": "cervical disk disease surgical approaches", "q2": "What is the best surgery for cervical spine disorders?"}
+{"doc": 3363, "q1": "ect treatment for depression", "q2": "Is electroconvulsive therapy effective for depression?"}
+{"doc": 3364, "q1": "leisure time physical activity metabolic syndrome", "q2": "Can leisure activities reduce the risk of metabolic syndrome?"}
+{"doc": 3365, "q1": "Leptospirosis ECG changes", "q2": "Can Leptospirosis cause abnormal heart rhythms?"}
+{"doc": 3366, "q1": "intravitreal anti-VEGF therapy", "q2": "Does VEGF therapy improve vision in age-related macular degeneration?"}
+{"doc": 3367, "q1": "miniature pig bone defect model", "q2": "Is a miniature pig suitable for bone defect research?"}
+{"doc": 3368, "q1": "Pancreatic stellate cell activation", "q2": "What triggers pancreatic stellate cell activation?"}
+{"doc": 3369, "q1": "meniscal injuries ACL reconstruction", "q2": "does delayed ACL reconstruction increase meniscal damage?"}
+{"doc": 3370, "q1": "silorane composite repair", "q2": "Does adding a hydrophobic resin improve composite repair?"}
+{"doc": 3371, "q1": "Acanthamoeba distribution Iran", "q2": "What is the prevalence of Acanthamoeba in Iran?"}
+{"doc": 3372, "q1": "zygomycosis treatment", "q2": "Can zygomycosis be treated?"}
+{"doc": 3373, "q1": "central venous port catheter insertion risks", "q2": "Does inserting a central venous port catheter increase the risk of blood clots?"}
+{"doc": 3374, "q1": "ptsd brain activity", "q2": "Does PTSD affect brain activity?"}
+{"doc": 3375, "q1": "diabetic macular edema treatment", "q2": "Can baseline characteristics predict IVTA treatment for diabetic macular edema?"}
+{"doc": 3376, "q1": "mucoepidermoid carcinoma larynx", "q2": "What causes mucoepidermoid carcinoma in the larynx?"}
+{"doc": 3377, "q1": "cancer survival disparities african americans", "q2": "why are african americans less likely to survive cancer"}
+{"doc": 3378, "q1": "peri-implantitis microbiota", "q2": "what causes peri-implantitis?"}
+{"doc": 3379, "q1": "linear nevoid hypermelanosis symptoms", "q2": "What causes linear and whorled nevoid hypermelanosis?"}
+{"doc": 3380, "q1": "cvid symptoms", "q2": "What causes common variable immunodeficiency?"}
+{"doc": 3381, "q1": "Quality Improvement in Healthcare Organizations", "q2": "Is quality measurement necessary for healthcare success?"}
+{"doc": 3382, "q1": "osteoporosis self-assessment tool", "q2": "What does the osteoporosis self-assessment tool do?"}
+{"doc": 3383, "q1": "hydrophobic interactions smdhs self-assembly", "q2": "Do hydrophobic interactions affect the formation of cyclic nanostructures?"}
+{"doc": 3384, "q1": "free energy prediction for druglike molecules", "q2": "Can machine learning predict drug solubility?"}
+{"doc": 3385, "q1": "haemodialysis dose assessment", "q2": "Can the intensity of dialysis affect patient outcomes?"}
+{"doc": 3386, "q1": "retinoic acid thyroid cancer treatment", "q2": "Does retinoic acid help treat differentiated thyroid cancer?"}
+{"doc": 3387, "q1": "lung cancer immunotherapy", "q2": "Is immunotherapy effective for lung cancer?"}
+{"doc": 3388, "q1": "necator americanus infection", "q2": "Can people in rural Korea get infected with hookworms?"}
+{"doc": 3389, "q1": "Ellis Van Creveld Syndrome", "q2": "What is Ellis Van Creveld Syndrome?"}
+{"doc": 3390, "q1": "biofilm eradication methods", "q2": "how to remove biofilms"}
+{"doc": 3391, "q1": "Self-Assessment Impact on Student Performance", "q2": "Does Self-Assessment Improve Academic Results?"}
+{"doc": 3392, "q1": "green nail syndrome", "q2": "What causes green nails to turn black?"}
+{"doc": 3393, "q1": "cardiac myxoma symptoms", "q2": "What are atypical presentations of cardiac myxoma?"}
+{"doc": 3394, "q1": "mdd in coronary heart disease", "q2": "Is depression common among patients with heart disease?"}
+{"doc": 3395, "q1": "mog antibody encephalitis", "q2": "Is MOG antibody positive encephalitis benign?"}
+{"doc": 3396, "q1": "corneal reconstruction methods", "q2": "Can mesenchymal stem cells repair cornea?"}
+{"doc": 3397, "q1": "novovirus attachment factors", "q2": "What do noroviruses use to attach to cells?"}
+{"doc": 3398, "q1": "decompression illness symptoms", "q2": "Can rapid diving ascents cause kidney damage?"}
+{"doc": 3399, "q1": "a1c vs estimated average glucose", "q2": "Is a1c always accurate?"}
+{"doc": 3400, "q1": "oral health knowledge among dental students", "q2": "Do dental students have better oral health knowledge?"}
+{"doc": 3401, "q1": "ovarian cancer with rectal lump", "q2": "Can you have both ovarian cancer and colorectal cancer?"}
+{"doc": 3402, "q1": "acl tears in children", "q2": "how common are acl injuries in kids?"}
+{"doc": 3403, "q1": "amyand's hernia", "q2": "What is amyand's hernia?"}
+{"doc": 3404, "q1": "diabetic retinopathy complications", "q2": "Can diabetes cause blindness?"}
+{"doc": 3405, "q1": "heterologous expression of bioactive compounds", "q2": "Can heterologous expression discover new natural products?"}
+{"doc": 3406, "q1": "dentistry student prescribing patterns", "q2": "Do dentistry students improve their prescription skills over time?"}
+{"doc": 3407, "q1": "lipase enzymes biofuels", "q2": "Can lipases be used to produce biofuels?"}
+{"doc": 3408, "q1": "Crimean Congo hemorrhagic fever seroprevalence", "q2": "Is Crimean Congo hemorrhagic fever common in Afghanistan?"}
+{"doc": 3409, "q1": "polyphosphoester synthesis", "q2": "Can polyphosphoesters be used in biomedical applications?"}
+{"doc": 3410, "q1": "caries removal system", "q2": "Is there an effective method for removing caries?"}
+{"doc": 3411, "q1": "periocular infantile capillary hemangioma treatment", "q2": "Can bleomycin injections treat stubborn eye hemangiomas?"}
+{"doc": 3412, "q1": "Hailey disease treatment", "q2": "What causes Hailey disease?"}
+{"doc": 3413, "q1": "Electronic Medication Management System (EMMS) impact", "q2": "Does EMMS improve doctor-patient interaction?"}
+{"doc": 3414, "q1": "herpes zoster ophthalmicus symptoms", "q2": "Can herpes zoster cause orbital apex syndrome?"}
+{"doc": 3415, "q1": "medical student learning outcomes 2009", "q2": "What are the required skills for medical graduates?"}
+{"doc": 3416, "q1": "COPD self-management interventions", "q2": "Are COPD self-management programs effective?"}
+{"doc": 3417, "q1": "ddt use in zambia", "q2": "Is DDT still used in Zambia?"}
+{"doc": 3418, "q1": "cyclosporine ocular adverse events", "q2": "What are the side effects of cyclosporine eye drops?"}
+{"doc": 3419, "q1": "prenatal care and birth outcomes", "q2": "Does prenatal care affect low birth weight babies?"}
+{"doc": 3420, "q1": "Muscular activity root canal preparation", "q2": "What muscles are active during root canal treatment?"}
+{"doc": 3421, "q1": "Autoimmune blistering disease diagnosis", "q2": "Can immunofluorescence diagnose bullous disorders?"}
+{"doc": 3422, "q1": "Radiologist Communication Guidelines", "q2": "What are the best practices for radiologists to communicate with patients?"}
+{"doc": 3423, "q1": "opioid growth factor", "q2": "What is the function of opioid growth factor?"}
+{"doc": 3424, "q1": "osteoporosis and spine fusion", "q2": "Does osteoporosis affect spine surgery outcomes?"}
+{"doc": 3425, "q1": "composite resin curing techniques", "q2": "What is the best light curing method for composite resin?"}
+{"doc": 3426, "q1": "minocycline side effects", "q2": "Can minocycline cause skin discoloration?"}
+{"doc": 3427, "q1": "Knee extension strength poststroke", "q2": "Can knee extension strength predict gait after stroke?"}
+{"doc": 3428, "q1": "robotic surgery communication challenges", "q2": "Does poor communication affect robotic surgery outcomes?"}
+{"doc": 3429, "q1": "miriplatin vs epirubicin hepatocellular carcinoma", "q2": "Is miriplatin effective for treating hepatocellular carcinoma?"}
+{"doc": 3430, "q1": "primitive neuroectodermal tumors", "q2": "What are primitive neuroectodermal tumors (PNET) symptoms?"}
+{"doc": 3431, "q1": "collagen crosslinking device", "q2": "how to perform collagen crosslinking"}
+{"doc": 3432, "q1": "mortality rate after falls", "q2": "Why do rural seniors have better survival rates after falls?"}
+{"doc": 3433, "q1": "gck mody diabetes", "q2": "what causes gck mody"}
+{"doc": 3434, "q1": "lung cancer prognosis copd", "q2": "Does COPD affect lung cancer survival rates?"}
+{"doc": 3435, "q1": "periodontal disease treatment", "q2": "Can periodontal disease be treated?"}
+{"doc": 3436, "q1": "type 2 diabetes medication utilization", "q2": "Do patients with type 2 diabetes continue taking medications after hospital discharge?"}
+{"doc": 3437, "q1": "ADHD Inattentive Type Treatment", "q2": "What are the behavioral difficulties of ADHD Inattentive Type children?"}
+{"doc": 3438, "q1": "ureteral stent placement complications", "q2": "What are common complications of ureteral stent placement?"}
+{"doc": 3439, "q1": "laparoscopic sigmoid resection techniques", "q2": "Can laparoscopy be used for rectal surgery?"}
+{"doc": 3440, "q1": "Transversus abdominis plane block", "q2": "Does a TAP block reduce post-operative pain?"}
+{"doc": 3441, "q1": "cordyceps compounds anti-inflammatory", "q2": "Does cordyceps have anti-inflammatory properties?"}
+{"doc": 3442, "q1": "Fe3O4 nanoparticles for gene therapy", "q2": "Can Fe3O4 be used for targeted gene delivery?"}
+{"doc": 3443, "q1": "influenza A H1N1 pneumonia BAL", "q2": "Can H1N1 influenza cause changes in lung cells?"}
+{"doc": 3444, "q1": "singlet vs triplet exciton diffusion", "q2": "Do singlet and triplet excitons diffuse differently?"}
+{"doc": 3445, "q1": "chloroplast sensor kinase", "q2": "How does chloroplast sensor kinase work?"}
+{"doc": 3446, "q1": "copd exacerbation mortality factors", "q2": "Does anemia increase risk of death in COPD patients?"}
+{"doc": 3447, "q1": "Orbital Metastases Egypt", "q2": "What causes orbital metastases in Egyptian patients?"}
+{"doc": 3448, "q1": "nmyristoyltransferase inhibitors", "q2": "Are NMT enzymes a potential target for malaria treatment?"}
+{"doc": 3449, "q1": "abmd vs vbmd measurement", "q2": "Is dual energy X-ray absorptiometry affected by body mass index?"}
+{"doc": 3450, "q1": "mitoxantrone side effects", "q2": "Does mitoxantrone harm the heart?"}
+{"doc": 3451, "q1": "dengue liver dysfunction", "q2": "can dengue cause liver damage"}
+{"doc": 3452, "q1": "catheterization after cystectomy", "q2": "what predicts catheter use after bladder surgery"}
+{"doc": 3453, "q1": "prison patient healthcare", "q2": "Can prisoners receive proper medical care in prison?"}
+{"doc": 3454, "q1": "fluoride release glass ionomer", "q2": "Does bleaching affect fluoride release?"}
+{"doc": 3455, "q1": "amphioxus genome sequencing", "q2": "Is the human genome octaploid?"}
+{"doc": 3456, "q1": "teaching abroad for medical educators", "q2": "Can teaching abroad improve a doctor's teaching skills?"}
+{"doc": 3457, "q1": "daily activities and type 2 diabetes", "q2": "Is exercise better than daily activities for managing type 2 diabetes?"}
+{"doc": 3458, "q1": "Liver Trauma Treatment Guidelines", "q2": "What are the new guidelines for treating liver injuries?"}
+{"doc": 3459, "q1": "Belgian food consumption survey methodology", "q2": "How was the Belgian food consumption survey conducted?"}
+{"doc": 3460, "q1": "dental caries microbiome", "q2": "what causes dental caries?"}
+{"doc": 3461, "q1": "diabetes care guidelines", "q2": "What factors affect adherence to diabetes care?"}
+{"doc": 3462, "q1": "cesarean section rate in iran", "q2": "has the iranian health reform reduced cesarean births?"}
+{"doc": 3463, "q1": "cerebral malaria in children", "q2": "What causes cerebral malaria in kids?"}
+{"doc": 3464, "q1": "cycad research deficiency", "q2": "Why is there a lack of cycad research?"}
+{"doc": 3465, "q1": "off-label prescribing", "q2": "Can you prescribe a drug for a different use?"}
+{"doc": 3466, "q1": "schistosoma haematobium infection mapping", "q2": "Can we predict areas with high schistosoma haematobium prevalence?"}
+{"doc": 3467, "q1": "Mixed Chimerism Bone Marrow Transplantation", "q2": "Can Mixed Chimerism Be Successfully Induced?"}
+{"doc": 3468, "q1": "obesity and depression relationship", "q2": "Is there a link between weight gain and mental health?"}
+{"doc": 3469, "q1": "Lactobacillus infection", "q2": "Is Lactobacillus a common cause of infections?"}
+{"doc": 3470, "q1": "health index in Tehran", "q2": "Which cities have the highest health index?"}
+{"doc": 3471, "q1": "iran rural road traffic deaths", "q2": "Are rural roads in Iran more dangerous?"}
+{"doc": 3472, "q1": "bevacizumab for central serous choroidoretinopathy", "q2": "Is bevacizumab effective for CSC?"}
+{"doc": 3473, "q1": "dental care in elderly institutions", "q2": "Can institutionalized elderly access dental care?"}
+{"doc": 3474, "q1": "infectious disease causes of death", "q2": "Why do infectious diseases cause more deaths in developing countries?"}
+{"doc": 3475, "q1": "Lutzomyia species distribution Brazil", "q2": "What is the habitat preference of Lutzomyia whitmani?"}
+{"doc": 3476, "q1": "bipolar coagulation minimally invasive", "q2": "What is the safest method of coagulation in minimally invasive surgery?"}
+{"doc": 3477, "q1": "Flea beetle population dynamics", "q2": "What controls flea beetle populations?"}
+{"doc": 3478, "q1": "restless legs syndrome and multiple sclerosis", "q2": "Can multiple sclerosis cause restless legs syndrome?"}
+{"doc": 3479, "q1": "visceral obesity cardiovascular disease", "q2": "Is visceral fat linked to heart disease risk?"}
+{"doc": 3480, "q1": "Bilateral vs Unilateral Knee Arthroplasty", "q2": "How long does it take for bilateral TKAs patients to recover?"}
+{"doc": 3481, "q1": "ingaas quantum dot lasers", "q2": "Can ion implantation improve laser efficiency?"}
+{"doc": 3482, "q1": "sarcoidosis tuberculosis association", "q2": "can sarcoidosis and tuberculosis occur together"}
+{"doc": 3483, "q1": "myocardial bridge symptoms", "q2": "what causes myocardial ischemia"}
+{"doc": 3484, "q1": "compliance pregnant women's bill of rights", "q2": "Are healthcare providers respecting pregnant women's rights?"}
+{"doc": 3485, "q1": "imported chikungunya cases", "q2": "Can I get chikungunya from a mosquito bite?"}
+{"doc": 3486, "q1": "Ciprofloxacin Susceptibility Mycobacteria", "q2": "Are mycobacteria resistant to ciprofloxacin?"}
+{"doc": 3487, "q1": "Biguanides type 2 diabetes", "q2": "Can biguanides cause lactic acidosis"}
+{"doc": 3488, "q1": "dipeptidyl peptidase-4 inhibitor side effects", "q2": "do DPP-4 inhibitors cause lung granulomas?"}
+{"doc": 3489, "q1": "Individual health record mobile platform", "q2": "Can a mobile PHR improve health assessment?"}
+{"doc": 3490, "q1": "regenerative endodontics", "q2": "can you treat a dead tooth with regrowth"}
+{"doc": 3491, "q1": "small intestine carcinoid tumors", "q2": "Can carcinoid tumors in the small intestine be treated with surgery?"}
+{"doc": 3492, "q1": "omega-3 fatty acids prostate cancer", "q2": "Can omega-3 reduce prostate cancer spread"}
+{"doc": 3493, "q1": "pelvic floor muscle contraction effects", "q2": "Does contracting pelvic floor muscles affect abdominal muscle thickness?"}
+{"doc": 3494, "q1": "ulcerative colitis cancer risk", "q2": "Can ulcerative colitis increase cancer risk?"}
+{"doc": 3495, "q1": "Iran Health Houses Challenges", "q2": "What challenges do Iran's health houses face?"}
+{"doc": 3496, "q1": "biodegradation protein database", "q2": "What databases store biodegradation metabolism information?"}
+{"doc": 3497, "q1": "relational continuity in elder care", "q2": "What is relational continuity in elderly care?"}
+{"doc": 3498, "q1": "paracetamol poisoning risk assessment", "q2": "Can reported dose predict paracetamol overdose treatment?"}
+{"doc": 3499, "q1": "huntington's disease symptoms", "q2": "What are common symptoms of Huntington's disease?"}
+{"doc": 3500, "q1": "hcmv colitis in elderly patients", "q2": "Can CMV cause bloody diarrhea in older adults?"}
+{"doc": 3501, "q1": "sex differences cannabinoids", "q2": "do males respond differently to marijuana"}
+{"doc": 3502, "q1": "necrotizing sialometaplasia treatment", "q2": "can necrotizing sialometaplasia come back"}
+{"doc": 3503, "q1": "covid dysphagia correlation", "q2": "Is there a link between covid and swallowing difficulties?"}
+{"doc": 3504, "q1": "corydalmine fungal inhibition", "q2": "Does corydalmine inhibit spore germination?"}
+{"doc": 3505, "q1": "antioxidant properties of medicinal plants", "q2": "Can medicinal plants reduce oxidative stress?"}
+{"doc": 3506, "q1": "tirofiban limb ischemia treatment", "q2": "Is tirofiban effective in reducing complications from acute limb ischemia?"}
+{"doc": 3507, "q1": "glass ionomer cement shear bond strength", "q2": "Which glass ionomers have highest bond strength?"}
+{"doc": 3508, "q1": "chronic heart failure elderly patients", "q2": "Does chronic heart failure affect older adults?"}
+{"doc": 3509, "q1": "Basal cell carcinoma after childhood radiotherapy", "q2": "Does childhood radiation increase risk of basal cell carcinoma?"}
+{"doc": 3510, "q1": "microneedles skin permeation", "q2": "Can microneedles enhance nanoparticle delivery?"}
+{"doc": 3511, "q1": "ebi genomics repository", "q2": "What is ArrayExpress?"}
+{"doc": 3512, "q1": "influenza B public health impact", "q2": "What are the effects of influenza B on public health?"}
+{"doc": 3513, "q1": "stem cell treatment for eye disease", "q2": "Can stem cells help with visual loss from serpiginous choroidopathy?"}
+{"doc": 3514, "q1": "protein folding misfolding balance", "q2": "What causes amyloid assembly in proteins?"}
+{"doc": 3515, "q1": "diagnosis of dopa responsive dystonia", "q2": "What causes diurnal variation in children with dystonia?"}
+{"doc": 3516, "q1": "grandparental investment bias", "q2": "why do grandparents favor their grandchildren?"}
+{"doc": 3517, "q1": "a1c as pre-diabetes diagnostic", "q2": "Is A1C an effective alternative to fasting glucose for pre-diabetes diagnosis?"}
+{"doc": 3518, "q1": "early surgery for elderly hip fracture", "q2": "Is early surgery beneficial for elderly hip fracture patients?"}
+{"doc": 3519, "q1": "beta thalassemia major treatment", "q2": "Can beta thalassemia major be treated without chelation therapy?"}
+{"doc": 3520, "q1": "male pattern baldness coronary artery disease", "q2": "Is balding linked to heart disease?"}
+{"doc": 3521, "q1": "Community Health Volunteers MCH Care", "q2": "Do community health workers improve maternal and child health?"}
+{"doc": 3522, "q1": "intraocular lens implantation technique", "q2": "Can intraocular lenses be implanted without capsular support?"}
+{"doc": 3523, "q1": "tdf antiretroviral treatment", "q2": "Can TDF be used during pregnancy?"}
+{"doc": 3524, "q1": "heart cell components", "q2": "Can you analyze heart cells individually?"}
+{"doc": 3525, "q1": "obesity and heparin dosing", "q2": "Can you dose heparin correctly in obese patients?"}
+{"doc": 3526, "q1": "rhodopsin mutations retinitis pigmentosa", "q2": "Can rhodopsin mutations cause autosomal dominant retinitis pigmentosa?"}
+{"doc": 3527, "q1": "cpr effectiveness", "q2": "Is compression-only CPR better than standard CPR?"}
+{"doc": 3528, "q1": "neural connections development", "q2": "do neural connections form during brain development"}
+{"doc": 3529, "q1": "horizontal gene transfer", "q2": "Does horizontal gene transfer affect phylogeny?"}
+{"doc": 3530, "q1": "breast cancer surgical treatment", "q2": "What are the most effective treatments for breast cancer?"}
+{"doc": 3531, "q1": "Pseudozyma species infections", "q2": "Can Pseudozyma cause human disease"}
+{"doc": 3532, "q1": "concomitant radiotherapy head cancer", "q2": "What is the most effective treatment for advanced head and neck cancer?"}
+{"doc": 3533, "q1": "mental health in diabetes management", "q2": "Is depression common among people with diabetes?"}
+{"doc": 3534, "q1": "thymic carcinoma rare cases", "q2": "What are rare forms of thymic cancer?"}
+{"doc": 3535, "q1": "mechanosensitive ion channels", "q2": "What are cell mechanosensors?"}
+{"doc": 3536, "q1": "sphingolipid insulin resistance", "q2": "Does sphingolipid content contribute to insulin resistance?"}
+{"doc": 3537, "q1": "diclofenac sodium pain relief", "q2": "Is diclofenac effective for postoperative pain?"}
+{"doc": 3538, "q1": "amyloid tumor on temple", "q2": "What is a yellow amyloid tumor called?"}
+{"doc": 3539, "q1": "chronic hip pain treatment options", "q2": "What is the most effective treatment for chronic hip pain?"}
+{"doc": 3540, "q1": "Plastic pollution in Danube River", "q2": "How much plastic is in the Danube River?"}
+{"doc": 3541, "q1": "ab initio molecular dynamics", "q2": "How does excited state ab initio MD study molecular systems?"}
+{"doc": 3542, "q1": "visfatin levels in colorectal adenoma", "q2": "Is visfatin increased in colorectal cancer precursors?"}
+{"doc": 3543, "q1": "vagal maneuvers and af", "q2": "Can vagal maneuvers cure atrial fibrillation?"}
+{"doc": 3544, "q1": "brucella melitensis infection", "q2": "What are the symptoms of Brucella melitensis?"}
+{"doc": 3545, "q1": "psychological stress on rat masticatory muscles", "q2": "Does stress affect rat jaw muscle health?"}
+{"doc": 3546, "q1": "asthma inflammation mechanism", "q2": "what causes asthma airway obstruction"}
+{"doc": 3547, "q1": "renal cell carcinoma prognosis", "q2": "Does CRP elevation affect renal cancer outcomes?"}
+{"doc": 3548, "q1": "evidence based practice in healthcare", "q2": "Is evidence-based practice essential for modern healthcare decisions?"}
+{"doc": 3549, "q1": "muscle wasting in elderly", "q2": "Can muscle loss be prevented in older adults?"}
+{"doc": 3550, "q1": "oropharyngeal cancer survival rates", "q2": "What is the five-year survival rate for oropharyngeal cancer?"}
+{"doc": 3551, "q1": "rugae pattern changes adolescence", "q2": "do rugae patterns change with age"}
+{"doc": 3552, "q1": "Grape juice effects on metabolic syndrome", "q2": "Does grape juice help with metabolic syndrome?"}
+{"doc": 3553, "q1": "ENT manifestations of HIV", "q2": "What are common ENT symptoms in HIV patients?"}
+{"doc": 3554, "q1": "median arcuate ligament syndrome", "q2": "What causes median arcuate ligament syndrome?"}
+{"doc": 3556, "q1": "multidrug resistant salmonella newport", "q2": "how is multidrug resistant salmonella spread"}
+{"doc": 3557, "q1": "diabetes foot ulcers chronic kidney disease", "q2": "Can diabetes increase the risk of amputation?"}
+{"doc": 3558, "q1": "giant hepatocellular carcinoma", "q2": "can giant liver tumors be treated"}
+{"doc": 3559, "q1": "developmental hip dysplasia treatment", "q2": "Can developmental hip dysplasia be treated successfully?"}
+{"doc": 3560, "q1": "plant salt stress adaptation", "q2": "How do plants adapt to salt stress?"}
+{"doc": 3561, "q1": "pulse oximetry technology", "q2": "what is latest in pulse oximetry"}
+{"doc": 3562, "q1": "coronary artery dissection symptoms", "q2": "What are the signs of a coronary artery rupture?"}
+{"doc": 3563, "q1": "atriofascicular pathway ablation", "q2": "Can atriofascicular pathways be treated with ablation?"}
+{"doc": 3564, "q1": "diabetes and stroke mortality", "q2": "does diabetes increase stroke mortality over time?"}
+{"doc": 3565, "q1": "azithromycin and pregnancy", "q2": "Can azithromycin be used during pregnancy for tularemia treatment?"}
+{"doc": 3566, "q1": "Phlebotomus Sergenti Vector Leishmania Tropica", "q2": "Is Phlebotomus Sergenti a main vector for Leishmania Tropica?"}
+{"doc": 3567, "q1": "Family physician CRC screening knowledge", "q2": "Do family doctors know about CRC screening?"}
+{"doc": 3568, "q1": "mrna nanoparticle vaccines", "q2": "Can mRNA nanoparticle vaccines be used against cancer?"}
+{"doc": 3569, "q1": "targeted therapy rheumatoid arthritis", "q2": "Can targeted nanoparticles treat RA?"}
+{"doc": 3570, "q1": "copd self-care", "q2": "What is it like to live with COPD?"}
+{"doc": 3571, "q1": "abdominal pregnancy complications", "q2": "Is an abdominal pregnancy life threatening?"}
+{"doc": 3572, "q1": "asthma migraine study", "q2": "Can asthma increase the risk of developing migraines?"}
+{"doc": 3573, "q1": "Amyloidosis cutis dyschromica treatment", "q2": "What is amyloidosis cutis dyschromica?"}
+{"doc": 3574, "q1": "muscle pain relief after exercise", "q2": "Does pulsating electrostatic field help with post-exercise muscle soreness?"}
+{"doc": 3575, "q1": "muscle hypertrophy causes", "q2": "what causes muscle growth disorders"}
+{"doc": 3576, "q1": "lymph syndrome genetic causes", "q2": "What causes lymph syndrome without mismatch repair gene variants?"}
+{"doc": 3577, "q1": "heat related illness indian population", "q2": "Is heat-related illness common in India?"}
+{"doc": 3578, "q1": "focal segmental glomerulosclerosis", "q2": "What causes focal segmental glomerulosclerosis?"}
+{"doc": 3579, "q1": "Thoracic spinal cord injury treatment", "q2": "What is the best way to treat thoracic spinal cord injuries?"}

@@ -115,7 +115,7 @@ class RealTimeResults():
         #Load experiment
         db.sub_path = data['args'].experiment
         processed = db.load(sess, data['returned_docs'], skip_missing_docs=False)
-        
+
         query = exp_manager.get_queries(data['query_id'], data['index_name'])[0]
         evaluator = RelevanceEvaluator(query, data['cross_encoder'])
 
@@ -140,14 +140,10 @@ class RealTimeResults():
         ]
 
         #Documents
-        returned_docs = [
-            ElasticDocument(
-                sess,
-                id,
-                text_path = exp_manager.index_defaults[sess.index_name]['text_path']
-            )
-            for id in data['returned_docs']
-        ]
+        returned_docs = []
+        for proc in processed:
+            proc.doc.text_path = exp_manager.index_defaults[sess.index_name]['text_path']
+            returned_docs.append(proc.doc)
         
         #Create final object
         return cls(

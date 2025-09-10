@@ -3,6 +3,13 @@ import os
 
 sys.path.append(os.path.abspath("../.."))
 
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--start", type=int, action="store", default=0)
+parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
+args = parser.parse_args()
+
 from mypackage.elastic import ElasticDocument, Session
 import os
 import json
@@ -70,8 +77,8 @@ These queries simulate what a user might type into a search system to find this 
 #======================================================================================================
 
 if __name__ == "__main__":
-    sess = Session("pubmed", base_path="../common")
-    docs = (ElasticDocument(sess, i, text_path="summary") for i in range(1014,6000))
+    sess = Session("pubmed", base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
+    docs = (ElasticDocument(sess, i, text_path="summary") for i in range(args.start,7000))
 
     out_file = open("queries.txt", "a")
     out_file.write("\n")
@@ -84,7 +91,7 @@ if __name__ == "__main__":
             out_file.write(json.dumps({'doc': doc.id, **res}) + "\n")
             out_file.flush()
         except Exception as e:
-            print(e)
+            print(f"For document {doc.id}: {e}")
             continue
 
     out_file.close()

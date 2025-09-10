@@ -300,12 +300,9 @@ def chain_length_plot_presentation(comparison_type: str):
 
 def metric_to_df(exp: str, metric:str):
     
-
+    micro_avg = False
     if metric == "avg_chain_centroid_sim":
-        micro_avg = False
-
         with open(f"metrics/{exp}/chain_centroid_sim.json", "r") as f: data = json.load(f)
-
         if micro_avg:
             temp = np.mean(list(chain.from_iterable(d['chain_centroid_sim'] for d in data)))
         else:
@@ -313,8 +310,11 @@ def metric_to_df(exp: str, metric:str):
             temp = np.mean(temp)
     elif metric == "avg_chain_length":
         with open(f"metrics/{exp}/chain_length.json", "r") as f: data = json.load(f)
-        temp = np.mean(list(chain.from_iterable(d['chain_length'] for d in data)))
-
+        if micro_avg:
+            temp = np.mean(list(chain.from_iterable(d['chain_length'] for d in data)))
+        else:
+            temp = [np.mean(d['chain_length']) for d in data]
+            temp = np.mean(temp)
     elif metric == "max_chain_length":
         with open(f"metrics/{exp}/chain_length.json", "r") as f: data = json.load(f)
         temp = np.max(list(chain.from_iterable(d['chain_length'] for d in data)))

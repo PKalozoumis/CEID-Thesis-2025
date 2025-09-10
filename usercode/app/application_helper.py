@@ -24,11 +24,12 @@ class Arguments():
     stats: bool = field(default=False, metadata={"help": "Print cluster stats"})
     summ: bool = field(default=True, metadata={"help": "Summarize"})
     context_expansion_threshold: float = field(default=0.01, metadata={"help": "Context expansion threshold", "short": "cet"})
+    cand_filter: float = field(default=-7, metadata={"help": "Initial candidate filter, to exclude very bad candidates from expansion"})
     candidate_sorting_method: str = field(default="flat_relevance", metadata={"help": "Candidate sorting method", "short": "csm"})
     eval: bool = field(default=False, metadata={"help": "Enable evaluation mode"})
     index: str = field(default="pubmed", metadata={"help": "Index name", "short": "i"})
-    eval_relevance_threshold: float = field(default=5.5, metadata={"help": "Relevant doc threshold"})
     num_summaries: int = field(default=1, metadata={"help": "Number of summaries to generate from the same input", "short": "nsumm"})
+    num_documents: int = field(default=10, metadata={"help": "Number of documents to retrieve from Elasticsearch", "short": "ndocs"})
 
     query: str = field(default=None, metadata={"help": "Numeric query ID or query string", "short": "q", "client_only": True})
     store_as: str = field(default=None, metadata={"help": "Filename to store summarization results in. Default is no store", "client_only": True})
@@ -142,7 +143,7 @@ class Arguments():
     
 #========================================================================================================================
 
-def create_time_tree(times: dict):
+def create_time_tree(times: dict , rename_map: dict = None):
     mytimes = defaultdict(float, {k:round(v, 3) for k,v in times.items()})
     result = {
         'elastic': mytimes['elastic'],
@@ -178,5 +179,8 @@ def create_time_tree(times: dict):
     result['summary_response_time'] = mytimes['summary_response_time']
     
     result['total'] = sum(v for v in result.values())
+
+    if rename_map:
+        result = {rename_map.get(k, k): v for k, v in result.items()}
 
     return tree, result

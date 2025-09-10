@@ -549,7 +549,7 @@ class SelectedCluster():
         After execution, each chain is transformed into a ```SummaryCandidate```, all of which are stored in the ```candidates``` list
         '''
         scores = self.evaluator.predict(self.cluster.chains)
-        self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(zip(scores, self.cluster.chains), reverse=True)]
+        self.candidates = [SummaryCandidate(chain, score, self.evaluator) for score, chain in sorted(zip(scores, self.cluster.chains), key=lambda pair: pair[0], reverse=True)]
 
         return self
     
@@ -586,7 +586,7 @@ class SelectedCluster():
         '''
         self.candidates = sorted(self.candidates, key=lambda x: (x.score, 6666 - x.chain.index), reverse=True)
         return self
-    
+
     #---------------------------------------------------------------------------
 
     def filter_and_merge_candidates(self, negative_threshold: float = -2, good_candidate_threshold: float = 3, max_bridge_size: int = 1) -> SelectedCluster:
@@ -597,34 +597,35 @@ class SelectedCluster():
         good_candidates = [c for c in filtered_candidates if c.score >= good_candidate_threshold]
         bad_candidates = [c for c in filtered_candidates if c.score < good_candidate_threshold]
 
-        #For every good candidate, try to find a bad candidate that is within bridging distance
-        for gc in good_candidates:
-            for bc in bad_candidates:
-                forward_dista = bc.first_index - gc.last_index 
-                backward_dista = gc.first_index - bc.last_index
+        if max_bridge_size > 0:
+            #For every good candidate, try to find a bad candidate that is within bridging distance
+            for gc in good_candidates:
+                for bc in bad_candidates:
+                    forward_dista = bc.first_index - gc.last_index 
+                    backward_dista = gc.first_index - bc.last_index
 
-                #Candidates can be bridged (forward)
-                if 0 <= forward_dista <= max_bridge_size + 1:
-                    #console.print(f"Forward bridging: candidate {gc.id} can be bridged with {bc.id}")
-                    #Try out the following scenarios:
-                    gc.expandable = True
-                    for i in range(len(bc.context)):
-                        gc.add_right_context(forward_dista + i)
-                    #print_candidate_states(gc)
+                    #Candidates can be bridged (forward)
+                    if 0 <= forward_dista <= max_bridge_size + 1:
+                        #console.print(f"Forward bridging: candidate {gc.id} can be bridged with {bc.id}")
+                        #Try out the following scenarios:
+                        gc.expandable = True
+                        for i in range(len(bc.context)):
+                            gc.add_right_context(forward_dista + i)
+                        #print_candidate_states(gc)
 
-                #Candidates can be bridged (backward)
-                elif 0 <= backward_dista <= max_bridge_size + 1:
-                    #console.print(f"Backward bridging: candidate {gc.id} can be bridged with {bc.id}")
-                    #Try out the following scenarios:
-                    gc.expandable = True
-                    for i in range(len(bc.context)):
-                        gc.add_left_context(backward_dista + i)
-                    #print_candidate_states(gc)
-                    
-                #Select the best scenario
-                gc.optimize()
-                gc.clear_history()
-                gc.expandable = False
+                    #Candidates can be bridged (backward)
+                    elif 0 <= backward_dista <= max_bridge_size + 1:
+                        #console.print(f"Backward bridging: candidate {gc.id} can be bridged with {bc.id}")
+                        #Try out the following scenarios:
+                        gc.expandable = True
+                        for i in range(len(bc.context)):
+                            gc.add_left_context(backward_dista + i)
+                        #print_candidate_states(gc)
+                        
+                    #Select the best scenario
+                    gc.optimize()
+                    gc.clear_history()
+                    gc.expandable = False
 
         #After this, reject all the bad candidates
         self.candidates = good_candidates

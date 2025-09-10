@@ -26,7 +26,7 @@ _console_width = None
 
 #===============================================================================================================
 
-def retrieval_stage(sess, query, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def retrieval_stage(sess, query: Query, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 1 of the pipeline
     '''
@@ -34,7 +34,7 @@ def retrieval_stage(sess, query, *, args: Arguments = None, base_path: str = "..
     times['elastic'] = time.time()
 
     if not server_args.test_mode:
-        res = query.execute(sess)
+        res = query.execute(sess, size=args.num_documents)
     else:
         res = ExperimentManager("../common/experiments.json").get_docs(None, sess)
 
@@ -143,6 +143,10 @@ def expand_context(selected_clusters: list[SelectedCluster], *, args: Arguments 
         #-----------------------------------------------------------------------------------------------------------------
         times[key] = time.time()
         message_sender('time', {key: times[key]})
+
+        #Remove some of the very bad candidates, before context expansion even begins.
+        #This saves time, because it's unlikely that very low candidates will manage to improve enough
+        focused_cluster.candidates = [c for c in focused_cluster.candidates if c.score > args.cand_filter]
 
         if args.print:
             for text in context_expansion_generator(focused_cluster, threshold=args.cet):

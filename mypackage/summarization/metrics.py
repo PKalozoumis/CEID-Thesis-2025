@@ -72,7 +72,7 @@ def compression_ratio(summary_unit: SummaryUnit):
 
 #=====================================================================================================
 
-def _gather_scores(metric, execution_groups: list[list[RealTimeResults]]):
+def _gather_scores(metric, execution_groups: list[list[RealTimeResults]]) -> list[pd.DataFrame]:
     '''
     If overthinking were a function
     '''
@@ -96,8 +96,8 @@ def _gather_scores(metric, execution_groups: list[list[RealTimeResults]]):
 
 #=====================================================================================================
 
-def rouge_presentation(execution_groups: list[list[RealTimeResults]], show_latex: bool = False):
-    full_scores = _gather_scores(rouge_score, execution_groups)
+def rouge_presentation(multiple_exp_results: list[list[RealTimeResults]], names: list[str], show_latex: bool = False):
+    full_scores = _gather_scores(rouge_score, multiple_exp_results)
 
     if len(full_scores) == 1:
         console.print(full_scores[0])
@@ -122,7 +122,8 @@ def rouge_presentation(execution_groups: list[list[RealTimeResults]], show_latex
             merged_compact.append(row)
 
         full_scores = pd.DataFrame(merged_compact)
-        full_scores.index.name = "execution"
+        full_scores.index = names
+        #full_scores.index.name = "Experiment"
         full_scores.columns = ["ROUGE-1 (p/r/f)", "ROUGE-2 (p/r/f)", "ROUGE-L (p/r/f)"]
         console.print(full_scores)
 
@@ -139,8 +140,8 @@ def rouge_presentation(execution_groups: list[list[RealTimeResults]], show_latex
 
 #=====================================================================================================
 
-def bertscore_presentation(execution_groups: list[list[RealTimeResults]], show_latex: bool = False):
-    full_scores = _gather_scores(bert_score, execution_groups)
+def bertscore_presentation(multiple_exp_results: list[list[RealTimeResults]], names: list[str], show_latex: bool = False):
+    full_scores = _gather_scores(bert_score, multiple_exp_results)
 
     if len(full_scores) == 1:
         console.print(full_scores[0])
@@ -156,6 +157,8 @@ def bertscore_presentation(execution_groups: list[list[RealTimeResults]], show_l
             format_latex_table(latex, name="BERT-Score")
     else:
         full_scores = pd.concat(full_scores, axis=0).reset_index(drop=True)
+        full_scores.index = names
+        #full_scores.index.name = "Experiment"
         console.print(full_scores)
 
         if show_latex:
@@ -171,8 +174,8 @@ def bertscore_presentation(execution_groups: list[list[RealTimeResults]], show_l
 
 #=====================================================================================================
 
-def compression_presentation(execution_groups: list[list[RealTimeResults]], show_latex: bool = False):
-    full_scores = _gather_scores(compression_ratio, execution_groups)
+def compression_presentation(multiple_exp_results: list[list[RealTimeResults]], names: list[str], show_latex: bool = False):
+    full_scores = _gather_scores(compression_ratio, multiple_exp_results)
 
     if len(full_scores) == 1:
         console.print(full_scores[0])
@@ -185,6 +188,8 @@ def compression_presentation(execution_groups: list[list[RealTimeResults]], show
             format_latex_table(latex, name="Compression")
     else:
         full_scores = pd.concat(full_scores, axis=0).reset_index(drop=True)
+        full_scores.index = names
+        #full_scores.index.name = "Experiment"
         console.print(full_scores)
 
         if show_latex:

@@ -33,8 +33,8 @@ def panel_print(text: str = "", title: str = "", *, return_panel=False, expand: 
 
 #===================================================================================
 
-def rule_print(text: str = "", title: str=""):
-    console.print(Rule(title=title))
+def rule_print(text: str = "", title: str="", color: str = "green"):
+    console.print(Rule(title=title, style=color))
     console.print(Text(text))
     console.print(Rule())
 
@@ -295,6 +295,6 @@ def format_latex_table(latex_code: str, name: str = None) -> str:
         )
 
     if name is not None:
-        rule_print(latex_code, title=name)
+        rule_print(latex_code, title=name, color="cyan")
 
     return latex_code

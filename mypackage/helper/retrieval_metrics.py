@@ -94,80 +94,113 @@ def average_ndcg(multiple_query_results: list[list[int]], queries_dataset: list[
 #==============================================================================================
     
 def precision(single_query_results: list[int], relevant: list[int], /, vector=False):
-    
     relevant_set = set(relevant)
+    relevant_at_k = 0
+    ret = []
+    
+    for k, res in enumerate(single_query_results):
+        if res in relevant_set:
+            relevant_at_k += 1
+        ret.append(round(relevant_at_k/(k+1), 3))
+    return ret if vector else ret[-1]
 
-    if vector:
-        relevant_at_k = 0
+    
+#==============================================================================================
+    
+def micro_avg_precision(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]], /, vector=False):
+    
+    num_positions = len(multiple_query_results[0])
+    num_queries = len(multiple_query_results)
+    relevant_at_k = [0]*num_positions
 
-        ret = []
-
+    for relevant, single_query_results in zip(multiple_relevant, multiple_query_results):
+        relevant_set = set(relevant)
+        temp = 0
         for k, res in enumerate(single_query_results):
-
             if res in relevant_set:
-                relevant_at_k += 1
+                temp += 1
+            relevant_at_k[k] += temp
 
-            ret.append(round(relevant_at_k/(k+1), 3))
+    ret = []
+    for k in range(num_positions):
+        ret.append(round(relevant_at_k[k]/((k+1)*num_queries), 3))
 
-        return ret
-    else:
-        answer_set = set(single_query_results)
-        return round(len(relevant_set & answer_set) / len(answer_set), 3)
+    return ret if vector else ret[-1]
     
 #==============================================================================================
     
 def recall(single_query_results: list[int], relevant: list[int], /, vector=False):
     
     relevant_set = set(relevant)
+    relevant_at_k = 0
+    ret = []
 
-    if vector:
-        relevant_at_k = 0
+    for res in single_query_results:
+        if res in relevant_set:
+            relevant_at_k += 1
+        ret.append(round(relevant_at_k/len(relevant), 3))
+    return ret if vector else ret[-1]
+    
+#==============================================================================================
+    
+def micro_avg_recall(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]], /, vector=False):
+    
+    num_positions = len(multiple_query_results[0])
+    relevant_at_k = [0] * num_positions
 
-        ret = []
-
-        for res in single_query_results:
-
+    for relevant, single_query_results in zip(multiple_relevant, multiple_query_results):
+        relevant_set = set(relevant)
+        temp = 0
+        for k, res in enumerate(single_query_results):
             if res in relevant_set:
-                relevant_at_k += 1
+                temp += 1
+            relevant_at_k[k] += temp
 
-            ret.append(round(relevant_at_k/len(relevant), 3))
+    ret = []
+    for k in range(num_positions):
+        # divide by total relevant items per query summed over all queries
+        total_relevant = sum(len(r) for r in multiple_relevant)
+        ret.append(round(relevant_at_k[k] / total_relevant, 3))
 
-        return ret
-    else:
-        answer_set = set(single_query_results)
-        return round(len(relevant_set & answer_set) / len(relevant_set), 3)
+    return ret if vector else ret[-1]
 
 #==============================================================================================
     
 def fscore(single_query_results: list[int], relevant: list[int], /, vector=False) -> list:
 
-    if vector:
-        pak = precision(single_query_results, relevant, vector=True)
-        rak = recall(single_query_results, relevant, vector=True)
+    pak = precision(single_query_results, relevant, vector=True)
+    rak = recall(single_query_results, relevant, vector=True)
 
-        num_results = len(single_query_results)
+    num_results = len(single_query_results)
 
-        f = []
+    f = []
 
-        for k in range(0, num_results):
-            res = 0
-
-            if pak[k] + rak[k] != 0:
-                res = 2*pak[k]*rak[k]/(pak[k] + rak[k])
-
-            f.append(round(res, 3))
-
-        return f
-    else:
-        p = precision(single_query_results, relevant)
-        r = recall(single_query_results, relevant)
-
+    for k in range(0, num_results):
         res = 0
 
-        if p + r != 0:
-            res = round(2*p*r/(p+r), 3)
+        if pak[k] + rak[k] != 0:
+            res = 2*pak[k]*rak[k]/(pak[k] + rak[k])
 
-        return res
+        f.append(round(res, 3))
+
+    return f if vector else f[-1]
+    
+#==============================================================================================
+    
+def micro_avg_fscore(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]], /, vector=False) -> list:
+
+    pak = micro_avg_precision(multiple_query_results, multiple_relevant, vector=True)
+    rak = micro_avg_recall(multiple_query_results, multiple_relevant, vector=True)
+
+    f = []
+
+    for p,r in zip(pak,rak):
+        res = 0
+        if p + r != 0:
+            res = 2*p*r/(p + r)
+        f.append(round(res, 3))
+
+    return f if vector else f[-1]
 
 #==============================================================================================
     
@@ -182,12 +215,12 @@ def average_precision(single_query_results: list[int], relevant: list[int]):
 
 #==============================================================================================
 
-def mean_average_precision(multiple_query_results: list[list[int]], queries_dataset: list[Query]):
+def mean_average_precision(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]]):
 
     res = 0
 
-    for i, single_query_results in enumerate(multiple_query_results):
-        res += average_precision(single_query_results, queries_dataset[i].docs)
+    for single_query_results, relevant in zip(multiple_query_results, multiple_relevant):
+        res += average_precision(single_query_results, relevant)
 
     return round(res/len(multiple_query_results), 3)
 
