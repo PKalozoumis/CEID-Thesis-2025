@@ -56,10 +56,7 @@ if __name__ == "__main__":
         sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
         docs = exp_manager.get_docs(args.d, sess)
 
-        if args.db == "pickle":
-            db = PickleSession(os.path.join(index, "pickles"))
-        else:
-            db = MongoSession(db_name=f"experiments_{index}")
+        db = DatabaseSession.init_db(args.db, exp_manager.db_name(sess.index_name))
 
         #-------------------------------------------------------------------------------------------
 

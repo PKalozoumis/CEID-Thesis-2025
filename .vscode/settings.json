@@ -16,5 +16,8 @@
         "requirements.txt": true,
         "**/credentials.json": true,
         "**/http_ca.crt": true
-    }
+    },
+    "python.analysis.extraPaths": [
+        "./usercode/app/application_helper"
+    ]
 }

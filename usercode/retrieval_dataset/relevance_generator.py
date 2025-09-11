@@ -31,9 +31,9 @@ console = Console()
 
 #=====================================================================================
 
-def initializer():
+def initializer(db_name):
     global conn, evaluator
-    conn = MongoSession(db_name=f"experiments_{args.index}", collection="default")
+    conn = MongoSession(db_name=f"experiments_{db_name}", collection="default")
     evaluator = RelevanceEvaluator(query, 'cross-encoder/ms-marco-MiniLM-L12-v2')
 
 #=====================================================================================
@@ -69,6 +69,7 @@ if __name__ == "__main__":
 
     sess = Session(args.index, base_path="../common")
     exp = ExperimentManager("../common/experiments.json")
+    db_name = exp.db_name(sess.index_name)
 
     #For every query, retrieve the docs and evaluate them in parallel
     for query in exp.get_queries(args.query, sess.index_name):
@@ -82,14 +83,14 @@ if __name__ == "__main__":
         records = []
 
         #Parallel evaluation
-        with Pool(processes=args.nprocs, initializer=initializer, initargs=()) as pool:
+        with Pool(processes=args.nprocs, initializer=initializer, initargs=(db_name,)) as pool:
             for i, res in enumerate(pool.imap_unordered(work, results)):
                 records.append(res)
                 console.print(f"{i+args.start}. [green]Document {res['doc']} score:[/green] {res['score']}")
 
         #Store relevance scores into csv
         df = pd.DataFrame(records).sort_values(by='idx').set_index('idx')
-        df.to_csv(f"query_{query.id}_results.csv", index=False)
+        df.to_csv(f"query_{query.id}_results.csv", index=True)
         console.print()
         console.print(df)
         console.print(f"\nTime: {round(time.time() - t)}s\n")

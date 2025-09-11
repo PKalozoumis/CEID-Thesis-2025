@@ -1,8 +1,8 @@
 {
     "properties": {
         "id": {"type": "keyword"},
-        "article": {"type": "text"},
-        "summary": {"type": "text"},
+        "article": {"type": "text", "analyzer": "english"},
+        "summary": {"type": "text", "analyzer": "english"},
         "section_names": {"type": "keyword"}
     }
 }

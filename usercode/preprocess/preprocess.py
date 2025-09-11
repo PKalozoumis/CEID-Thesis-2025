@@ -82,10 +82,10 @@ db = None
 
 #==============================================================================================
 
-def initializer(p,i,_args,cpu_model = None):
-    global params, index_name, model, args, db
+def initializer(p,d,_args,cpu_model = None):
+    global params, db_name, model, args, db
     params=p
-    index_name=i
+    db_name=d
     args = _args
 
     if cpu_model is None:
@@ -96,15 +96,9 @@ def initializer(p,i,_args,cpu_model = None):
         model = cpu_model
 
     if db is None:
-        if args.db == "pickle":
-            db = PickleSession(os.path.join("..", "experiments", index_name, "pickles"))
-            db.sub_path = params['name']
-
-        elif args.db == "mongo":
-            db = MongoSession(db_name=f"experiments_{index_name}")
-            db.sub_path = params['name']
-            if not args.append:
-                db.delete() #Drop the collection if it exists
+        db = DatabaseSession.init_db(args.db, db_name, params['name'])
+    if args.db == "mongo" and not args.append:
+        db.delete() #Drop the collection if it exists
 
     #Mark experiment as temporary by creating a hidden file in the experiment directory
     if args.temp is not None: 
@@ -115,7 +109,7 @@ def initializer(p,i,_args,cpu_model = None):
 
 #The preprocessing steps
 def work(doc: ElasticDocument):
-    global params, index_name, model, db, args
+    global params, db_name, model, db, args
 
     record = {
         'doc': doc.id,
@@ -126,7 +120,7 @@ def work(doc: ElasticDocument):
         'cluster_t': None
     }
 
-    cache_path = os.path.join("embedding_cache", index_name, params['sentence_model'].replace("/", "-"))
+    cache_path = os.path.join("embedding_cache", db_name, params['sentence_model'].replace("/", "-"))
 
     #Try to load embeddings from cache first
     if args.use_embedding_cache:
@@ -195,9 +189,9 @@ def work(doc: ElasticDocument):
 
 #=============================================================================================================
 
-def serial_execution(progress, experiment, index, args, cpu_model, docs, batch_size):
+def serial_execution(progress, experiment, db_name, args, cpu_model, docs, batch_size):
     console.print("Serial execution")
-    initializer(experiment, index, args, cpu_model)
+    initializer(experiment, db_name, args, cpu_model)
     time_records = []
 
     for i, batch in enumerate(batched(docs, batch_size)):
@@ -213,13 +207,13 @@ def serial_execution(progress, experiment, index, args, cpu_model, docs, batch_s
 
 #=============================================================================================================
 
-def parallel_execution(progress, experiment, index, args, cpu_model, docs, batch_size):
+def parallel_execution(progress, experiment, db_name, args, cpu_model, docs, batch_size):
     console.print(f"Starting multiprocessing pool with {args.nprocs} processes\n")
     time_records = []
     if args.spawn:
         mp.set_start_method('spawn', force=True)
     try:
-        with Pool(processes=args.nprocs, initializer=initializer, initargs=(experiment, index, args, cpu_model)) as pool:
+        with Pool(processes=args.nprocs, initializer=initializer, initargs=(experiment, db_name, args, cpu_model)) as pool:
             
             #Receive a batch of documents from Elasticsearch
             #Pass the workload to the pool
@@ -282,6 +276,7 @@ if __name__ == "__main__":
 
         sess = Session(index, base_path="../common", cache_dir="../cache", use= ("cache" if args.cache else "client"))
         docs = exp_manager.get_docs(args.d, sess, scroll_batch_size=args.batch_size, scroll_time=args.scroll_time, scroll_limit=args.limit)
+        db_name = exp_manager.db_name(index)
 
         console.print("Session info:")
         #console.print({'index_name': index, 'docs': docs_to_retrieve})
@@ -332,9 +327,9 @@ if __name__ == "__main__":
 
                     #Execution
                     if args.nprocs == 1:
-                        time_records = serial_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
+                        time_records = serial_execution(progress, THIS_NEXT_EXPERIMENT, db_name, args, cpu_model, docs, batch_size)
                     else:
-                        time_records = parallel_execution(progress, THIS_NEXT_EXPERIMENT, index, args, cpu_model, docs, batch_size)
+                        time_records = parallel_execution(progress, THIS_NEXT_EXPERIMENT, db_name, args, cpu_model, docs, batch_size)
                     
                     #Store results
                     if len(time_records) > 0:

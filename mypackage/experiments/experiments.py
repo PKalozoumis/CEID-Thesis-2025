@@ -222,4 +222,7 @@ class ExperimentManager():
         return set(self.experiments)
     
     def rejected_docs(self, index_name: str) -> list[int]:
-        return self.index_defaults[index_name]['rejected_docs']
+        return self.index_defaults.get(index_name, {}).get('rejected_docs', [])
+    
+    def db_name(self, index_name: str) -> str:
+        return self.index_defaults.get(index_name, {}).get('database_name', index_name) 

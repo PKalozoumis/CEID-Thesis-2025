@@ -71,18 +71,14 @@ if __name__ == "__main__":
 
     os.makedirs("cache", exist_ok=True)
     sess = Session(args.i, base_path="../common", cache_dir=("../cache" if args.cache else None), use="cache" if args.cache else "client")
-
-    #Setup database
-    if args.db == "pickle":
-        db = PickleSession(os.path.join(sess.index_name, "pickles"), args.x)
-    else:
-        db = MongoSession(db_name=f"experiments_{sess.index_name}", collection=args.x)
+    exp_manager = ExperimentManager("../common/experiments.json")
+    db = DatabaseSession.init_db(args.db, exp_manager.db_name(sess.index_name), args.x)
 
     if args.d is None:
         raise DEVICE_EXCEPTION("BUT, THERE WAS NOTHING TO READ")
     
     if args.score_chains:
-        queries = ExperimentManager("../common/experiments.json").get_queries(args.query, args.i)
+        queries = exp_manager.get_queries(args.query, args.i)
         if len(queries) > 1:
             warnings.warn("Specified more than one query. Only the first one will be used.")
         query = queries[0]

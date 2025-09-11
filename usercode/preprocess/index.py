@@ -67,7 +67,7 @@ if __name__ == "__main__":
         create_index(client, index_name, mapping_path)
 
         #Exclude these docs
-        reject_list = ExperimentManager.rejected_docs(index_name)
+        reject_list = ExperimentManager("../common/experiments.json").rejected_docs(index_name)
 
         t = time.time()
         bulk = to_bulk_format(generate_examples(dataset_path, doc_limit=args.doc_limit, remove_duplicates=args.remove_duplicates), reject_list=reject_list)

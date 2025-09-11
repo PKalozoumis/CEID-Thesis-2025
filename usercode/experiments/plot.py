@@ -252,10 +252,7 @@ if __name__ == "__main__":
 
     #---------------------------------------------------------------------------
 
-    if args.db == "pickle":
-        db = PickleSession()
-    else:
-        db = MongoSession()
+    db = DatabaseSession.init_db(args.db)
 
     #Run the selected visualization for each of the selected indexes...
     for index in indexes:
@@ -272,7 +269,8 @@ if __name__ == "__main__":
 
         sess = Session(index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
         docs = exp_manager.get_docs(args.d, sess)
-        db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
+        db_name = exp_manager.db_name(sess.index_name)
+        db.base_path = db_name if db.db_type == "pickle" else f"experiments_{db_name}"
 
         #---------------------------------------------------------------------------
 

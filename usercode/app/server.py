@@ -25,7 +25,7 @@ from rich.console import Console
 from mypackage.llm import LLMSession
 
 from application_pipeline import pipeline
-from usercode.app.application_helper import Arguments
+from application_helper import Arguments
 
 console = Console()
 app = Flask(__name__)

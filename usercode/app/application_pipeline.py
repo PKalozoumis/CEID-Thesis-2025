@@ -9,8 +9,9 @@ from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
 from mypackage.llm import LLMSession
 from mypackage.storage import DatabaseSession, MongoSession, PickleSession, RealTimeResults, ExperimentManager
+from mypackage.helper import rich_console_text
 
-from usercode.app.application_helper import Arguments
+from application_helper import Arguments
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from collections import defaultdict
@@ -26,7 +27,7 @@ _console_width = None
 
 #===============================================================================================================
 
-def retrieval_stage(sess, query: Query, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
+def retrieval_stage(sess, query: Query, exp_manager: ExperimentManager, *, args: Arguments = None, base_path: str = "..", times: defaultdict, server_args):
     '''
     Stage 1 of the pipeline
     '''
@@ -36,7 +37,7 @@ def retrieval_stage(sess, query: Query, *, args: Arguments = None, base_path: st
     if not server_args.test_mode:
         res = query.execute(sess, size=args.num_documents)
     else:
-        res = ExperimentManager("../common/experiments.json").get_docs(None, sess)
+        res = exp_manager.get_docs(None, sess)
 
     times['elastic'] = time.time() - times['elastic']
     message_sender("time", {'elastic': times['elastic']})
@@ -190,6 +191,8 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
     if args.print:
         res = unit.pretty_print(show_added_context=True, show_chain_indices=True, return_text=True, console_width=_console_width)
         message_sender("ansi_text", res)
+        #res = rich_console_text(unit.text)
+        #message_sender("ansi_text", res)
 
     if args.summ:
         is_first_fragment = True
@@ -254,16 +257,12 @@ def pipeline(
     #--------------------------------------------------------------------------
     sess = Session(args.index, base_path=base_path, use="cache" if server_args.test_mode else "client", cache_dir="../cache")
     query  = Query.from_data(query_data)
-    
-    #Select database
-    if server_args.db == "pickle":
-        db = PickleSession(f"{base_path}/experiments/{sess.index_name}/pickles", args.experiment)
-    else:
-        db = MongoSession(db_name=f"experiments_{sess.index_name}", collection=args.experiment)
+    exp_manager = ExperimentManager("../common/experiments.json")
+    db = DatabaseSession.init_db(server_args.db, exp_manager.db_name(sess.index_name), args.experiment)
 
     #Pipeline stages
     #--------------------------------------------------------------------------
-    returned_docs = retrieval_stage(sess, query, **kwargs)
+    returned_docs = retrieval_stage(sess, query, exp_manager, **kwargs)
     encode_query(query, db, **kwargs)
     selected_clusters = retrieve_clusters(sess, db, returned_docs, query, keep_cluster=args.c, **kwargs)
     evaluator = calculate_cross_scores(query, selected_clusters, **kwargs)
@@ -291,4 +290,4 @@ def pipeline(
 
     #Store results (for future evaluation)
     if store_as is not None:
-        RealTimeResults.store_results(store_as, sess, query, evaluator, args.to_namespace(), returned_docs, original_selected_clusters, selected_clusters, summaries, times)
+        RealTimeResults.store_results(f"../eval/realtime_results/{store_as}", sess, query, evaluator, args.to_namespace(), returned_docs, original_selected_clusters, selected_clusters, summaries, times)

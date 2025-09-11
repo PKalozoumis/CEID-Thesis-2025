@@ -96,11 +96,10 @@ def cluster_sizes(db, docs: list[int]):
 def initializer(m):
     global reducer, db, metrics
     reducer = dimensionality_reducer()
-    db = PickleSession() if args.db == "pickle" else MongoSession()
     metrics = m
 
 def work(processed):
-    global reducer, db, metrics
+    global reducer, metrics
 
     try:
         if processed is None:
@@ -232,8 +231,7 @@ if __name__ == "__main__":
     exp_manager = ExperimentManager("../common/experiments.json")
     sess = Session(args.index, base_path="../common", cache_dir="../cache", use="cache" if args.cache else "client")
     docs = exp_manager.get_docs(args.d, sess, scroll_batch_size=2000)
-    db = PickleSession() if args.db == "pickle" else MongoSession()
-    db.base_path = os.path.join(sess.index_name, "pickles") if db.db_type == "pickle" else f"experiments_{sess.index_name}"
+    db = DatabaseSession.init_db(args.db, exp_manager.db_name(sess.index_name))
 
     metrics = args.metrics.split(",")
 

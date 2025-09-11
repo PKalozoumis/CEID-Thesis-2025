@@ -126,6 +126,30 @@ def micro_avg_precision(multiple_query_results: list[list[int]], multiple_releva
         ret.append(round(relevant_at_k[k]/((k+1)*num_queries), 3))
 
     return ret if vector else ret[-1]
+
+#==============================================================================================
+
+def macro_avg_precision(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]], /, vector=False):
+    num_positions = len(multiple_query_results[0])
+    num_queries = len(multiple_query_results)
+    
+    # store per-query precision@k
+    per_query_precisions = []
+
+    for relevant, single_query_results in zip(multiple_relevant, multiple_query_results):
+        relevant_set = set(relevant)
+        relevant_at_k = 0
+        precisions = []
+        for k, res in enumerate(single_query_results):
+            if res in relevant_set:
+                relevant_at_k += 1
+            precisions.append(relevant_at_k / (k + 1))
+        per_query_precisions.append(precisions)
+
+    # average across queries
+    macro_precisions = [round(sum(p[k] for p in per_query_precisions)/num_queries, 3) for k in range(num_positions)]
+
+    return macro_precisions if vector else macro_precisions[-1]
     
 #==============================================================================================
     
@@ -165,6 +189,32 @@ def micro_avg_recall(multiple_query_results: list[list[int]], multiple_relevant:
     return ret if vector else ret[-1]
 
 #==============================================================================================
+
+def macro_avg_recall(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]], /, vector=False):
+    num_positions = len(multiple_query_results[0])
+    num_queries = len(multiple_query_results)
+    
+    # store per-query recall@k
+    per_query_recalls = []
+
+    for relevant, single_query_results in zip(multiple_relevant, multiple_query_results):
+        relevant_set = set(relevant)
+        relevant_at_k = 0
+        recalls = []
+        total_relevant = len(relevant)
+        for k, res in enumerate(single_query_results):
+            if res in relevant_set:
+                relevant_at_k += 1
+            recalls.append(relevant_at_k / total_relevant if total_relevant else 0)
+        per_query_recalls.append(recalls)
+
+    # average across queries
+    macro_recalls = [round(sum(r[k] for r in per_query_recalls)/num_queries, 3) for k in range(num_positions)]
+
+    return macro_recalls if vector else macro_recalls[-1]
+
+
+#==============================================================================================
     
 def fscore(single_query_results: list[int], relevant: list[int], /, vector=False) -> list:
 
@@ -198,6 +248,21 @@ def micro_avg_fscore(multiple_query_results: list[list[int]], multiple_relevant:
         res = 0
         if p + r != 0:
             res = 2*p*r/(p + r)
+        f.append(round(res, 3))
+
+    return f if vector else f[-1]
+
+#==============================================================================================
+
+def macro_avg_fscore(multiple_query_results: list[list[int]], multiple_relevant: list[list[int]], /, vector=False) -> list:
+    pak = macro_avg_precision(multiple_query_results, multiple_relevant, vector=True)
+    rak = macro_avg_recall(multiple_query_results, multiple_relevant, vector=True)
+
+    f = []
+    for p, r in zip(pak, rak):
+        res = 0
+        if p + r != 0:
+            res = 2 * p * r / (p + r)
         f.append(round(res, 3))
 
     return f if vector else f[-1]

@@ -274,6 +274,21 @@ class DatabaseSession(ABC):
     def set_temp(self):
         pass
 
+    #=========================================================================================
+
+    @staticmethod
+    def init_db(db_type: str, name: str | None = None, sub_path: str|None = None, *, pickle_base: str = "../common/pickles", host: str = "localhost:27017") -> DatabaseSession:
+        if db_type == "pickle":
+            db = PickleSession(pickle_base, name, sub_path)
+        elif db_type == "mongo":
+            db = MongoSession(db_name=f"experiments_{name}" if name is not None else None, collection=sub_path, host=host)
+        else:
+            raise Exception(f"Unknown database type {db_type}")
+
+        return db
+    
+    #=========================================================================================
+
     def _restore_clusters(self, doc: Document, data: dict, params: dict = None, *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument:
         '''
         Recreates all cluster objects for a specific document using the retrieved data
@@ -330,10 +345,20 @@ class DatabaseSession(ABC):
 #==========================================================================================================
 
 class PickleSession(DatabaseSession):
+
+    #Let's say your pickles are in ..folder1/experiments/pubmed/default
+    #pickle_base = ..folder1/experiments
+    #base_path = pubmed
+    #sub_path = default
+
+    _pickle_base: str
     _base_path: str
     _sub_path: str
 
-    def __init__(self, base_path: str | None = None, sub_path: str | None = None):
+    def __init__(self, pickle_base: str, base_path: str | None = None, sub_path: str | None = None):
+        if pickle_base is None:
+            raise Exception("pickle_base cannot be None")
+        self._pickle_base = pickle_base
         self._base_path = base_path
         self._sub_path = sub_path
 
@@ -347,13 +372,13 @@ class PickleSession(DatabaseSession):
 
     @classmethod
     def duplicate_session(cls, db: PickleSession) -> PickleSession:
-        return cls(db._base_path, db._sub_path)
+        return cls(db._pickle_base, db._base_path, db._sub_path)
 
     #----------------------------------------------------
 
     @property
     def full_path(self) -> str:
-        return os.path.join(self._base_path, self._sub_path)
+        return os.path.join(self._pickle_base, self._base_path, self._sub_path)
 
     #----------------------------------------------------
 
@@ -451,7 +476,7 @@ class PickleSession(DatabaseSession):
     #----------------------------------------------------
 
     def available_experiments(self, requested_experiments: str) -> list[str]:
-        existing_names = os.listdir(self._base_path)
+        existing_names = os.listdir(os.path.join(self._pickle_base, self._base_path))
 
         if requested_experiments == "all":
             requested_experiments = ",".join(existing_names)
@@ -467,7 +492,7 @@ class PickleSession(DatabaseSession):
     #----------------------------------------------------
     
     def list_experiments(self) -> list[str]:
-        return os.listdir(self._base_path)
+        return os.listdir(os.path.join(self._pickle_base, self._base_path))
     
     #----------------------------------------------------
 
