@@ -5,17 +5,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
 from functools import cached_property
-import json
 from itertools import chain
 from typing import TYPE_CHECKING, Union
-from nltk.tokenize import sent_tokenize
 from sklearn.metrics.pairwise import cosine_similarity
 import warnings
 
-import inspect
-
 from .helper import split_to_sentences
-
 if TYPE_CHECKING:
     from ..elastic import Document
     from ..clustering.classes import ChainCluster
@@ -45,6 +40,15 @@ class SentenceLike(ABC):
 class SimilarityPair:
     '''
     Pair of ```SentenceLike``` objects, along with their similarity score
+
+    Arguments
+    ---
+    s1: SentenceLike
+        First object
+    s2: SentenceLike
+        Second object
+    sim: float
+        Their similarity
     '''
     s1: SentenceLike
     s2: SentenceLike
@@ -73,6 +77,19 @@ class SimilarityPair:
 class Sentence(SentenceLike):
     '''
     Represents a single sentence
+
+    Arguments
+    ---
+    _text: str
+        The text contents of the sentence
+    _vector: np.ndarray
+        The sentence embedding
+    doc: Document
+        Document where the sentence belongs
+    index: int, optional
+        Sentence offset inside the document
+    parent_chain: SentenceChain, optional
+        The chain where the sentence belongs. The chaining algorithm must have been run. Otherwise, this is ```None```
     '''
 
     _text: str
@@ -176,14 +193,10 @@ class SentenceChain(SentenceLike):
         sentences: SentenceLike | list[SentenceLike]
             The sentences or chains to include in the chain.
             List should either contain ```Sentence``` or ```SentenceChain``` objects, but never both
-
         pooling_method: str
-            The pooling method to generate the vector representation of the new chain from the sentence vectors.
-            Possible options are ```average``` and ```max```. Defaults to ```average```
-
+            The method used to calculate the chain representative. See ```SentenceChain.VALID_METHODS```. Defaults to ```average```
         normalize: bool
             Normalize the representative after pooling. Defaults to ```True```
-
         chain_index: int, optional
             The chain's index in the global list of chains for the document
         '''
@@ -235,8 +248,17 @@ class SentenceChain(SentenceLike):
         '''
         Arguments
         ---
+        sentences: list[SentenceLike]
+            The sentences to calculate the representative for
+        pooling_method: str
+            The method used to calculate the representative
         normalize: bool
             Normalize the representative after pooling. Defaults to ```True```
+
+        Returns
+        ---
+        vec: ndarray
+            The representative
         '''
 
         #But, there was nothing to pool
@@ -285,6 +307,9 @@ class SentenceChain(SentenceLike):
     #----------------------------------------------------------------------------------------------
     
     def get_global(self, global_key: int) -> Sentence:
+        '''
+        Get a sentence from its index, only if it belongs in this chain's range
+        '''
         if global_key not in self.index_range:
             raise ValueError(f"The global sentence index {global_key} is not in the chain's range {self.index_range}")
 
@@ -443,9 +468,6 @@ class SentenceChain(SentenceLike):
     
     def __repr__(self):
         return f"SentenceChain(i={self.index}, {self.first_index}-{self.first_index + self.__len__() - 1}, size={self.__len__()})"
-
-    #def __rich__(self):
-        #return f"SentenceChain(i={self.chain_index}, {self.first_index}-{self.first_index + self.__len__() - 1}, size={self.__len__()})"
 
     def __iter__(self):
         return iter(self.sentences)

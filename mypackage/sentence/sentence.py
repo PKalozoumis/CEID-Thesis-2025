@@ -4,9 +4,8 @@ from __future__ import annotations
 from sentence_transformers import SentenceTransformer
 from itertools import pairwise, starmap
 import re
-from nltk.tokenize import sent_tokenize
-import numpy as np
 import warnings
+from typing import TYPE_CHECKING
 
 from rich.table import Table
 from rich.console import Console
@@ -15,8 +14,6 @@ from rich.markdown import Markdown
 from ..helper import lock_kwargs
 from .helper import split_to_sentences
 from .classes import Sentence, SentenceChain, SentenceLike, SimilarityPair
-
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..elastic import Document
 
@@ -39,6 +36,10 @@ def doc_to_sentences(doc: Document, transformer: SentenceTransformer | None, *, 
     sep: str | None
         The separator used for splitting. Defaults to ```None```, meaning that ```nltk.tokenize.sent_tokenize``` is
         used to automatically detect sentence boundaries
+    precalculated_embeddings: list[np.ndarray]|None
+        A list of sentence embeddings. Must be the same length as the resulting sentences.
+        If a valid list is provided, then these embeddings are used instead of calculating new ones, thus saving time.
+        Defaults to ```None```
         
     Returns
     ---
@@ -111,11 +112,9 @@ def iterative_merge(
     ---
     sentences: list[SentenceLike]
         The list of sentences to chain
-
     threshold: float
         The cosine similarity threshold for two ```SentenceLike``` objects to be considered similar enough
         to merge into the same chain. Takes values between ```0``` and ```1```. Defaults to ```0.6```
-        
     round_limit: int | None
         The number of rounds. On the first round we try to chain as many sentences from the document as possible, using
         the merging method (here ```iterative_merge```). After chaining, it's possible that the chains can
@@ -123,15 +122,11 @@ def iterative_merge(
         continue for more rounds. We can set this max number of rounds, which by default is set to ```1```.
         Setting to ```None``` removes the limit entirely. Setting to ```0``` performes no chaining and just returns
         the original sentences
-
     pooling_method: str
-        The method we use to generate the new chain vector from the partial ```SentenceLike``` objects' embeddings.
-        By default it's ```average```
-
+        The method used to calculate the chain representative. See ```SentenceChain.VALID_METHODS```. Defaults to ```average```
     min_chains: int
         Lower bound for the number of chains. If during at iteration the number of chains drops below the min, we fallback to the
         previous round's results
-
     normalize: bool
         Normalize the representative after pooling. Defaults to ```True```
 

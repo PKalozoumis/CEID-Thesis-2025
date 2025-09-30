@@ -1,7 +1,6 @@
 import json
 from elasticsearch import Elasticsearch, AuthenticationException, NotFoundError
 import sys
-import os
 import json
 import time
 

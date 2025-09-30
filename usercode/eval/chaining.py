@@ -1,6 +1,5 @@
 import os
 import sys
-
 sys.path.append(os.path.abspath("../.."))
 
 import argparse
@@ -10,10 +9,10 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluation of preprocessing results")
     
-    parser.add_argument("mode", nargs="?", action="store", type=str, help="Operation mode", choices=[
+    parser.add_argument("mode", action="store", type=str, help="Operation mode", choices=[
         "calculate",
         "present"
-    ], default="calculate")
+    ])
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs. Leave blank for a predefined set of test documents. -1 for all")
     parser.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
     parser.add_argument("-i", "--index", action="store", type=str, default="pubmed", help="Index name")
@@ -29,35 +28,26 @@ if __name__ == "__main__":
 
 #=================================================================================================================
 
-from collections import namedtuple
-from mypackage.elastic import Session, ElasticDocument
-from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION, batched, format_latex_table, rule_print
-from mypackage.sentence.metrics import chain_metrics, avg_within_chain_similarity, avg_chain_centroid_similarity, chaining_ratio
-from mypackage.sentence import SentenceChain
-
 import numpy as np
 import pandas as pd
-
-from mypackage.experiments import ExperimentManager
-from mypackage.storage import PickleSession, MongoSession, DatabaseSession, ProcessedDocument
-
-import pickle
 from itertools import chain
-from functools import reduce
 import json
-
-from rich.console import Console
-from rich.rule import Rule
-from rich.progress import track, Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
-
+import warnings
 from matplotlib import pyplot as plt
-
 from multiprocessing import Pool
 from collections import defaultdict
 
-import warnings
-warnings.filterwarnings("ignore")
+from rich.console import Console
+from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 
+from mypackage.experiments import ExperimentManager
+from mypackage.storage import DatabaseSession, ProcessedDocument
+from mypackage.elastic import Session, ElasticDocument
+from mypackage.helper import batched, format_latex_table
+from mypackage.sentence.metrics import avg_within_chain_similarity, avg_chain_centroid_similarity, chaining_ratio
+from mypackage.sentence import SentenceChain
+
+warnings.filterwarnings("ignore")
 console = Console()
 store_path = os.path.join(os.path.expanduser("~"), "ceid", "thesis-text", "images")
 
@@ -198,10 +188,11 @@ def similarity_at_k_presentation(comparison_type: str, similarity_type: str):
         case "models": experiments = "default,mpnet"
         case "pooling": experiments = "default,most_similar_pooling"
         case "pooling2": experiments = "default,most_similar_pooling,mpnet_most_similar"
+        case "custom": experiments = args.x
         case _: raise Exception
 
     for exp in db.available_experiments(experiments):
-        with open(f"metrics/{exp}/{similarity_type}_sim_at_k.json") as f:
+        with open(f"metrics/{exp}/{similarity_type}_sim_at_k.json", "r") as f:
             similarity_at_k = json.load(f)
 
         for k in similarity_at_k:

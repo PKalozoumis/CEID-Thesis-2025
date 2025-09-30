@@ -12,20 +12,18 @@ if __name__ == "__main__":
     parser.add_argument("-q", "--query", action="store", type=str, default=None, help="Numeric query ID or query string")
     args = parser.parse_args()
 
+import pandas as pd
+from multiprocessing import Pool
+import time
+
+from rich.console import Console
+from rich.rule import Rule
+
 from mypackage.elastic import Session
 from mypackage.cluster_selection.metrics import single_document_cross_score
 from mypackage.cluster_selection import RelevanceEvaluator
 from mypackage.storage import MongoSession
 from mypackage.experiments import ExperimentManager
-
-from sentence_transformers import CrossEncoder
-from rich.console import Console
-from rich.rule import Rule
-
-import pandas as pd
-from multiprocessing import Pool
-
-import time
 
 console = Console()
 

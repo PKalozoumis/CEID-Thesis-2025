@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <script src="dista.js" type="text/javascript" defer></script>
+        <script src="index.js" type="text/javascript" defer></script>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
         <link rel="stylesheet" type="text/css" href="style.css"/>
     </head>
@@ -22,7 +22,7 @@
                 <!-- Column 1: History -->
                 <div id="history_sidebar" class="sidebar">
                     <h1> History </h1>
-                    <div id="new_query">
+                    <div id="new_query" class="the_new">
                         <div>
                             <span class="material-symbols-outlined">add</span>
                             <p>New query</p>
@@ -56,9 +56,15 @@
             <!-- ==================================================================================================================== -->
 
             <div id="collection_tab_content" class="hidden">
-                <!-- Column 1: History -->
+                <!-- Column 1: Open Docs -->
                 <div id="docs_sidebar" class="sidebar">
                     <h1> Open Documents </h1>
+                    <div id="new_document", class="the_new">
+                        <div>
+                            <span class="material-symbols-outlined">add</span>
+                            <p>New doc</p>
+                        </div>
+                    </div>
                     <div class="sidebar_scroll">
                         <div id="open_documents"></div>
                     </div>
@@ -66,18 +72,24 @@
 
                 <!-- Alt layout 1: Layout with all possible docs -->
                 <div id="collection_layout" class="">
-                    <div class="title">
+                    <div class="document_list_title">
                         <h1 class="my-header">Documents</h1>
-                        <hr>
                     </div>
-                
-                    <div id="article_container">
-                        <div id="article" class="fixed-center-expand-down"></div>
+                    <div id="pagination" class="pagination"></div>
+                    <div class="document_list_scroll">
+                        <div id="document_list"></div>
                     </div>
                 </div>
 
                 <!-- Alt layout 2: When you open a document -->
                 <div id="open_doc_layout" class="hidden">
+                    <div id="article_title" class="title">
+                        <h1 id="article_header" class="my-header">"Dista 01: The Official Biography"</h1>
+                        <hr>
+                    </div>
+                    <div id="article_container">
+                        <div id="article" class="fixed-center-expand-down"></div>
+                    </div>
                 </div>
             </div>
 

@@ -1,11 +1,10 @@
-from ..helper import DEVICE_EXCEPTION
 import json
+import re
 from more_itertools import always_iterable
  
-from ..elastic import Session, ElasticDocument, ScrollingCorpus, NotFoundError
+from ..helper import DEVICE_EXCEPTION
+from ..elastic import Session, ElasticDocument, ScrollingCorpus
 from ..query import Query
-
-import re
 
 class ExperimentManager():
     '''
@@ -57,6 +56,30 @@ class ExperimentManager():
     #---------------------------------------------------------------------------
 
     def get_docs(self, docs_list: str, sess: Session, *, scroll_batch_size: int=5000, scroll_limit: int = None, scroll_time: str="1000s") -> list[ElasticDocument]:
+        '''
+        Return a list of documents from specifications
+
+        Arguments
+        ---
+        docs_list: str
+            The specifications. The following options are supported:
+            - **None**: Returns a set of predefined documents for the specific index
+            - **Comma-separated list (1,2,3,...)**: Returns the documents in the list
+            - **-1**: Returns all documents in the index
+        sess: Session
+            The Elasticsearch session used for reading the index name and returning the docs
+        scroll_batch_size: int
+            The ```ScrollingCorpus``` batch size, if ```docs_list = -1```
+        scroll_limit: int
+            The ```ScrollingCorpus``` limit, if ```docs_list = -1```
+        scroll_time: str
+            The ```ScrollingCorpus``` scroll time, if ```docs_list = -1```
+
+        Returns
+        ---
+        docs: list[ElasticDocument]
+            The specified documents
+        '''
         #If docs are not specified, then a predefined set of docs is selected
         if not docs_list:
             docs_to_retrieve = self._get_docs_for_index(sess.index_name, list(range(10)))
@@ -72,26 +95,16 @@ class ExperimentManager():
                     docs_to_retrieve += [int(doc_set)]
             
             res = [ElasticDocument(sess, doc, text_path="article") for doc in docs_to_retrieve if doc not in self.rejected_docs(sess.index_name)]
-
-            '''
-            if fetch:
-                for i, d in enumerate(res):
-                    try:
-                        d.get()
-                    except NotFoundError as e:
-                        if skip_missing_docs:
-                            res[i] = None
-                        else:
-                            raise e
-            '''
                     
             return res
-        
-
 
     #---------------------------------------------------------------------------
 
     def _get_docs_for_index(self, index_name: str, fallback = None) -> list[int]:
+        '''
+        Return a list of predefined documents for a specific index.
+        If there are no predefined docs for this index, return a fallback value
+        '''
         temp = self.index_defaults.get(index_name, None)
         if temp is not None:
             return temp['docs']
@@ -101,6 +114,9 @@ class ExperimentManager():
     #---------------------------------------------------------------------------
 
     def _get_queries_for_index(self, index_name: str) -> list[Query]:
+        '''
+        Return the list of queries specified in the experiment file, for a specific index
+        '''
         return [
             Query(
                 x['id'],
@@ -114,6 +130,24 @@ class ExperimentManager():
     #---------------------------------------------------------------------------
 
     def get_queries(self, query: str | None, index_name: str) -> list[Query]:
+        '''
+        Return a list of queries from specifications
+
+        Arguments
+        ---
+        query: str
+            The specifications. The following options are supported:
+            - **None**: Returns all queries for the specified index
+            - **Comma-separated list (1,2,3,...)**: Returns the queries with IDs in the list
+            - **str**: Returns itself
+        index_name: str
+            The index to return queries for
+
+        Returns
+        ---
+        res: list[Query]
+            The list of query objects
+        '''
         #Get all queries
         if query is None:
             return self._get_queries_for_index(index_name)
@@ -222,7 +256,13 @@ class ExperimentManager():
         return set(self.experiments)
     
     def rejected_docs(self, index_name: str) -> list[int]:
+        '''
+        Return list of docs to reject for the specified index
+        '''
         return self.index_defaults.get(index_name, {}).get('rejected_docs', [])
     
     def db_name(self, index_name: str) -> str:
+        '''
+        Return the repsective database name (specified in the file) for the given index
+        '''
         return self.index_defaults.get(index_name, {}).get('database_name', index_name) 

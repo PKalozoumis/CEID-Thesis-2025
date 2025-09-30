@@ -5,6 +5,7 @@ import json
 import numpy as np
 import copy
 from io import StringIO
+import re
 
 from rich.panel import Panel
 from rich.console import Console, Group
@@ -12,8 +13,6 @@ from rich.table import Table
 from rich.rule import Rule
 from rich.text import Text
 from rich.pretty import Pretty
-
-import re
 
 console = Console()
 

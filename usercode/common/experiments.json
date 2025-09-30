@@ -5,13 +5,6 @@
             "rejected_docs": [2267],
             "source": ["summary", "article"],
             "text_path": "article"
-        },
-        "pubmed_old": {
-            "docs": [1923, 4355, 4166, 3611, 6389, 272, 2635, 2581, 372, 1106],
-            "rejected_docs": [2267],
-            "source": ["summary", "article"],
-            "text_path": "article",
-            "database_name": "pubmed"
         }
     },
 
@@ -26,7 +19,7 @@
         },
         {
             "id": "2",
-            "query": "What lifestyle factors can lead to cancer?"
+            "query": "Is cancer affected by lifestyle factors?"
         },
         {
             "id": "3",
@@ -34,11 +27,7 @@
         },
         {
             "id": "4",
-            "query": "EMPTY SPACE"
-        },
-        {
-            "id": "66",
-            "query": "H O W   M U C H   L O N G E R   N O W . . . ?"
+            "query": "Does ADHD persist into adulthood and how to treat?"
         }
     ],
 

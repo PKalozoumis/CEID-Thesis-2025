@@ -24,21 +24,12 @@ if __name__ == "__main__":
     parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
     args = parser.parse_args()
 
-from rich.console import Console
-from functools import partial
 
 from sentence_transformers import SentenceTransformer
-
-from mypackage.elastic import ElasticDocument, Session
-from mypackage.clustering import visualize_clustering
-from mypackage.clustering.metrics import clustering_metrics, VALID_METRICS
-from mypackage.storage import ProcessedDocument, DatabaseSession, PickleSession, MongoSession
-from mypackage.helper import DEVICE_EXCEPTION, batched
-import pickle
-from collections import namedtuple
-from multiprocessing import Process, set_start_method
-import json
 import shutil
+import numpy as np
+import math
+import warnings
 
 from matplotlib import pyplot as plt
 from matplotlib.font_manager import FontProperties
@@ -47,14 +38,16 @@ from matplotlib.patches import Patch
 from matplotlib import MatplotlibDeprecationWarning
 from matplotlib.lines import Line2D
 
-import numpy as np
-from mypackage.experiments import ExperimentManager
-import math
-import warnings
-
+from rich.console import Console
 from rich.rule import Rule
 
-#set_start_method('spawn', force=True)
+from mypackage.experiments import ExperimentManager
+from mypackage.elastic import ElasticDocument, Session
+from mypackage.clustering import visualize_clustering
+from mypackage.clustering.metrics import clustering_metrics
+from mypackage.storage import ProcessedDocument, DatabaseSession
+from mypackage.helper import DEVICE_EXCEPTION, batched
+
 console = Console()
 
 #=============================================================================================================

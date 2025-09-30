@@ -1,21 +1,11 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+    
+from typing import TYPE_CHECKING, NamedTuple
+import numpy as np
 if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
-    
-import numpy as np
-import os
-from typing import NamedTuple
 
 from ..elastic import ElasticDocument, Session
-
-#================================================================================================================
-
-class Score(NamedTuple):
-    s1: int
-    s2: int
-    s3: int
-    s4: int
 
 #==============================================================================================
 
@@ -39,13 +29,10 @@ class Query():
         ---
         id: str
             The query ID
-
         text: str
             The query
-
         source: list[str], optional
             List of the fields to return from the document. Corresponds to the ```_source``` argument in Elasticsearch
-
         text_path: str | None, optional
             Name of the field inside the document (inside ```_source```) that is the main text.
             This is forwarded to the generated documents' ```text_path``` argument
@@ -59,15 +46,20 @@ class Query():
     #------------------------------------------------------------------------------------------
 
     def execute(self, sess: Session, size: int = 10) -> list[ElasticDocument]:
-
         '''
-        search_body = {
-            "_source": self.source,
-            "query":
-            {
-                "match": {self.match_field: self.text}
-            }
-        }
+        Execute the query on the specified Elasticsearch session
+
+        Arguments
+        ---
+        sess: Session
+            The Elasticsearch session to run the query on
+        size: int
+            Number of relevant documents to return. Defaults to ```10```
+
+        Returns
+        ---
+        docs: list[ElasticDocument]
+            The relevant documents to the query
         '''
         search_body = {
             "_source": self.source,
@@ -133,32 +125,3 @@ class Query():
         obj.text_path = data['text_path']
 
         return obj
-
-
-#==============================================================================================
-
-class EvaluableQuery(Query):
-    '''
-    A class representing an Elasticsearch query. Also contains it's relevant docs for evaluation purposes
-    '''
-
-    id: int #Query ID
-    text: str #The actual query
-    relevant_docs: list[int] #List with the relevant doc IDs
-
-    def __init__(self, id: int, text: str, *, match_field: str = "article", source: list[str] = [], text_path: str | None = None, relevant_docs: list[int]):
-        '''
-        A class representing an Elasticsearch query. Also contains it's relevant docs for evaluation purposes
-        
-        Arguments
-        ---
-        id: int
-            The query ID
-
-        text: str
-            The query
-        '''
-        super().__init__(id, text, match_field=match_field, source=source, text_path=text_path)
-        self.relevant_docs = relevant_docs
-
-#================================================================================================================

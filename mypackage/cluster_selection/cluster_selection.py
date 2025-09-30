@@ -1,33 +1,50 @@
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
 
+from typing import TYPE_CHECKING
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from operator import methodcaller
+import inspect
+import textwrap
+
+from rich.console import Console
+
+from .classes import SelectedCluster
+from .helper import print_candidates
 if TYPE_CHECKING:
     from ..storage import DatabaseSession
     from ..elastic import Session, ElasticDocument
     from ..query import Query
 
-from .classes import SelectedCluster
-from ..helper import panel_print
-from .helper import print_candidates
-
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from operator import methodcaller
-
-from rich.console import Console
-from rich.rule import Rule
-
-import copy
-
 console = Console()
-
-import inspect
-import textwrap
 
 #=====================================================================================================
     
-def cluster_retrieval(sess: Session, db: DatabaseSession, docs: list[ElasticDocument], query: Query, method: str = "thres", base_path: str = ".", experiment: str = "default") -> list[SelectedCluster]:
+def cluster_retrieval(sess: Session, db: DatabaseSession, docs: list[ElasticDocument], query: Query, method: str = "thres") -> list[SelectedCluster]:
+    '''
+    Retrieve the best clusters from the database that correspond to the retrieved documents
+
+    Arguments
+    ---
+    sess: Session
+        The Elasticsearch session
+    db: DatabaseSession
+        The preprocessing database session
+    docs: list[ElasticDocument]
+        The relevant documents
+    query: Query
+        The query
+    method: str
+        Method to select the best clusters from the relevant docs.
+        Options are ```topk``` (keep top-k relevant clusters) and ```thres``` (keep those above threshold).
+        Defaults to ```thres```
+
+    Returns
+    ---
+    res: list[SelectedCluster]
+        The selected clusters
+    '''
     #Load the clusters corresponding to the retrieved documents
     processed_docs = db.load(sess, docs)
 
@@ -232,6 +249,7 @@ def context_expansion_generator(cluster: SelectedCluster, *, threshold:  float =
         candidate.clear_history()
 
 #Copy the exact same function, but make it a non-generator
+#The generator version is meant to return progress messages
 src = inspect.getsource(context_expansion_generator)
 src = textwrap.dedent(src)
 src = src.replace("def context_expansion_generator", "def context_expansion")

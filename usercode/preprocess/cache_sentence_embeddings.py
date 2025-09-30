@@ -9,8 +9,6 @@ sys.path.append(os.path.abspath("../.."))
 
 import argparse
 
-#==============================================================================================
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the preprocessing step for the specified documents, and with the specified parameters (experiments)")
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs or document range. Leave blank for a predefined set of test documents. -1 for all")
@@ -28,31 +26,25 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-#==============================================================================================
-
 import traceback
 import warnings
 from sentence_transformers import SentenceTransformer
 import pickle
-from collections import namedtuple
 from multiprocessing import Pool
 import torch.multiprocessing as mp
-import time
+
+from rich.console import Console
+from rich.rule import Rule
+from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 
 from mypackage.elastic import ElasticDocument, Session
 from mypackage.sentence import doc_to_sentences, sentence_transformer_from_alias
 from mypackage.helper import batched
 from mypackage.experiments import ExperimentManager
 
-from rich.console import Console
-from rich.rule import Rule
-from rich.progress import track, Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
-
 if not args.warnings:
     warnings.filterwarnings("ignore")
-
 console = Console()
-
 db = None
 
 #==============================================================================================

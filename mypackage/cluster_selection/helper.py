@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING    
+from rich.rule import Rule
 
+from mypackage.helper import panel_print, rich_console_text
 if TYPE_CHECKING:
     from .classes import SelectedCluster, SummaryCandidate
-    
-from mypackage.helper import panel_print, rich_console_text
-from rich.rule import Rule
-from rich.console import Console
 
 #========================================================================================================
 
@@ -29,7 +27,6 @@ def print_candidate_states(candidate: SummaryCandidate):
 #========================================================================================================
 
 def print_candidates(focused_cluster: SelectedCluster, *, print_action: bool = False, current_state_only: bool = False, title: str | None = None, return_text: bool = False):
-
     panel_lines = []
 
     for i, c in enumerate(focused_cluster.candidates):

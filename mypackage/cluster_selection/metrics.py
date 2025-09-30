@@ -1,3 +1,10 @@
+import numpy as np
+import time
+from typing import Union
+from collections import defaultdict
+from itertools import accumulate
+from matplotlib import pyplot as plt
+
 from .classes import RelevanceEvaluator
 from ..elastic import Document
 from ..cluster_selection import SelectedCluster, SummaryCandidate, context_expansion_generator, print_candidates, context_expansion, panel_print
@@ -6,14 +13,7 @@ from ..clustering import ChainCluster,  ChainClustering
 
 from rich.console import Console
 from rich.rule import Rule
-import numpy as np
-import time
 
-from typing import overload, Literal, Union
-from collections import defaultdict
-from itertools import accumulate
-
-from matplotlib import pyplot as plt
 console = Console()
 
 #===============================================================================================================
@@ -21,6 +21,17 @@ console = Console()
 def single_document_cross_score(doc: Document, evaluator: RelevanceEvaluator, *, verbose: bool = False, cand_filter: float = 0) -> tuple[float, float]:
     '''
     Identifies all the chains of a specific document that are relevant to a query and sums up their scores.
+
+    Arguments
+    ---
+    doc: Document
+        The document to evaluate. Its contents must have already been retrieved
+    evaluator: RelevanceEvaluator
+        The evaluation context
+    verbose: bool
+        Verbose
+    cand_filter: float
+        When evaluating document, only keep candidates above the filter. Defaults to ```0```
 
     Returns
     ---
@@ -114,16 +125,18 @@ def document_cross_score(docs: list[Document], selected_clusters: list[SelectedC
     selected_clusters: list[SelectedCluster]
         The clusters to evaluate
     evaluator: RelevanceEvaluator
-        The evaluator
+        The evaluation context
     keep_all_docs: bool
         If ```True```, then all retrieved documents are considered as part of the evaluation. In this case,
         even if we didn't retrieve a cluster for some document, we still count the score we missed, counting the retrieved score as 0.
-        Defaults to ```False```
+        Defaults to ```True```
     verbose: bool
         Verbose
     vector: bool
-        Return vector. Defaults to ```False```
-
+        Return vector of pairs, one for each document, showing retrieved score and doc score. Defaults to ```False```
+    cand_filter: float
+        When evaluating documents, only keep candidates above the filter. Defaults to ```0```
+    
     Returns
     ---
     cluster_selection_score: float|list[float]
@@ -162,17 +175,3 @@ def document_cross_score(docs: list[Document], selected_clusters: list[SelectedC
 
         scores = [1.0 if ds == 0 else round(rs/ds, 3) for rs, ds in zip(real_scores, doc_scores)]
         return (scores if vector else round(sum(scores)/len(scores), 3), doc_times)
-    
-#===============================================================================================================
-
-def document_cross_score_at_k(scores: list[float]):
-    fig, ax = plt.subplots()
-
-    temp1 = list(accumulate(x for x,_ in scores))
-    temp2 = list(accumulate(x for _,x in scores))
-    temp = [t1/t2 for t1,t2 in zip(temp1, temp2)]
-
-    ax.plot(range(1, len(scores)+1), temp)
-    ax.set_xticks(range(1, len(scores)+1), labels=range(1, len(scores)+1))
-    #ax.set_yticks(np.arange(0, 1.5, 0.05))
-    plt.show(block=True)

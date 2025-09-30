@@ -28,6 +28,17 @@ class ChainCluster:
     def __init__(self, chains: list[SentenceChain], cluster_label: int, pooling_method: str = "average", *, normalize: bool = True):
         '''
         A cluster of chains from a specific document
+
+        Arguments
+        ---
+        chains: list[SentenceChain]
+            The chains of the cluster
+        cluster_label: int
+            The label of the cluster
+        pooling_method: str
+            The method used to calculate the cluster representative. See ```ChainCluster.VALID_METHODS```. Defaults to ```average```
+        normalize: bool
+            Normalize the representative after pooling. Default to ```True```
         '''
         self.label = cluster_label
         self.chains = chains
@@ -68,9 +79,9 @@ class ChainCluster:
         Arguments
         ---
         chains: list[SentenceChain]
-            The chains we want to calculate the representative for
+            The chains to calculate the representative for
         pooling_method: str
-            The method to use to generate the representative
+            The method used to calculate the representative
         normalize: bool
             Normalize the representative after pooling. Defaults to ```True```
 

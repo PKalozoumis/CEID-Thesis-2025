@@ -22,38 +22,22 @@ if __name__ == "__main__":
 
 #=================================================================================================================
 
-from collections import namedtuple
-from mypackage.elastic import Session, ElasticDocument
-from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION
-from mypackage.sentence.metrics import chain_metrics, within_chain_similarity_at_k, plot_chain_lengths
-from mypackage.clustering.metrics import clustering_metrics, stats
-from mypackage.sentence import SentenceChain
-from mypackage.clustering import ChainClustering
-
-import numpy as np
-import pandas as pd
-
-from mypackage.experiments import ExperimentManager
-from mypackage.storage import PickleSession, MongoSession, DatabaseSession, ProcessedDocument
-
-import pickle
-from itertools import chain
-from functools import reduce
-import json
-
-from rich.console import Console, Group
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-from rich.rule import Rule
-from rich.pretty import Pretty
-from rich.padding import Padding
-from rich.columns import Columns
-
 from collections import defaultdict
 import xlsxwriter
 
-from matplotlib import pyplot as plt
+from rich.console import Console, Group
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.pretty import Pretty
+from rich.padding import Padding
+
+from mypackage.elastic import Session, ElasticDocument
+from mypackage.helper import create_table, write_to_excel_tab, DEVICE_EXCEPTION
+from mypackage.sentence.metrics import chain_metrics
+from mypackage.clustering.metrics import clustering_metrics, stats
+from mypackage.experiments import ExperimentManager
+from mypackage.storage import DatabaseSession, ProcessedDocument
+
 
 console = Console()
 

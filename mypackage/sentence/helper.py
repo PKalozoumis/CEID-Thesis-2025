@@ -30,6 +30,16 @@ def split_to_sentences(text: str, *, sep: str | None = None) -> list[str]:
     return sentences
 
 def sentence_transformer_from_alias(model_name_or_alias: str, alias_file: str = "model_aliases.json") -> str:
+    '''
+    Returns the full name of a sentence transformer given its alias. The aliases are specified in an alias file.
+
+    Arguments
+    ---
+    model_name_or_alias: str
+        The full sentence transformer name or its alias. If the alias does not exit, then this parameter is presumed to be the full name
+    alias_file: str
+        The alias file path. Defaults to ```model_aliases.json```
+    '''
     name = None
     if not os.path.isfile(alias_file):
         name = model_name_or_alias

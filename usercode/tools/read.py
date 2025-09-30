@@ -45,23 +45,18 @@ if __name__ == "__main__":
 
 #===============================================================================================================
 
-from itertools import chain
 import re
-
-from mypackage.elastic import Session, ElasticDocument
-from mypackage.helper import panel_print, DEVICE_EXCEPTION
-from mypackage.storage import DatabaseSession, MongoSession, PickleSession
-from mypackage.cluster_selection import RelevanceEvaluator, SummaryCandidate
-from mypackage.query import Query
-from sentence_transformers import CrossEncoder
-from mypackage.sentence import SimilarityPair
-from mypackage.experiments import ExperimentManager
+import warnings
 
 from rich.console import Console
 from rich.rule import Rule
 from rich.padding import Padding
 
-import warnings
+from mypackage.elastic import Session, ElasticDocument
+from mypackage.helper import panel_print, DEVICE_EXCEPTION
+from mypackage.storage import DatabaseSession
+from mypackage.cluster_selection import RelevanceEvaluator, SummaryCandidate
+from mypackage.experiments import ExperimentManager
 
 console = Console()
 

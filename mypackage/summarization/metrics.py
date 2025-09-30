@@ -1,24 +1,17 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..storage import RealTimeResults
-
-import evaluate
 from transformers import logging
-from .classes import SummaryUnit
 from rouge_score import rouge_scorer
-from ..helper import panel_print, format_latex_table
-
 import pandas as pd
-
-import torch
-from nltk.translate.meteor_score import single_meteor_score
-from nltk import word_tokenize
 from bert_score import score as _bert_score
 
 from rich.console import Console
 
+from .classes import SummaryUnit
+from ..helper import format_latex_table
+if TYPE_CHECKING:
+    from ..storage import RealTimeResults
 
 logging.set_verbosity_error()  # hides warnings and info messages
 console = Console()

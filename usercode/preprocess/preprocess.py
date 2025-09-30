@@ -14,7 +14,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the preprocessing step for the specified documents, and with the specified parameters (experiments)")
     parser.add_argument("-d", action="store", type=str, default=None, help="Comma-separated list of docs or document range. Leave blank for a predefined set of test documents. -1 for all")
     parser.add_argument("-i", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
-    #parser.add_argument("-m", "--model", action="store", type=str, default='sentence-transformers/all-MiniLM-L6-v2', help="Name or alias of the sentence embedding model to use")
+    parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes")
+    parser.add_argument("-dev", "--device", action="store", type=str, default="cpu", choices=["cpu", "gpu"], help="Device for the embedding model")
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-x", nargs="?", action="store", type=str, default="default", help="Comma-separated list of experiments. Name of subdir in pickle/, images/ and /params")
@@ -23,9 +25,12 @@ if __name__ == "__main__":
     parser.add_argument("--from", action="store", type=str, dest="temp_source", default="default", help="Used with -t. Experiment from which to create the temporary experiment")
     parser.add_argument("-c", action="store", type=str, default=None, help="An optional comment appended the created pickle files")
     parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
-    parser.add_argument("-nprocs", action="store", type=int, default=1, help="Number of processes")
-    parser.add_argument("-dev", "--device", action="store", type=str, default="cpu", choices=["cpu", "gpu"], help="Device for the embedding model")
-    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
+
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument("--cache-embeddings", action="store_true", default=False, help="Cache sentence embeddings")
+    group2.add_argument("--use-embedding-cache", action="store_true", default=False, help="Use cached sentence embeddings")
+
+    parser.add_argument("-a", "--append", action="store_true", default=False, help="Insert documents into database without deleting previous results")
     parser.add_argument("--spawn", action="store_true", default=False, help="Set process start method to 'spawn'")
     parser.add_argument("-l", "--limit", action="store", type=int, default=None, help="Document limit for scrolling corpus")
     parser.add_argument("-b", "--batch-size", action="store", type=int, default=2000, help="Batch size for scrolling corpus")
@@ -33,51 +38,34 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     parser.add_argument("-w", "--warnings", action="store_true", default=False, help="Show warnings")
     parser.add_argument("--no-times", action="store_true", default=False, help="Do not store times")
-
-    group2 = parser.add_mutually_exclusive_group()
-    group2.add_argument("--cache-embeddings", action="store_true", default=False, help="Cache sentence embeddings")
-    group2.add_argument("--use-embedding-cache", action="store_true", default=False, help="Use cached sentence embeddings")
-
-    parser.add_argument("-a", "--append", action="store_true", default=False, help="Insert document into database without deleting previous results")
     
     args = parser.parse_args()
 
 #==============================================================================================
 
-from rich.console import Console
-from functools import partial
-
 import traceback
 import warnings
 from sentence_transformers import SentenceTransformer
+import pickle
+from multiprocessing import Pool
+import torch.multiprocessing as mp
+import time
+import pandas as pd
+
+from rich.console import Console
+from rich.rule import Rule
+from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 
 from mypackage.elastic import ElasticDocument, Session, ScrollingCorpus
 from mypackage.sentence import doc_to_sentences, chaining, sentence_transformer_from_alias
 from mypackage.clustering import chain_clustering
 from mypackage.helper import DEVICE_EXCEPTION, batched
-import pickle
-from collections import namedtuple
-from multiprocessing import Process, Pool
-import torch.multiprocessing as mp
-import json
-
-from matplotlib import pyplot as plt
-from matplotlib.font_manager import FontProperties
-from matplotlib.axes import Axes
-
 from mypackage.experiments import ExperimentManager
-from rich.rule import Rule
-from rich.progress import track, Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
-from mypackage.storage import PickleSession, DatabaseSession, MongoSession
-import re
-import time
-import pandas as pd
+from mypackage.storage import DatabaseSession
 
 if not args.warnings:
     warnings.filterwarnings("ignore")
-
 console = Console()
-
 db = None
 
 #==============================================================================================

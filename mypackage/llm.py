@@ -8,8 +8,7 @@ from lmstudio import LlmPredictionConfig
 import platform
 import netifaces
 import re
-
-from typing import Literal, Any
+from typing import Literal, Any, Generator
 
 #================================================================================================
 
@@ -26,6 +25,7 @@ A fact is a span of text that comes from a specific document and is relevant to 
 Each fact always begins with an ID that looks like <1234_0-5>, followed by a colon.
 
 ### Instructions on how to generate the summary:
+- Never repeat the query at the start. Only provide the summary and nothing else.
 - Integrate all relevant points and nuances from all facts, but condensed
 - Never add any information that is not explicitly stated in the facts.
 - Structure the summary with multiple paragraphs for clarity and depth, but keep it concise
@@ -33,7 +33,8 @@ Each fact always begins with an ID that looks like <1234_0-5>, followed by a col
 ### Each sentence in the summary must be accompanied by a citation to the relevant fact:
 - The citation must always be at the end of the sentence, followed by a fullstop.
 - The citation must always be in the ID format <1234_0-5>, with just angle brackets (`<` and `>`).
-- If a sentence uses multiple facts, list IDs back to back with no text in between (e.g. <1234_0-1><5678_5-6>)
+- If a sentence uses multiple facts, list IDs back to back with no text in between (e.g. <1234_0-1><5678_5-6>).
+- Never modify a fact's ID. Copy it as is.
 
 ### This is an example of the desired output for one of the summary sentences:
 Query: "What is the capital city of France?"  
@@ -45,28 +46,49 @@ Paris is the capital city of France <1001_0-1>.
 ### Here is another example, where a summary sentence is supported by two or more facts:
 Query: "What is notable about the current state of the Amazon rainforest?" 
 Facts:
-<1234_0-1>: The Amazon rainforest contains over 390 billion individual trees.
+<1234_0-0>: The Amazon rainforest contains over 390 billion individual trees.
 <5678_5-6>: In the last decade, deforestation in the Amazon has risen by 85%.
 Summary:  
-The Amazon rainforest contains over 390 billion trees, yet deforestation has increased by 85% in the last decade <1234_0-1><5678_5-6>.
+The Amazon rainforest contains over 390 billion trees, yet deforestation has increased by 85% in the last decade <1234_0-0><5678_5-6>.
 '''
     @classmethod
-    def create(cls, backend: Literal["llamacpp", "lmstudio"], model_name: str = "meta-llama-3.1-8b-instruct", api_host=None):
+    def create(cls, backend: Literal["llamacpp", "lmstudio"], model_name: str = "meta-llama-3.1-8b-instruct", api_host=None) -> LLMSession:
+        '''
+        Create a session based on the selected backend
+        '''
         if backend == "llamacpp":
             return LlamaCppSession(model_name, api_host)
         elif backend == "lmstudio":
             return LMStudioSession(model_name, api_host)
 
     @abstractmethod
-    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False) -> Generator[str]:
+        '''
+        Query-based summarization
+
+        Arguments
+        ---
+        query: str
+            The query
+        text: str
+            The text to summarize
+        cache_prompt: bool
+            Cache the summarization input. Defaults to ```False```. This is different from the system prompt caching.
+        '''
         pass
 
     @abstractmethod
     def cache_system_prompt(self):
+        '''
+        Sends a request with only the system prompt and no text generation. The purpose of this is to cache the system prompt.
+        '''
         pass
 
     @abstractmethod
     def disconnect(self):
+        '''
+        Disconnect from the LLM
+        '''
         pass
 
     @classmethod
@@ -102,7 +124,7 @@ class LlamaCppSession(LLMSession):
 
     #-------------------------------------------------------------------------------------------------
 
-    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False) -> Generator[str]:
         stop_dict['conn'] = self
         
         stream = requests.post(f"http://{self.api_host}/chat/completions", stream=True, headers={'Content-Type': 'application/json'}, json={
@@ -171,7 +193,7 @@ class LMStudioSession(LLMSession):
 
     #-------------------------------------------------------------------------------------------------
 
-    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False):
+    def summarize(self, query: str, text: str, stop_dict, *, cache_prompt: bool = False) -> Generator[str]:
         stop_dict['conn'] = self
 
         chat = lms.Chat()

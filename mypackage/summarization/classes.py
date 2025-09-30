@@ -1,16 +1,7 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..cluster_selection import SelectedCluster, SummaryCandidate
-
-import os
-import json
-import numpy as np
 from itertools import chain
-from dataclasses import dataclass, field
-from transformers import LlamaTokenizer
-import time
 from collections import defaultdict
 import re
 import copy
@@ -18,10 +9,8 @@ import copy
 from ..llm import LLMSession
 from ..helper import panel_print, rich_console_text
 from ..query import Query
-from ..sentence import SentenceChain
-
-from rich.rule import Rule
-from rich.padding import Padding
+if TYPE_CHECKING:
+    from ..cluster_selection import SelectedCluster, SummaryCandidate
 
 #================================================================================================================
 
@@ -32,7 +21,7 @@ class SummaryUnit():
 
     sorted_candidates: list[SummaryCandidate]
     summary: str
-    citations: list[int]
+    citations: list[dict] #{doc: int, start: int, end: int}
     clusters: list[SelectedCluster]
     sorting_method: str
 
@@ -60,7 +49,7 @@ class SummaryUnit():
 
         self.clusters = clusters
         self.summary = None
-        self.citations = None
+        self.citations = []
         self.sorting_method = sorting_method
 
         #------------------------------------------------------------------------------------
@@ -111,29 +100,33 @@ class SummaryUnit():
 
     @staticmethod
     def _resolve_overlaps(candidates: list[SummaryCandidate]) -> list[SummaryCandidate]:
-            #Give each element a global position in the sorted list of candidates
-            #This will help us resolve overlaps in a single document, while also maintaining the original sort order
-            candidates: list[tuple[int, SummaryCandidate]] = list(enumerate(candidates))
+        '''
+        Sometimes, if we have two clusters from the same document, two independent expansions can get the same chains.
+        We solve this by grouping candidates by document, and then removing the less relevant among every two candidates with overlap
+        '''
+        #Give each element a global position in the sorted list of candidates
+        #This will help us resolve overlaps in a single document, while also maintaining the original sort order
+        candidates: list[tuple[int, SummaryCandidate]] = list(enumerate(candidates))
 
-            #Group candidates by document
-            groups = defaultdict(list)
-            for pos,c in candidates:
-                groups[c.chain.doc.id].append((pos,c))
-            groups: list[list[tuple[int, SummaryCandidate]]] = list(groups.values())
+        #Group candidates by document
+        groups = defaultdict(list)
+        for pos,c in candidates:
+            groups[c.chain.doc.id].append((pos,c))
+        groups: list[list[tuple[int, SummaryCandidate]]] = list(groups.values())
 
-            marked_for_deletion = [False] * len(candidates)
+        marked_for_deletion = [False] * len(candidates)
 
-            #Resolve overlaps for each group
-            for group in groups:
-                seen_chains = set()
-                for pos, c in group:
-                    index_set = set(c.index_range)
-                    if seen_chains & index_set:
-                        marked_for_deletion[pos] = True
-                    else:
-                        seen_chains |= index_set
-                
-            return [c for pos,c in candidates if not marked_for_deletion[pos]]
+        #Resolve overlaps for each group
+        for group in groups:
+            seen_chains = set()
+            for pos, c in group:
+                index_set = set(c.index_range)
+                if seen_chains & index_set:
+                    marked_for_deletion[pos] = True
+                else:
+                    seen_chains |= index_set
+            
+        return [c for pos,c in candidates if not marked_for_deletion[pos]]
     
     #------------------------------------------------------------------------------------
 
@@ -144,6 +137,23 @@ class SummaryUnit():
     #------------------------------------------------------------------------------------
     
     def clean_summary(self, no_citations: bool = False, no_newlines: bool = False, inplace: bool = False) -> SummaryUnit:
+        '''
+        Return a version of the summary wthout certain elements
+
+        Arguments
+        ---
+        no_citations: bool
+            Removes citations
+        no_newlines: bool
+            Removes newlines
+        inplace: bool
+            Applies changes in the same object. Otherwise, a new object is returned
+
+        Returns
+        ---
+        unit: SummaryUnit
+            If ```inplace=True```, returns```self``` , else a copy
+        '''
         new_obj = copy.copy(self)
 
         if self.summary is not None:
@@ -201,6 +211,28 @@ class SummaryUnit():
     
     #------------------------------------------------------------------------------------
 
+    def apply_citations(self, colored: bool = False) -> str:
+        '''
+        Returns the summary text with citation placeholders filled in
+
+        Arguments
+        ---
+        colored: bool
+            Apply color to citations
+
+        Returns
+        ---
+        The augmented summary
+        '''
+        ret = self.summary
+        for cite in self.citations:
+            temp = f"<{cite['doc']}_{cite['start']}-{cite['end']}>"
+            ret = ret.replace("<citation>", temp if not colored else f"[cyan]{temp}[/cyan]", 1)
+
+        return ret
+
+    #------------------------------------------------------------------------------------
+
     def data(self) -> dict:
         return {
             'summary': self.summary,
@@ -213,7 +245,7 @@ class SummaryUnit():
     def from_data(cls, data, clusters: list[SelectedCluster]) -> 'SummaryUnit':
         temp = cls(clusters, data['sorting_method'])
         temp.summary = data['summary']
-        temp.citations = data['citations']
+        temp.citations = data['citations'] if data['citations'] else []
 
         return temp
 
@@ -221,8 +253,7 @@ class SummaryUnit():
 
 class Summarizer():
     '''
-    Contains a connection to the LLM used for summarization.
-    The final output is the summary
+    Contains a connection to the LLM used for summarization
     '''
     llm: LLMSession
     query: Query
@@ -235,6 +266,13 @@ class Summarizer():
 
     def summarize(self, unit: SummaryUnit, stop_dict, *, cache_prompt: bool = False):
         '''
+        Arguments
+        ---
+        unit: SummaryUnit
+            The summary unit to summarize
+        cache_prompt: bool
+            Cache the summarization input. Defaults to ```False```. This is different from the system prompt caching.
+        
         Yields
         ---
         stream: PredictionStream
@@ -289,12 +327,17 @@ class Summarizer():
                         else:
                             citation_temp_text = res.group(6)
 
-                        unit.summary += temp
-                        yield temp, {
+                        citation = {
                             'doc': int(res.group('doc')),
                             'start': int(res.group('start')),
                             'end': int(res.group('end')) if res.group('end') is not None else int(res.group('start'))
                         }
+
+                        unit.summary += temp
+                        unit.citations.append(citation)
+
+                        yield temp, citation
+
                 else: #The input stops being a citation. We throw the held text to the summary
                     unit.summary += citation_temp_text
                     yield citation_temp_text, None

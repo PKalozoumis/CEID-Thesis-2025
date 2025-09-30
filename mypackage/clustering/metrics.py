@@ -1,16 +1,15 @@
 import numpy as np
-from rich.console import Console
-from rich.table import Table
 from hdbscan.validity import validity_index
 from itertools import chain
 from sklearn.metrics import silhouette_score
-from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import davies_bouldin_score
 
-from ..sentence import SentenceChain
+from rich.console import Console
+from rich.table import Table
+
 from .classes import ChainCluster, ChainClustering
 from ..helper import create_table
-from .clustering import group_chains_by_label
 
 #================================================================================================
 

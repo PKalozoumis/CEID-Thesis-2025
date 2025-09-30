@@ -14,21 +14,6 @@ db.prepare("CREATE TABLE IF NOT EXISTS history(id INTEGER PRIMARY KEY,query TEXT
 
 //======================================================================================
 
-function isURL(url)
-{
-    try
-    {
-        new URL(url);
-        return true;
-    }
-    catch(_)
-    {
-        return false;
-    }
-}
-
-//======================================================================================
-
 const createWindow = (source, options = null)=>{
     const defaultOptions = {
         width: 1280,
@@ -39,7 +24,8 @@ const createWindow = (source, options = null)=>{
         webPreferences: {
             nodeIntegration: true,
             preload: path.join(__dirname, "preload.js")
-        }
+        },
+        icon: "assets/icon.ico"
     }
 
     const win = new BrowserWindow({...defaultOptions, ...options});
@@ -64,8 +50,6 @@ function setupApiHandlers()
     {
         let {query, time, response} = historyEntry;
         let info = db.prepare("INSERT INTO history VALUES(?, ?, ?, ?)").run(null, query, time, response);
-
-        console.log("stored")
         return info.lastInsertRowid + 1
     })
 
@@ -79,7 +63,7 @@ function setupApiHandlers()
     //Delete from history
     ipcMain.handle('delete-from-history', (_, id)=>
     {
-        console.log(`Deleted ${id}`)
+        //console.log(`Deleted ${id}`)
         db.prepare("DELETE FROM history WHERE id=?").run(id)
     })
 }
@@ -88,7 +72,6 @@ function setupApiHandlers()
 
 //Multiple instance protection
 const onlyInstance = app.requestSingleInstanceLock()
-console.log(onlyInstance)
 
 if (!onlyInstance)
 {
@@ -113,6 +96,6 @@ else
             callback(0); // 0 means accept all certificates
         });
         
-        createWindow("index.html", {title: "Dista1"})
+        createWindow("index.html", {title: "DEVICE"})
     })
 }

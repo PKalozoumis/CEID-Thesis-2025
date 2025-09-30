@@ -2,27 +2,24 @@ import os
 import sys
 sys.path.append(os.path.abspath("../.."))
 
-from mypackage.elastic import Session, ElasticDocument
+from application_helper import Arguments
+
+from sentence_transformers import SentenceTransformer
+from collections import defaultdict
+import time
+from flask_socketio import SocketIO
+from rich.console import Console
+
+from mypackage.elastic import Session
 from mypackage.clustering.metrics import cluster_stats
 from mypackage.query import Query
 from mypackage.summarization import Summarizer, SummaryUnit
 from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, cluster_retrieval, context_expansion, context_expansion_generator, print_candidates
 from mypackage.llm import LLMSession
-from mypackage.storage import DatabaseSession, MongoSession, PickleSession, RealTimeResults, ExperimentManager
-from mypackage.helper import rich_console_text
-
-from application_helper import Arguments
-
-from sentence_transformers import SentenceTransformer, CrossEncoder
-from collections import defaultdict
-import time
-from flask_socketio import SocketIO
-from rich.console import Console
-import copy
+from mypackage.storage import DatabaseSession, RealTimeResults, ExperimentManager
 
 console = Console()
 message_sender = None
-
 _console_width = None
 
 #===============================================================================================================
@@ -197,19 +194,23 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
     if args.summ:
         is_first_fragment = True
 
+        #Only measure for the first summary
+        measure_response_time = (times['summary_response_time'] == 0)
+
         message_sender("info", "[white]Summarizing...[/white]" + (f" ({summary_num+1}/{args.num_summaries})" if args.num_summaries > 1 else ""))
-        llm = LLMSession.create(server_args.llm_backend, "meta-llama-3.1-8b-instruct", api_host=server_args.host)
+        llm = LLMSession.create(server_args.llm_backend, "meta-llama-3.1-8b-instruct", api_host=server_args.llm_host)
 
         summarizer = Summarizer(query, llm=llm)
-        times['summary_time'] = time.time()
-        times['summary_response_time'] = time.time()
+        if measure_response_time: times['summary_response_time'] = time.time()
 
         #Generate the fragments
         for fragment, citation in summarizer.summarize(unit, stop_dict, cache_prompt=True):
             
             if is_first_fragment:
-                times['summary_response_time'] = time.time() - times['summary_response_time']
-                message_sender('time', {'summary_response_time': times['summary_response_time']})
+                temp_generation_time = time.time()
+                if measure_response_time:
+                    times['summary_response_time'] = time.time() - times['summary_response_time']
+                    message_sender('time', {'summary_response_time': times['summary_response_time']})
                 message_sender("fragment", fragment)
                 is_first_fragment = False
             else:
@@ -218,8 +219,9 @@ def summarization_stage(query: Query, selected_clusters: list[SelectedCluster], 
                 else:
                     message_sender("fragment", fragment)
 
-        times['summary_time'] = time.time() - times['summary_time']
-        message_sender('time', {'summary_time': times['summary_time']})
+        temp_generation_time = time.time() - temp_generation_time
+        times['generation_time'] += temp_generation_time
+        message_sender('time', {'generation_time': times['generation_time']})
 
     return unit
 

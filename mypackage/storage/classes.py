@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import TYPE_CHECKING, overload
+from typing import overload
 from more_itertools import always_iterable
 import os
 import pickle
@@ -9,8 +9,8 @@ import shutil
 from pymongo import MongoClient, collection, database
 from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from collections import defaultdict
-import re
 from types import SimpleNamespace
+from dataclasses import dataclass
 
 from ..clustering import ChainCluster, ChainClustering
 from ..elastic import Document, Session, ElasticDocument
@@ -21,16 +21,12 @@ from ..query import Query
 from ..cluster_selection import SelectedCluster, RelevanceEvaluator
 from ..experiments import ExperimentManager
 
-from elasticsearch import NotFoundError
-
-from dataclasses import dataclass
-
 #==========================================================================================================
 
 @dataclass
 class RealTimeResults():
     '''
-    Represents the results of a single client query. Can be used for later evaluatiion.
+    Represents the application results of a single client query. Can be used for later evaluatiion.
     '''
     #Environment objects
     sess: Session
@@ -199,6 +195,9 @@ class ProcessedDocument():
 #==========================================================================================================
 
 class DatabaseSession(ABC):
+    '''
+    Base class for the preprocessing database
+    '''
 
     _base_path: str
     _sub_path: str
@@ -206,16 +205,25 @@ class DatabaseSession(ABC):
     @property
     @abstractmethod
     def db_type(self) -> str:
+        '''
+        Returns ```pickle``` for ```PickleSession``` and ```mongo``` for ```MongoSession```
+        '''
         pass
 
     @property
     @abstractmethod
     def base_path(self) -> str:
+        '''
+        Returns the base path, corresponding to the database name
+        '''
         pass
 
     @property
     @abstractmethod
     def sub_path(self) -> str:
+        '''
+        Returns the subpath, corresponding to the experiment name
+        '''
         pass
 
     @base_path.setter
@@ -240,38 +248,103 @@ class DatabaseSession(ABC):
 
     @abstractmethod
     def load(self, sess: Session, docs: int|list[int]|ElasticDocument|list[ElasticDocument], *, skip_missing_docs: bool = False, reject_list: list[int] = []) -> ProcessedDocument|list[ProcessedDocument]:
+        '''
+        Load the specified processed documents from the database
+
+        Arguments
+        ---
+        sess: Session
+            The Elasticsearch session
+        docs: int|list[int]|ElasticDocument|list[ElasticDocument]
+            The documents to load
+        skip_missing_docs: bool
+            If a document in the ```docs``` list, cannot be retrieved, skip it. Defaults to ```False```
+        reject_list: list[int]
+            Specify a list of document IDs to skip. Defaults to ```[]```
+        '''
         pass
 
     @abstractmethod
     def store(self, clustering: ChainClustering, *, params: dict = None):
+        '''
+        Store clustering results to the database
+
+        Arguments
+        ---
+        clustering: ChainClustering
+            The clustering results
+        params: dict, optional
+            The experiment parameters
+        '''
         pass
 
     @abstractmethod
     def close(self):
+        '''
+        Closes the connection
+        '''
         pass
 
     @abstractmethod
     def delete(self):
+        '''
+        Deletes the currently selected experiment results. Select experiment by setting a combination of ```base_path``` and ```sub_path```
+        '''
         pass
 
     @abstractmethod
     def available_experiments(self, requested_experiments: str) -> list[str]:
+        '''
+        Returns the subset of experiment names from the requested experiments that have actually been compiled.
+
+        Arguments
+        ---
+        requested_experiments: str
+            Return a list of documents from specifications
+
+        Arguments
+        ---
+        docs_list: str
+            The experiment specifications. The following options are supported:
+            - **all**: Request for all compiled experiments
+            - **Comma-separated list (1,2,3,...)**: Returns the experiment in the list, if they exist
+
+        Returns
+        ---
+        exp: list[str]
+            List of experiment names
+        '''
         pass
 
     @abstractmethod
     def list_experiments(self) -> list[str]:
+        '''
+        Returns the names of all compiled experiments in the database denoted by ```base_path```
+        '''
         pass
 
     @abstractmethod
     def get_experiment_params(self) -> dict:
+        '''
+        Return the parameters of the selected experiment.
+        Select experiment by setting a combination of ```base_path``` and ```sub_path```
+        '''
         pass
 
     @abstractmethod
     def is_temp(self) -> bool:
+        '''
+        Check if selected experiment is temporary.
+        Select experiment by setting a combination of ```base_path``` and ```sub_path```
+        '''
         pass
 
     @abstractmethod
     def set_temp(self):
+        '''
+        Set selected experiment as temporary.
+        Select experiment by setting a combination of ```base_path``` and ```sub_path```
+        '''
         pass
 
     #=========================================================================================
@@ -346,8 +419,8 @@ class DatabaseSession(ABC):
 
 class PickleSession(DatabaseSession):
 
-    #Let's say your pickles are in ..folder1/experiments/pubmed/default
-    #pickle_base = ..folder1/experiments
+    #Let's say your pickles are in ..folder1/tools/pubmed/default
+    #pickle_base = ..folder1/tools
     #base_path = pubmed
     #sub_path = default
 

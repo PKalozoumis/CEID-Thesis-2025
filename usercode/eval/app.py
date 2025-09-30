@@ -17,7 +17,7 @@ if __name__ == "__main__":
         "test",
         "times",
         "cluster_selection",
-        "context_expansion"
+        "text_size"
     ])
     
     parser.add_argument("-i", "--index", action="store", type=str, default="pubmed", help="Comma-separated list of index names")
@@ -26,36 +26,34 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--files", required=True, action="store", type=str, help="Pickle files to load")
     parser.add_argument("--num-test-summaries", action="store", type=int, default=0, help="Number of test summaries to use. 0 for no test")
     parser.add_argument("-ndocs", "--num-documents", action="store", type=int, default=None, help="Number of retrieved docs to consider")
+    parser.add_argument("-l", "--limit", action="store", type=int, default=None, help="Number of dataset entries to consider")
     parser.add_argument("--latex", action="store_true", default=False, help="Print latex tables")
+    parser.add_argument("--thres", action="store", type=float, default=5.7, help="Relevance threshold")
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
     args = parser.parse_args()
 
-from mypackage.elastic import Session, ElasticDocument
-from mypackage.query import Query
-from mypackage.summarization.metrics import bert_score, rouge_score, compression_ratio, rouge_presentation, bertscore_presentation, compression_presentation
-from mypackage.storage import DatabaseSession, MongoSession, PickleSession, ExperimentManager, RealTimeResults
-from mypackage.cluster_selection.metrics import document_cross_score, document_cross_score_at_k
-from mypackage.helper.retrieval_metrics import precision, recall, fscore, mean_average_precision, mean_reciprocal_rank, average_precision, micro_avg_precision, micro_avg_recall, micro_avg_fscore, macro_avg_precision, macro_avg_fscore, macro_avg_recall
-from mypackage.helper import panel_print, format_latex_table, DEVICE_EXCEPTION
-from mypackage.summarization import SummaryUnit
-from mypackage.cluster_selection import SelectedCluster, RelevanceEvaluator, print_candidates
-
 from application_helper import create_time_tree
 
-from itertools import chain
-from rich.console import Console
-from rich.rule import Rule
-from rich.padding import Padding
 import copy
 import time
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-
-
 from collections import defaultdict
 import warnings
+
+from rich.console import Console
+from rich.rule import Rule
+from rich.padding import Padding
+
+from mypackage.elastic import Session
+from mypackage.summarization.metrics import rouge_presentation, bertscore_presentation, compression_presentation
+from mypackage.storage import DatabaseSession, ExperimentManager, RealTimeResults
+from mypackage.cluster_selection.metrics import document_cross_score
+from mypackage.helper.retrieval_metrics import precision, recall, fscore, mean_average_precision, mean_reciprocal_rank, micro_avg_precision, micro_avg_recall, micro_avg_fscore, macro_avg_precision, macro_avg_fscore, macro_avg_recall
+from mypackage.helper import panel_print, format_latex_table, DEVICE_EXCEPTION
+from mypackage.cluster_selection import print_candidates
 
 console = Console()
 
@@ -126,16 +124,20 @@ def test(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
             console.print(Rule("Summaries"))
             panel_print(single_query_results.summaries[0].reference, title="Reference")
             for i, s in enumerate(single_query_results.summaries):
-                panel_print(s.summary, title="Summary" + (f" ({i+1}/{len(single_query_results.summaries)})" if len(single_query_results.summaries) > 1 else ""))
+                panel_print(s.apply_citations(colored=True), title="Summary" + (f" ({i+1}/{len(single_query_results.summaries)})" if len(single_query_results.summaries) > 1 else ""))
 
             #Print arguments and times
             panel_print(single_query_results.args.__dict__, title="Client args")
-            tree, _ = create_time_tree(single_query_results.times[0])
+            tree, res = create_time_tree(single_query_results.times[0])
             console.print(tree)
+
+            total_summary_words = sum(len(s.summary.split()) for s in single_query_results.summaries)
+            rate = round(total_summary_words/res['generation_time'], 2)
+            console.print(f"\nWord generation rate: {rate} w/s")
 
 #=================================================================================================================
 
-def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval_relevance_threshold: float = 5.3):
+def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval_relevance_threshold: float):
     
     #In retrieval evaluation, there are no multiple experiments (results are not affected by experiment)
     #So we just take the queries from the first experiment
@@ -155,7 +157,7 @@ def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval
         console.print(f"Retrieved docs: {single_query_results}")
         console.print("\nAll relevant docs:")
         console.print(df.loc[df['score'] > eval_relevance_threshold, ['doc', 'score']])
-        relevant = df.loc[df['score'] > eval_relevance_threshold, 'doc'].to_list()
+        relevant = df.loc[df['score'] > eval_relevance_threshold, 'doc'].to_list()[:args.limit]
 
         multiple_query_results.append(single_query_results)
         multiple_relevant.append(relevant)
@@ -186,7 +188,7 @@ def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval
             caption="Μετρικές ανάκτησης για καθένα από τα ερωτήματα", 
             label="tab:retrieval_per_query", 
             float_format="%.3f",
-            position="H"
+            position="h"
         )
         format_latex_table(latex, name="Retrieval")
     print()
@@ -201,6 +203,14 @@ def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval
         'MAP': mean_average_precision(multiple_query_results, multiple_relevant),
         'MRR': mean_reciprocal_rank(multiple_query_results, multiple_relevant)
     }
+
+    record = {
+        'Precision': macro_avg_precision(multiple_query_results, multiple_relevant),
+        'Recall': macro_avg_recall(multiple_query_results, multiple_relevant),
+        'F-Score': macro_avg_fscore(multiple_query_results, multiple_relevant),
+        'MAP': mean_average_precision(multiple_query_results, multiple_relevant),
+        'MRR': mean_reciprocal_rank(multiple_query_results, multiple_relevant)
+    }
     df = pd.DataFrame(record, index=[0])
     console.print(df)
     if args.latex:
@@ -210,7 +220,7 @@ def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval
             caption="Συσσωρευτικές μετρικές ανάκτησης για όλα τα ερωτήματα", 
             label="tab:retrieval_metrics", 
             float_format="%.3f",
-            position="H"
+            position="h"
         )
         format_latex_table(latex, name="Retrieval")
 
@@ -227,9 +237,9 @@ def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval
     fig, ax = plt.subplots()
 
     metrics = np.array([
-        micro_avg_precision(multiple_query_results, multiple_relevant, vector=True),
-        micro_avg_recall(multiple_query_results, multiple_relevant, vector=True),
-        micro_avg_fscore(multiple_query_results, multiple_relevant, vector=True)
+        macro_avg_precision(multiple_query_results, multiple_relevant, vector=True),
+        macro_avg_recall(multiple_query_results, multiple_relevant, vector=True),
+        macro_avg_fscore(multiple_query_results, multiple_relevant, vector=True)
     ])
 
     labels = ["Ακρίβεια", "Ανάκληση", "F-score"]
@@ -252,7 +262,9 @@ def retrieval_evaluation(multiple_exp_results: list[list[RealTimeResults]], eval
 
 def cluster_selection_evaluation(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
 
+    dfs = []
     for exp_name, single_exp_results in zip(names, multiple_exp_results):
+        records_for_this_experiment = []
         for results in single_exp_results:
             cl_times = average_times(results.times)
 
@@ -265,46 +277,128 @@ def cluster_selection_evaluation(multiple_exp_results: list[list[RealTimeResults
                     time_per_doc[doc] += v
             '''
 
-            #cand_filter = results.args.cand_filter
-            cand_filter = -6
+            cand_filter = results.args.cand_filter
+            #cand_filter = -7
 
             #I should check what percentage of chains in the initial clusters are actually good
             all_chain_count = sum(len(sc.central_chains()) for sc in results.original_selected_clusters)
             good_chain_count = sum(1 for sc in results.original_selected_clusters for cand in sc.candidates if cand.score > 0)
             chain_prec = round(good_chain_count/all_chain_count, 3)
-            console.print(f"Chain precision: {chain_prec}")
+            #console.print(f"Chain precision: {chain_prec}")
 
             #We can check how good the initial clusters were at recalling information
             #Of course, we first need to filter out the negative chains
             #The idea is that we want to apply similar steps, as if this were the input to the summarization system
             #..but without context expansion
             filtered_clusters = [c.filter_and_merge_candidates(max_bridge_size=0) for c in results.original_selected_clusters]
-            score, doc_times = document_cross_score(results.returned_docs, filtered_clusters, results.evaluator, verbose=args.verbose, cand_filter=cand_filter)
-            console.print(f"Original Score: {score}")
+            score1, doc_times = document_cross_score(results.returned_docs, filtered_clusters, results.evaluator, verbose=args.verbose, cand_filter=cand_filter)
+            #console.print(f"Original Score: {score1}")
             dt = sum(doc_times)
             
-            score, _ = document_cross_score(results.returned_docs, results.selected_clusters, results.evaluator, verbose=args.verbose, cand_filter=cand_filter)
-            console.print(f"Improved Score: {score}")
+            score2, _ = document_cross_score(results.returned_docs, results.selected_clusters, results.evaluator, verbose=args.verbose, cand_filter=cand_filter)
+            #console.print(f"Improved Score: {score2}")
 
             ct = cl_times['cluster_retrieval'] + sum(v for k,v in cl_times.items() if k.startswith("context_expansion")) + sum(v for k,v in cl_times.items() if k.startswith("cross_score"))
             speedup = round(dt/ct, 2)
-            console.print(f"Cluster processing time: {ct}")
-            console.print(f"Document processing time: {dt}")
-            console.print(f"Speedup: {speedup}")
 
-            #document_cross_score_at_k(score2)
+            records_for_this_experiment.append({
+                'chain_precision': chain_prec,
+                'original_recall': score1,
+                'improved_recall': score2,
+                'cluster_time': round(ct, 3),
+                'speedup': speedup
+            })
+
+            #console.print(f"Cluster processing time: {ct}")
+            #console.print(f"Document processing time: {dt}")
+            #console.print(f"Speedup: {speedup}")
+
+        df_for_this_experiment = pd.DataFrame(records_for_this_experiment)
+        dfs.append(df_for_this_experiment)
+
+        if exp_name == "default":
+            console.print(df_for_this_experiment)
+            if args.latex:
+                latex = df_for_this_experiment.to_latex(
+                    escape=True,
+                    column_format='lccccc',
+                    caption="Μετρικές αξιολόγησης επιλογής συστάδων για το προκαθορισμένο πείραμα", 
+                    label="tab:default_cluster_sel_metrics", 
+                    float_format="%.3f",
+                    position="h"
+                )
+                format_latex_table(latex, name="Default Cluster Selection Metrics")
+
+    avg_rows = [df.mean().to_frame().T for df in dfs]
+    result = pd.concat(avg_rows, ignore_index=True)
+    result.index = names
+    console.print(result)
+    if args.latex:
+        latex = result.to_latex(
+            escape=True,
+            column_format='lccccc',
+            caption="Μετρικές αξιολόγησης επιλογής συστάδων", 
+            label="tab:cluster_sel_metrics", 
+            float_format="%.3f",
+            position="h"
+        )
+        format_latex_table(latex, name="Cluster Selection Metrics")
 
 #=================================================================================================================
 
-def context_expansion_evaluation(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
-    raise NotImplementedError()
+def text_size_evaluation(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
+
+    dfs = []
+    for exp_name, single_exp_results in zip(names, multiple_exp_results):
+        records_for_this_experiment = []
+        for results in single_exp_results:
+
+            nclusters = len(results.original_selected_clusters)
+            input_size = len(results.summaries[0].reference.split())
+            nfacts = len(results.summaries[0].sorted_candidates)
+            records_for_this_experiment.append({
+                'nclusters': nclusters,
+                'nfacts': nfacts,
+                'input_size': input_size,
+            })
+
+        df_for_this_experiment = pd.DataFrame(records_for_this_experiment)
+        dfs.append(df_for_this_experiment)
+
+        if exp_name == "default":
+            console.print(df_for_this_experiment)
+            if args.latex:
+                latex = df_for_this_experiment.to_latex(
+                    escape=True,
+                    column_format='lccc',
+                    caption="caption", 
+                    label="tab:default_text)size", 
+                    float_format="%.1f",
+                    position="h"
+                )
+                format_latex_table(latex, name="Default Cluster Selection Metrics")
+
+    avg_rows = [df.mean().to_frame().T for df in dfs]
+    result = pd.concat(avg_rows, ignore_index=True)
+    result.index = names
+    console.print(result)
+    if args.latex:
+        latex = result.to_latex(
+            escape=True,
+            column_format='lccc',
+            caption="caption", 
+            label="tab:text_size", 
+            float_format="%.1f",
+            position="h"
+        )
+        format_latex_table(latex, name="Cluster Selection Metrics")
     
 #=================================================================================================================
 
 def summary_evaluation(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
     rouge_presentation(multiple_exp_results, names, show_latex=args.latex)
     bertscore_presentation(multiple_exp_results, names, show_latex=args.latex)
-    compression_presentation(multiple_exp_results, names, show_latex=args.latex)
+    #compression_presentation(multiple_exp_results, names, show_latex=args.latex)
 
 #=================================================================================================================
 
@@ -347,9 +441,10 @@ def times(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
         "cluster_retrieval": "Cluster Retr.",
         "cross_scores": "Cross Scores",
         "context_expansion": "Context Exp.",
-        "summary_time": "Summ.",
-        "summary_response_time": "Resp. Time",
-        "total": "Total"
+        "generation_time": "Generation",
+        "summary_response_time": "Response",
+        "total": "Total",
+        "generation_rate": "Words/s"
     }
 
     '''
@@ -359,9 +454,10 @@ def times(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
         "cluster_retrieval": "Ανάκτηση Συστάδων",
         "cross_scores": "Cross Scores",
         "context_expansion": "Επέκταση Συμφρ.",
-        "summary_time": "Σύνοψη",
+        "generation_time": "Σύνοψη",
         "summary_response_time": "Απόκρ. Σύνοψης",
-        "total": "Σύνολο"
+        "total": "Σύνολο",
+        "generation_rate": "Λέξεις/δευτ"
     }
     '''
 
@@ -369,15 +465,25 @@ def times(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
 
     for exp_name, single_experiment_results in zip(names, multiple_exp_results):
         experiment_times = []
+        word_rates = []
         for single_query_results in single_experiment_results:
-            experiment_times += single_query_results.times
+            t = single_query_results.times[0]
+
+            #Calculate word rate
+            total_summary_words = sum(len(s.summary.split()) for s in single_query_results.summaries)
+            word_rates.append(round(total_summary_words/t['generation_time'], 2))
+            del t['generation_time']
+
+            experiment_times.append(t)
 
         #For the default experiment only, also show the times for each of the 5 queries in detail
         #It is your responsibility to put the 5 queries in order lol
         if exp_name == "default":
             default_times = []
-            for t in experiment_times:
+            for t, rate in zip(experiment_times, word_rates):
                 _, times_dict = create_time_tree(t, rename_map=rename_map)
+                del times_dict[rename_map['total']]
+                times_dict[rename_map['generation_rate']] = rate
                 default_times.append(times_dict)
             default_times = pd.DataFrame(default_times)
             avg_row = pd.DataFrame([default_times.mean()], columns=default_times.columns, index=['average'])
@@ -394,13 +500,29 @@ def times(multiple_exp_results: list[list[RealTimeResults]], names: list[str]):
                 )
                 format_latex_table(latex, name="Times")
 
-        console.print(Rule(f"Average times for Experiment {exp_name}"))
+        #console.print(Rule(f"Average times for Experiment {exp_name}"))
         tree, times_dict = create_time_tree(average_times(experiment_times), rename_map=rename_map)
-        console.print(tree)
+        del times_dict[rename_map['total']]
+
+        times_dict[rename_map['generation_rate']] = np.average(word_rates)
+ 
+        #We do not want to average the generation time, nor do we want it in the total
+        #We want the token rate instead
+
         dfs.append(pd.DataFrame(times_dict, index=[exp_name]))
 
     dfs = pd.concat(dfs, axis=0)
     console.print(dfs)
+    if args.latex:
+        latex = dfs.to_latex(
+            escape=True,
+            column_format='lXXXXXXXX',
+            caption="Times for each query", 
+            label="tab:runtimes_per_experiment", 
+            float_format="%.3f",
+            position="h"
+        )
+        format_latex_table(latex, name="Times")
 
 #=================================================================================================================
 
@@ -414,10 +536,10 @@ if __name__ == "__main__":
 
     match args.op:
         case "test": test(results, experiment_names)
-        case "retrieval": retrieval_evaluation(results)
+        case "retrieval": retrieval_evaluation(results, eval_relevance_threshold=args.thres)
         case "summ": summary_evaluation(results, experiment_names)
         case "times": times(results, experiment_names)
         case "cluster_selection": cluster_selection_evaluation(results, experiment_names)
-        case "context_expansion": context_expansion_evaluation(results, experiment_names)
+        case "text_size": text_size_evaluation(results, experiment_names)
 
         

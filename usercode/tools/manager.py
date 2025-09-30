@@ -25,13 +25,13 @@ if __name__ == "__main__":
 #IMPORTS
 #=============================================================================================================
 from rich.console import Console
+from rich.pretty import Pretty
+from rich.rule import Rule
+
 from mypackage.elastic import Session       
 from mypackage.helper import panel_print
 from mypackage.experiments import ExperimentManager
-from mypackage.storage import DatabaseSession, MongoSession, PickleSession
-from rich.pretty import Pretty
-from rich.rule import Rule
-import shutil
+from mypackage.storage import DatabaseSession
 from mypackage.helper import DEVICE_EXCEPTION
 
 console = Console()

@@ -1,27 +1,26 @@
 import sys
 import os
-
 sys.path.append(os.path.abspath("../.."))
 
-import pandas as pd
 import argparse
-from rich.console import Console
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", action="store", type=str, help="CSV file name with processing times")
+    args = parser.parse_args()
+
+import pandas as pd
 import os
 import re
-from mypackage.helper import panel_print, rule_print, format_latex_table
-from mypackage.elastic import ScrollingCorpus, Session
-from itertools import groupby
-from collections import defaultdict
 import json
 import re
 from matplotlib import pyplot as plt
 import numpy as np
-from scipy.stats import pearsonr, spearmanr
-import math
+from scipy.stats import pearsonr
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--file", action="store", type=str, help="CSV file name with processing times")
-args = parser.parse_args()
+from rich.console import Console
+
+from mypackage.helper import panel_print, rule_print, format_latex_table
+from mypackage.elastic import ScrollingCorpus, Session
 
 console = Console()
 store_path = os.path.join(os.path.expanduser("~"), "ceid", "thesis-text", "images")
@@ -97,7 +96,7 @@ def model_time_comparisons(dfs: list[pd.DataFrame]):
     plt.subplots_adjust(hspace=0.4, wspace=0.3)
 
     #colors = plt.cm.get_cmap("Set2").colors  # original
-    #colors = [[(r+1)/2, (g+1)/2, (b+1)/2] for r, g, b in colors]  # lighten
+    #colors = [[(r+1)/2, (g+1)/2, (b+1)/2] for r, g, b in colors]  # lighter
 
     for ax, col, color in zip(axes.flatten(), cols, colors):
         values = [df[col].values[0] for df in df_ms_list]
@@ -319,18 +318,5 @@ if __name__ == "__main__":
 
         #If the dataframe has multiple experiments, split them
         dfs.append(df)
-
-    #console.print(df.loc[df['umap_t']==0])
-
-    #--------------------------------------------------------------------------
-    #console.print([df.agg(['median']).round(3) for df in dfs])
-    console.print(dfs)
     
     total_and_throughput(dfs, df_names=["all-MiniLM-L6-v2", "all-mpnet-base-v2"][:len(dfs)])
-    #threshold_chart([x[['chain_t', 'umap_t', 'cluster_t']].assign(total=lambda d: d.sum(axis=1)) for x in dfs],[0.55, 0.6, 0.65, 0.70, 0.75, 1])
-    #model_time_comparisons([x[['sent_t', 'chain_t', 'umap_t', 'cluster_t']] for x in dfs])
-    #time_vs_doc_size(dfs[0])
-    #total_vs_sent_time(dfs[0])
-    #stats(dfs[0])
-    #min_and_max_doc(dfs[0])
-    #first_n(dfs[0], 10)

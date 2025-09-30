@@ -25,36 +25,24 @@ if __name__ == "__main__":
 
 #=================================================================================================================
 
-from collections import namedtuple
-from mypackage.elastic import Session, ElasticDocument
-from mypackage.helper import NpEncoder, create_table, write_to_excel_tab, DEVICE_EXCEPTION, batched, format_latex_table, rule_print
-from mypackage.clustering.metrics import chain_clustering_silhouette_score, clustering_metrics
-from mypackage.sentence import SentenceChain
-from mypackage.clustering import ChainClustering, dimensionality_reducer
-
 import numpy as np
 import pandas as pd
-
-from mypackage.experiments import ExperimentManager
-from mypackage.storage import PickleSession, MongoSession, DatabaseSession, ProcessedDocument
-
-import pickle
 from itertools import chain
-from functools import reduce
 import json
+from multiprocessing import Pool
+import warnings
 
 from rich.console import Console
-from rich.rule import Rule
-from rich.progress import track, Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
+from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 
-from matplotlib import pyplot as plt
+from mypackage.experiments import ExperimentManager
+from mypackage.storage import MongoSession, DatabaseSession
+from mypackage.elastic import Session
+from mypackage.helper import batched, format_latex_table
+from mypackage.clustering.metrics import clustering_metrics
+from mypackage.clustering import dimensionality_reducer
 
-from multiprocessing import Pool
-
-import warnings
 warnings.filterwarnings("ignore")
-
-
 console = Console()
 
 #=================================================================================================================

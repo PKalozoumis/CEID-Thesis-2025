@@ -3,6 +3,7 @@ from typing import Literal, get_origin, get_args
 from types import SimpleNamespace
 import argparse
 from collections import defaultdict
+
 from rich.tree import Tree
 
 #========================================================================================================================
@@ -172,11 +173,17 @@ def create_time_tree(times: dict , rename_map: dict = None):
         if k.startswith('context_expansion'):
             context_tree.add(f"[green]Cluster {k[18:]}: [cyan]{v:.3f}s[/cyan]")
 
-    summary_tree = tree.add(f"[green]Summarization[/green]: [cyan]{mytimes['summary_time']}s[/cyan]")
-    summary_tree.add(f"[green]Response time[/green]: [cyan]{mytimes['summary_response_time']:.3f}s[/cyan]")
+    #Summarization times
+    if 'generation_time' in mytimes:
+        temp = mytimes['generation_time'] + mytimes['summary_response_time']
+        summary_tree = tree.add(f"[green]Summarization: [cyan]{temp:.3f}s[/cyan]")
+        summary_tree.add(f"[green]Response time[/green]: [cyan]{mytimes['summary_response_time']:.3f}s[/cyan]")
+        summary_tree.add(f"[green]Generation time[/green]: [cyan]{mytimes['generation_time']:.3f}s[/cyan]")
 
-    result['summary_time'] = mytimes['summary_time']
     result['summary_response_time'] = mytimes['summary_response_time']
+
+    if 'generation_time' in mytimes:
+        result['generation_time'] = mytimes['generation_time']
     
     result['total'] = sum(v for v in result.values())
 

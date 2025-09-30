@@ -1,15 +1,16 @@
 const {contextBridge, ipcRenderer} = require("electron")
-
 const io = require('socket.io-client');
 
+//File API
 //===========================================================================================
-
 contextBridge.exposeInMainWorld("fileAPI", {
     writeFile: (filePath, data)=>{
         ipcRenderer.invoke('write-file', filePath, data);
     }
 })
 
+//History API
+//===========================================================================================
 contextBridge.exposeInMainWorld("historyAPI", {
     loadHistory: ()=>{
         return ipcRenderer.invoke('load-history');
@@ -22,7 +23,10 @@ contextBridge.exposeInMainWorld("historyAPI", {
     }
 })
 
-
+//Socket API for communicating with the app server
+//sio object is created in the preload script
+//Its basic operations are exposed to the renderer through this custom socketAPI
+//===========================================================================================
 let sio
 
 contextBridge.exposeInMainWorld("socketAPI", {

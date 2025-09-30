@@ -1,25 +1,14 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..elastic import ElasticDocument
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances, cosine_similarity
-from itertools import pairwise, chain
-from collections import defaultdict
+from itertools import pairwise
 
 from rich.console import Console
 from rich.table import Table
 
 from ..helper import create_table
 from .classes import SentenceChain
-
-from matplotlib import pyplot as plt
-import seaborn as sns
-import pandas as pd
-
-from multiprocessing import Pool
-from rich.progress import Progress
 
 
 def chaining_ratio(chains: list[SentenceChain]) -> float:

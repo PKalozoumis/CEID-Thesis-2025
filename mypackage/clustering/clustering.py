@@ -8,11 +8,10 @@ from matplotlib.axes import Axes
 from sklearn.cluster import AgglomerativeClustering
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
+import time
 
 from ..sentence import SentenceChain
 from .classes import ChainCluster, ChainClustering
-
-import time
 
 #===================================================================================================
 
@@ -25,7 +24,6 @@ def group_chains_by_label(chains: list[SentenceChain], clustering: list[int]) ->
     ---
     chains: list[SentenceChain]
         The original set of chains
-
     clustering: list[int])
         A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
 
@@ -66,22 +64,35 @@ def chain_clustering(
     ) -> ChainClustering:
     '''
     Clusters a list of sentence chains for a single document.
-    The chains inside each returned cluster are ordered based on their offset inside the document
+    In the returned results, the chains are ordered in increasing order of their offset inside the document
 
     Arguments
     ---
-    chain: list[SentenceChain]
-        The list of chains to cluster
-
-    n_components: int
-        The number of dimensions to reduce the embedding space to.
-        Set to ```None``` to skip dimensionality reduction
+    chains: list[SentenceChain]
+        The list of sentence chains to cluster.
+    n_components: int, optional
+        Number of dimensions for UMAP reduction. Use ``None`` to skip reduction.
+    min_dista: float
+        Minimum distance parameter for UMAP (controls cluster tightness).
+    min_cluster_size: int
+        Minimum size of clusters for HDBSCAN.
+    min_samples: int
+        Minimum samples parameter for HDBSCAN (affects cluster stability).
+    n_neighbors: int
+        Number of neighbors for UMAP (affects local vs global structure).
+    pooling_method: str
+        The method used to calculate the cluster representative. See ```ChainCluster.VALID_METHODS```. Defaults to ```average```
+    normalize: bool
+        Whether to normalize the cluster representatives. Defaults to  ```True```
+    cluster_selection_method: {"eom", "leaf"}
+        Strategy used by HDBSCAN to select clusters. Defaults to ```eom```
+    allow_hierarchical: bool
+        Whether to allow hierarchical clustering of very small datasets instead of UMAP + HDBSCAN. Defaults to ```False```
 
     Returns
     ---
     labels: list[int]
         A list of labels. One label for each input chain
-
     clustered_chains: dict[int, ChainCluster]
         A dictionary of clusters, with the label as the key
     '''
@@ -149,7 +160,7 @@ def chain_clustering(
 
 def label_positions(labels: list[int]) -> dict[int, list[int]]:
     '''
-    Inverts the label list. For each label, it returns the indices where it occurs
+    Inverts the given label list. For each label, it returns the indices where it occurs
 
     Arguments
     ---
@@ -175,7 +186,7 @@ def label_positions(labels: list[int]) -> dict[int, list[int]]:
 #===================================================================================================
 
 def visualize_clustering(
-        chains: list[SentenceChain],
+        input_vectors: list[SentenceChain|ChainCluster],
         clustering_labels: list[int],
         *,
         save_to: str | None = None,
@@ -186,37 +197,42 @@ def visualize_clustering(
         n_neighbors: int = 15,
         shape: str = "o",
         no_outliers: bool = False,
-        extra_vector = None
+        extra_vector: np.ndarray | None = None
         ):
     '''
     Creates a scatter plot of the clustered chains
 
     Arguments
     ---
-    chains: list[SentenceChain]
-        The original set of chains
-
-    clustering: list[int]
+    input_vectors: list[SentenceChain|ChainCluster]
+        The original set of vectors
+    clustering_labels: list[int]
         A list of cluster labels. One label for each chain in ```chains```. This is the result of ```chain_clustering```
-
     save_to: str, optional
         Path to save the plot to. By default, the path is ```None``` and the plot does not get saved
-
     show: bool
         Whether to display the plot on the screen or not. Defaults to ```False```
     ax: Axes
         We can provide an optional subplot to plot on instead of generating the figure inside the function.
         If this argument is provided, then ```save_to``` and ```show``` are ignored
-
     return_legend: bool
         If set to ```True```, then the legend elements are returned from the function instead of
         drawn on the axis object. Defaults to ```False```
-
+    min_dista: float
+        Minimum distance parameter for UMAP (controls cluster tightness).
+    n_neighbors: int
+        Number of neighbors for UMAP (affects local vs global structure).
     shape: str
         Shape for scatter plot dots
-
     no_outliers: bool
         Remove outliers from the visualization
+    extra_vector: np.ndarray, optional
+        An extra vector to place on the plot. Typically used to represent the query.
+
+    Returns
+    ---
+    legend_elements: list|None
+        Legend elements if ```return_legend = True```, else None
     '''
 
     #Parameters checks
@@ -235,11 +251,11 @@ def visualize_clustering(
 
     #Filter out outliers
     if no_outliers:
-        doc_id = chains[0].doc.id
-        chains = [chain for chain, label in zip(chains, clustering_labels) if label >= 0]
+        doc_id = input_vectors[0].doc.id
+        input_vectors = [chain for chain, label in zip(input_vectors, clustering_labels) if label >= 0]
         clustering_labels = [label for label in clustering_labels if label >= 0]
 
-        if len(chains) == 0:
+        if len(input_vectors) == 0:
             warnings.warn(f"All chains of document {doc_id} were outliers and were removed")
             ax.set_xticks([])
             ax.set_yticks([])
@@ -256,7 +272,7 @@ def visualize_clustering(
 
         #Dimensionality reduction
         #-----------------------------------------------------------------------
-        vectors = [chain.vector for chain in chains]
+        vectors = [chain.vector for chain in input_vectors]
         if extra_vector is not None:
             vectors.append(extra_vector)
             colors.append((0, 0, 0))
@@ -277,9 +293,31 @@ def visualize_clustering(
             legend_elements += [Patch(facecolor=(0,0,0), label="Outliers")]
         legend_elements += [Patch(facecolor=cmap[(2*i + int(i > 9))%20], label=f'Cluster {i:02}') for i in range(n_clusters - (0 if no_outliers else 1))]
 
-        #Legend creation
+        #Plotting
         #-----------------------------------------------------------------------
-        ax.scatter(reduced[:, 0], reduced[:, 1], c=colors, marker=shape)
+        if extra_vector is not None:
+            sims = cosine_similarity(matrix[:-1], extra_vector.reshape(1, -1)).flatten()
+            mask_star = sims >= 0.5
+            mask_circle = ~mask_star
+
+            # normal vectors
+            ax.scatter(reduced[:-1, 0][mask_circle],
+                    reduced[:-1, 1][mask_circle],
+                    c=np.array(colors[:-1])[mask_circle],
+                    marker="o")
+
+            # similar vectors
+            ax.scatter(reduced[:-1, 0][mask_star],
+                    reduced[:-1, 1][mask_star],
+                    c=np.array(colors[:-1])[mask_star],
+                    marker="D")
+
+            # the extra_vector itself (always a distinct marker, e.g. 'X')
+            ax.scatter(reduced[-1, 0], reduced[-1, 1],
+                    c=[colors[-1]], marker="X", s=100)
+        else:
+            ax.scatter(reduced[:, 0], reduced[:, 1], c=colors, marker=shape)
+        
         if not return_legend:
             ax.legend(handles=legend_elements)
         ax.set_xticks([])

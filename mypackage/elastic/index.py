@@ -5,6 +5,18 @@ import sys
 #===================================================================================
 
 def create_index(client: Elasticsearch, index_name: str, mapping_path: str = "mapping.json"):
+    '''
+    Creates an Elasticsearch index
+
+    Arguments
+    ---
+    client: Elasticsearch
+        The Elasticsearch client
+    index_name: str
+        Name of the new index. Index is deleted if it already exists.
+    mapping_path: str
+        Path to the mapping file. Defaults to ```mapping.json```
+    '''
     with open(mapping_path, "r") as f:
         mapping = json.load(f)
 
@@ -31,6 +43,16 @@ def create_index(client: Elasticsearch, index_name: str, mapping_path: str = "ma
 #===================================================================================
 
 def empty_index(client: Elasticsearch, index_name: str):
+    '''
+    Creates an Elasticsearch index
+
+    Arguments
+    ---
+    client: Elasticsearch
+        The Elasticsearch client
+    index_name: str
+        Name of the new index. Index is deleted if it already exists.
+    '''
     if client.indices.exists(index=index_name):
         resp = client.delete_by_query(index=index_name, body={
             "query": {

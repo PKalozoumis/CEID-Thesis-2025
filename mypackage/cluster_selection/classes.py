@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import pickle
-import os
 import numpy as np
 from sentence_transformers import CrossEncoder
 from itertools import chain
+import copy
 
 from rich.rule import Rule
 from rich.padding import Padding
@@ -18,10 +17,6 @@ from ..clustering import ChainCluster, ChainClustering
 from ..helper import panel_print
 from ..sentence import SentenceLike
 from ..elastic import Document
-from .helper import print_candidates, print_candidate_states
-
-import time
-import copy
 
 console = Console()
 
@@ -51,6 +46,11 @@ class RelevanceEvaluator():
         join: bool
             If set to ```True```, it evaluates all sentences in the input list as one input sequence. Defaults to ```False```,
             meaining that each sentence is evaluated separately
+
+        Returns
+        ---
+        scores: float|list[float]
+            A single score if ```join=True```, else a list of scores
         '''
         if join:
             return self.model.predict([(self.query.text, "".join([s.text for s in sentences]))])[0]
@@ -183,6 +183,22 @@ class SummaryCandidate():
     #---------------------------------------------------------------------------------------------------
 
     def __init__(self, chain: SentenceChain, score: float, evaluator: RelevanceEvaluator = None):
+        '''
+        Represents a central chain on which we apply context expansion.
+        It is the input and output of the context expansion process.
+        It is a list of one or more consecutive chains whose text may be used as input to the summarization model.
+        The relevance score of the full span is calculated with a cross-encoder.
+
+        Arguments
+        ---
+        chain: SentenceChain
+            The central chain to expand
+        score: float
+            The score of the central chain. Becomes the initial score of the candidate.
+        evaluator: RelevanceEvaluator
+            The evaluation context
+        '''
+        
         self.chain = chain
         self.selected_state = -1 #Latest
         self.history = [self.State([chain], score)]
@@ -214,7 +230,6 @@ class SummaryCandidate():
         return " ".join([c.text for c in self.context.chains])
     
     def pretty_text(self, *, show_added_context = False, show_chain_indices = False, show_chain_sizes = False):
-
         thing1 = lambda c: f"[cyan][{c.index}" + (f" ({len(c)} sentences)" if show_chain_sizes else "") + "]: [/cyan]"
         thing2 = lambda c: c.text if c.index == self.chain.index else f"[green]{c.text}[/green]"
 
@@ -257,16 +272,18 @@ class SummaryCandidate():
         ---
         stop_expansion: bool
             When set to ```True```, if the optimal state is the same as the old state, the
-            candidate is marked as non-expandable, meaning that no improvement occurs from expansion
-
+            candidate is marked as non-expandable, meaning that no improvement occurs from expansion. Defaults to  ```False```
         timestamp: int, optional
-            Only optimize on the states that have specific timestamp
-
+            Optimize by focusing on the states that have specific timestamp
         constraints: list[int], optional
-            Prevent the optimization process from selecting states that contain the chains in this list
-
+            Prevent the optimization process from selecting states that contain chains in this list
         threshold: float
             Threshold for how much the score needs to improve relative to the size of the new context. Defaults to ```0.01```
+
+        Returns
+        ---
+        state: int|None
+            The index of the new state, or ```None``` if all the options were constrained
         '''
         if timestamp is not None:
             temp = [i for i, s in enumerate(self.history) if s.timestamp == timestamp]
@@ -305,11 +322,12 @@ class SummaryCandidate():
         ---
         n: int
             The number of extra chains to add. Defaults to ```1```
-
         branch_from: int | None
             The index of the state from ```history``` from which to expand. Defaults to ```None```,
             meaning the currently selected state (denoted by ```selected_state```). Setting to ```-1```
             expands from the latest state in the history
+        timestamp: int
+            Optional timestamp to keep track of expansion rounds
         '''
         if n <= 0 or not self.expandable:
             return
@@ -339,11 +357,12 @@ class SummaryCandidate():
         ---
         n: int
             The number of extra chains to add. Defaults to ```1```
-
         branch_from: int | None
             The index of the state from ```history``` from which to expand. Defaults to ```None```,
             meaning the currently selected state (denoted by ```selected_state```). Setting to ```-1```
             expands from the latest state in the history
+        timestamp: int
+            Optional timestamp to keep track of expansion rounds
         '''
         if n <= 0 or not self.expandable:
             return
@@ -373,11 +392,12 @@ class SummaryCandidate():
         ---
         n: int
             The number of extra chains to add. Defaults to ```1```
-
         branch_from: int | None
             The index of the state from ```history``` from which to expand. Defaults to ```None```,
             meaning the currently selected state (denoted by ```selected_state```). Setting to ```-1```
             expands from the latest state in the history
+        timestamp: int
+            Optional timestamp to keep track of expansion rounds
         '''
         if n <= 0 or not self.expandable:
             return
@@ -556,6 +576,9 @@ class SelectedCluster():
     #---------------------------------------------------------------------------
     
     def remove_duplicate_candidates(self) -> SelectedCluster:
+        '''
+        Removes candidates with duplicate index ranges
+        '''
         seen = set()
         keep = []
         for candidate in self.candidates:
@@ -591,7 +614,19 @@ class SelectedCluster():
 
     def filter_and_merge_candidates(self, negative_threshold: float = -2, good_candidate_threshold: float = 3, max_bridge_size: int = 1) -> SelectedCluster:
         '''
-        Only keeps candidates that have a cross-score above the threshold
+        Filters out very bad candidates.
+        Then, it checks if it's beneficial to connect strong and weak candidates through one or more intermediate chains.
+        Finally, the weak candidates are rejected and the strong ones with neighboring ranges are merged.
+
+        Arguments
+        ---
+        negative_threshold: float
+            Every candidate with score below the ```negative_threshold``` gets automatically removed. Defaults to ```-2```
+        good_candidate_threshold: float
+            Candidates that are between ```negative_threshold``` and ```good_candidate_threshold``` are considered weak.
+            Those that are above ```good_candidate_threshold``` are considered strong. Defaults to ```3```
+        max_bridge_size: int
+            Max number of intermediate chains to use to connect a weak and strong candidate. Defaults to ```1```
         '''
         filtered_candidates = [c for c in self.candidates if c.score > negative_threshold]
         good_candidates = [c for c in filtered_candidates if c.score >= good_candidate_threshold]
@@ -637,12 +672,20 @@ class SelectedCluster():
         return self
     #---------------------------------------------------------------------------
     
-    def _merge_candidates(self, candidates_list: list[SummaryCandidate]) -> list[SummaryCandidate]:
+    @staticmethod
+    def _merge_candidates(candidates_list: list[SummaryCandidate]) -> list[SummaryCandidate]:
         '''
-        Merges neighboring chains into one
+        Merges candidates that contain overlapping chains
 
-        Merges candidates that contain overlapping chains. A merge only happens between candidates whose scores
-        have the same sign (both positive or negative)
+        Arguments
+        ---
+        candidates_list: list[SummaryCandidate]
+            The list of candidates to merge
+        
+        Returns
+        ---
+        merged: list[SummaryCandidate]
+            List of merged candidates
         '''
         
         candidates_list = sorted(candidates_list, key=lambda x: x.first_index, reverse=False)
@@ -701,6 +744,11 @@ class SelectedCluster():
         '''
         Return the entire cluster's score at a specific point in time.
         This quietly assumes that all contexts move at the same pace (all histories have same length)
+
+        Arguments
+        ---
+        i: int
+            The history index to check
         '''
         if self.candidates is None:
             return None

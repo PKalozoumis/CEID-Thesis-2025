@@ -12,7 +12,6 @@ from rich.console import Console
 
 from .elastic import elasticsearch_client, NotFoundError
 from ..helper import overrides
-
 if TYPE_CHECKING:
     from ..sentence import Sentence, SentenceChain
 
@@ -21,10 +20,12 @@ console = Console()
 #================================================================================================================
 
 class Session():
+    '''
+    Represents a method for retrieving documents from a specific index.
+    Retrieval method is typically an Elasticsearch client, but it can also be a cache directory.
+    Groups information about the client, the index and the authentication methods.
+    '''
 
-    #This should also include information about where to retrieved the processed documents from
-    #Could be pickle files (directory) or database (credentials)
-    
     client: Elasticsearch
     index_name: str
     cache_dir: str
@@ -51,30 +52,24 @@ class Session():
         ---
         index_name: str
             The index to connect to
-
         client: Elasticsearch, optional
             The Elasticsearch client. If not set, it's automatically generated from ```credentials_path``` and ```cert_path```.
             Either ```client/credentials``` or ```cache_dir``` needs to be always set. Using both gives priority to the cache
             for retrieval
-
         cache_dir: str, optional
             An alternative retrieval method to the Elasticsearch client. A cache directory to retrieve and store documents.
             When using the cache instead of the client, we can skip providing the credentials and the certificate.
             Either ```cache_dir``` or ```client/credentials``` needs to be always set. Using both gives priority to the cache
             for retrieval
-
         credentials_path: str
             Path to a JSON file containing the Elasticsearch username (```elastic_user```), password (```elastic_password```)
             and certificate fingerprint (```cert_fingerprint```). If not set, defaults to ```credentials.json```
-
         cert_path: str
             Path to the Elasticsearch certificate. If not set, defaults to ```http_ca.crt```
-
         base_path: str, optional
             By default, the files ```credentials.json``` and ```http_ca.crt``` should be in the directory we run the script from.
             We can change the directory where these files are searched for by setting ```base_path```.
             This is useful if we want to maintain the default names, but the files are stored somewhere else
-
         use: str
             Which method to use to retrieve documents.
             Possible values are ```client```, ```cache``` and ```both```. Defaults to ```client```
@@ -104,6 +99,10 @@ class Session():
 
         Arguments
         ---
+        raw_elasticsearch_doc: ObjectApiResponse
+            A single document, exactly as it was returned by ```client.search```
+        id: int
+            The document ID
         '''
         if self.cache_dir:
             fname = os.path.join(self.cache_dir, f"{self.index_name.replace('-', '_')}_{id:04}.json")
@@ -116,6 +115,19 @@ class Session():
     #----------------------------------------------------------------------------------------------
 
     def cache_load(self, id: int) -> dict | None:
+        '''
+        Attempts to load a document from cache
+
+        Arguments
+        ---
+        id: int
+            The document to return
+
+        Returns
+        ---
+        res: dict | None
+            The document. If it was not found or caching was disabled, then it's ```None```
+        '''
         if self.use in ["cache", "both"] and self.cache_dir:
             fname = os.path.join(self.cache_dir, f"{self.index_name.replace('-', '_')}_{id:04}.json")
             if os.path.isfile(fname):
@@ -244,7 +256,7 @@ class ElasticDocument(Document):
         Arguments
         ---
         session: Session
-            An Elasticsearch session
+            The Elasticsearch session
         id: int
             The numeric ID of the requested document in Elasticsearch
         filter_path: str
@@ -361,6 +373,8 @@ class ScrollingCorpus:
             List of extra fields (besides ```doc_field```) inside _source to retrieve
         limit: int|None
             The maximum number of documents to return. Defaults to ```None```, meaning no limit
+        reject_list: list[int]
+            List of document IDs to ignore
         '''
         self.session = session
         self.batch_size = batch_size

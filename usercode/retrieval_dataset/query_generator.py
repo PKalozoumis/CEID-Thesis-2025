@@ -1,22 +1,23 @@
 import sys
 import os
-
 sys.path.append(os.path.abspath("../.."))
 
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--start", type=int, action="store", default=0)
-parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--start", type=int, action="store", default=0)
+    parser.add_argument("--cache", action="store_true", default=False, help="Retrieve docs from cache instead of elasticsearch")
+    args = parser.parse_args()
 
-from mypackage.elastic import ElasticDocument, Session
 import os
 import json
 import lmstudio as lms
 from lmstudio import LMStudioClientError
 import platform
 import netifaces
+
+from mypackage.elastic import ElasticDocument, Session
 
 #Initialize model
 #=================================================================================================

@@ -4,28 +4,26 @@ sys.path.append(os.path.abspath("../.."))
 
 import argparse
 
-#==================================================================================
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--llm-backend", action="store", type=str, choices=["llamacpp", "lmstudio"], default="lmstudio")
-    parser.add_argument("--host", action="store", type=str, default="localhost:1234")
+    parser.add_argument("-l", "--llm-backend", action="store", type=str, choices=["llamacpp", "lmstudio"], default="lmstudio", help="The LLM backend used for summarization")
+    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to load the preprocessing results from", choices=['mongo', 'pickle'])
+    parser.add_argument("--llm-host", action="store", type=str, default="localhost:1234", help="Host where the LLM backend is located")
     parser.add_argument("-p", "--port", action="store", type=int, help="Server port", default=1225)
-    parser.add_argument("--no-prompt-cache", action="store_true", help="Disable system prompt caching", default=False)
-    parser.add_argument("-db", action="store", type=str, default='mongo', help="Database to store the preprocessing results in", choices=['mongo', 'pickle'])
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
+    parser.add_argument("--no-prompt-cache", action="store_true", help="Disable system prompt caching", default=False)
     parser.add_argument("--test-mode", action="store_true", default=False, help="Use predefined set of docs")
     server_args = parser.parse_args()
 
-#==================================================================================
+from application_pipeline import pipeline
+from application_helper import Arguments
 
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
-from rich.console import Console
-from mypackage.llm import LLMSession
 
-from application_pipeline import pipeline
-from application_helper import Arguments
+from rich.console import Console
+
+from mypackage.llm import LLMSession
 
 console = Console()
 app = Flask(__name__)
